@@ -1,0 +1,35 @@
+name: Static analysis
+
+on:
+  push:
+    branches:
+      - main
+      - devel
+  pull_request:
+    branches:
+      - main
+      - devel
+
+jobs:
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@v4
+
+      - name: Download and run cloc
+        run: |
+          curl -s https://raw.githubusercontent.com/AlDanial/cloc/master/cloc > cloc
+          chmod +x cloc
+          ./cloc --version
+          ./cloc $(git ls-files)
+
+      - name: Code formatting with black
+        run: |
+          pip install black
+          black --check .
+
+      - name: Code formatting with isort
+        run: |
+          pip install isort
+          isort --check .
