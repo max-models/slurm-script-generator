@@ -173,8 +173,6 @@ cython_debug/
 junit/
 
 # Exported files
-*.yml
-*.yaml
 *.sh
 *.slurm
 *.json
