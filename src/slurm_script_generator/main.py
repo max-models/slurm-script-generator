@@ -26,6 +26,16 @@ def add_misc_options(parser):
     )
 
     parser.add_argument(
+        "--vars",
+        dest="vars",
+        type=str,
+        nargs="+",
+        default=[],
+        metavar="ENVIRONMENT_VARS",
+        help="Environment variables to export (e.g., --vars VAR1=a VAR2=b)",
+    )
+
+    parser.add_argument(
         "--venv",
         dest="venv",
         type=str,
@@ -145,6 +155,15 @@ def main():
                 line_length=line_length,
             )
     script += "#" * (line_length + 2) + "\n\n"
+
+    vars = args_dict.get("vars", [])
+    if len(vars) > 0:
+        for var in vars:
+            script += add_line(
+                f"export {var}",
+                "Set environment variable",
+                line_length=line_length,
+            )
 
     if args_dict.get("printself", False):
         script += add_line(
