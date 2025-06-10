@@ -111,7 +111,7 @@ def read_yaml(path):
         return json.load(f)
 
 
-def generate_script(sbatch_args):
+def generate_script(sbatch_args) -> str:
 
     slurm_options_dict = sbatch.get_slurm_options_dict()
 
@@ -223,8 +223,8 @@ def generate_script(sbatch_args):
     if args_dict.get("output") is not None:
         with open(args_dict.get("output"), "w") as f:
             f.write(script)
-    else:
-        print(script)
+
+    return script
 
 
 def main():
@@ -237,7 +237,9 @@ def main():
     add_misc_options(parser=parser)
     sbatch_args = parser.parse_args()
 
-    generate_script(sbatch_args=sbatch_args)
+    script = generate_script(sbatch_args=sbatch_args)
+
+    print(script)
 
 
 if __name__ == "__main__":
