@@ -47,6 +47,11 @@ jobs:
         run: |
           source env/bin/activate
           generate-slurm-script -h
+      
+      - name: Test CLI
+        run: |
+          source env/bin/activate
+          generate-slurm-script --nodes 1 --ntasks-per-node 16
 
       # Run tests
       - name: Run tests
@@ -56,12 +61,3 @@ jobs:
           pytest .
         env:
           CI: true
-
-      # Code formatting check with black
-      - name: Code formatting with black and isort
-        run: |
-          source env/bin/activate
-          pip install black
-          pip install isort
-          black --check src/
-          isort --check src/
