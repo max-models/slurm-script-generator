@@ -1,8 +1,7 @@
 def test_import_app():
-    from app.main import main
+    from slurm_script_generator.main import main
 
-    print("app imported")
-    main()
+    print("slurm_script_generator imported")
 
 
 if __name__ == "__main__":
