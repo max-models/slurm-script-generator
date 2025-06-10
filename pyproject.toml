@@ -1,34 +1,39 @@
 [build-system]
-requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
+
+requires = [ "setuptools", "wheel" ]
 
 [project]
 name = "slurm-script-generator"
 version = "0.1"
 description = "Generate slurm scripts."
 readme = "README.md"
+keywords = [ "python" ]
+license = { file = "LICENSE.txt" }
+authors = [ { name = "Max" } ]
 requires-python = ">=3.8"
-license = {file = "LICENSE.txt"}
-keywords = ["python"]
-authors = [{name = "Max"}]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
 ]
-dependencies = [    
+dependencies = [
 ]
 
-
-[project.optional-dependencies]
-dev = ["check-manifest","black",
-    "isort",
-    "pytest",]
-test = ["coverage"]
-
-[project.urls]
-"Source" = "https://github.com/max-models/slurm-script-generator"
+optional-dependencies.dev = [
+  "black",
+  "check-manifest",
+  "isort",
+  "pytest",
+]
+optional-dependencies.test = [ "coverage" ]
+urls."Source" = "https://github.com/max-models/slurm-script-generator"
+scripts.generate-slurm-script = "slurm_script_generator.main:main"
 
 [tool.setuptools.packages.find]
-where = ["src"]
-
-[project.scripts]
-generate-slurm-script = "slurm_script_generator.main:main"
+where = [ "src" ]
