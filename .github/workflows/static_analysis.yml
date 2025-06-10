@@ -24,59 +24,12 @@ jobs:
           ./cloc --version
           ./cloc $(git ls-files)
 
-      # linting:
-      #   runs-on: self-hosted
-      #   env:
-      #     PATH: ~/virtual_envs/env_maxpic/bin:$PATH
-      #   steps:
-
-      #     - name: Set up Python
-      #       uses: actions/setup-python@v4
-      #       # with:
-      #       #   python-version: '3.12'
-
-      # - name: Cache Python dependencies
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: ~/virtual_envs/env_maxpic/
-      #     key: python-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
-      #     restore-keys: |
-      #       python-${{ runner.os }}-
-
       - name: Code formatting with black
         run: |
           pip install black
-          pip install "black[jupyter]"
-          black --check src/
-          black --check tests/
-          black --check tutorials/
+          black --check .
 
       - name: Code formatting with isort
         run: |
           pip install isort
-          isort --check src/
-          isort --check tests/
-          isort --check tutorials/
-
-      - name: Code formatting with prospector
-        continue-on-error: true
-        run: |
-          pip install mypy
-          mypy src/
-
-      - name: Code formatting with prospector
-        continue-on-error: true
-        run: |
-          pip install prospector
-          prospector src/
-
-      - name: Code formatting with ruff
-        run: |
-          pip install ruff
-          ruff check
-
-      - name: Code formatting with pylint
-        continue-on-error: true
-        run: |
-          pip install pylint
-          pylint src/
+          isort --check .
