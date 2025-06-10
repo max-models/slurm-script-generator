@@ -111,20 +111,9 @@ def read_yaml(path):
         return json.load(f)
 
 
-def generate_script(sbatch_args) -> str:
+def generate_script(args_dict) -> str:
 
     slurm_options_dict = sbatch.get_slurm_options_dict()
-
-    if sbatch_args.input is not None:
-        args_dict = read_yaml(sbatch_args.input)
-    else:
-        args_dict = {}
-    for arg in sbatch_args.__dict__:
-        val = sbatch_args.__dict__[arg]
-        if val is not None and val is not False:
-            if isinstance(val, list) and len(val) == 0:
-                continue
-            args_dict.update({arg: val})
 
     line_length = args_dict.get("line_length", 60)
 
@@ -237,7 +226,18 @@ def main():
     add_misc_options(parser=parser)
     sbatch_args = parser.parse_args()
 
-    script = generate_script(sbatch_args=sbatch_args)
+    if sbatch_args.input is not None:
+        args_dict = read_yaml(sbatch_args.input)
+    else:
+        args_dict = {}
+    for arg in sbatch_args.__dict__:
+        val = sbatch_args.__dict__[arg]
+        if val is not None and val is not False:
+            if isinstance(val, list) and len(val) == 0:
+                continue
+            args_dict.update({arg: val})
+
+    script = generate_script(args_dict=args_dict)
 
     print(script)
 
