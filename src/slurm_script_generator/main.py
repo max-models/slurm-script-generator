@@ -54,6 +54,24 @@ def add_misc_options(parser):
         help="Set up likwid environment variables",
     )
 
+
+    parser.add_argument(
+        "--input",
+        dest="input",
+        type=str,
+        default=None,
+        metavar="INPUT_PATH",
+        help="path to input yaml file",
+    )
+
+    parser.add_argument(
+        "--output",
+        dest="output",
+        type=str,
+        default=None,
+        metavar="OUTPUT_PATH",
+        help="path to save slurm batch script to",
+    )
     return parser
 
 
@@ -184,4 +202,8 @@ def main():
 
         script += "\n"
 
-    return script
+    if sbatch_args.output is not None:
+        with open(sbatch_args.output, 'w') as f:
+            f.write(script)
+    else:
+        print(script)
