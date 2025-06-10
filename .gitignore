@@ -177,3 +177,4 @@ junit/
 *.yaml
 *.sh
 *.slurm
+*.json
