@@ -3,9 +3,9 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "template-python"
+name = "slurm-script-generator"
 version = "0.1"
-description = "Template python repository."
+description = "Generate slurm scripts."
 readme = "README.md"
 requires-python = ">=3.8"
 license = {file = "LICENSE.txt"}
@@ -14,20 +14,21 @@ authors = [{name = "Max"}]
 classifiers = [
     "Development Status :: 3 - Alpha",
 ]
-dependencies = [
-    "black",
-    "isort",
-    "pytest",
+dependencies = [    
 ]
 
+
 [project.optional-dependencies]
-dev = ["check-manifest"]
+dev = ["check-manifest","black",
+    "isort",
+    "pytest",]
 test = ["coverage"]
+
 [project.urls]
-"Source" = "https://github.com/max-models/template-python"
+"Source" = "https://github.com/max-models/slurm-script-generator"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [project.scripts]
-template-python = "app.main:main"
+generate-slurm-script = "slurm_script_generator.main:main"
