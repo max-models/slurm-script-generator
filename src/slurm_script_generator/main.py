@@ -1,7 +1,7 @@
 import argparse
 import json
 
-import slurm_script_generator.sbatch_parser as sbatch_parser
+import slurm_script_generator.sbatch as sbatch
 
 
 def add_misc_options(parser):
@@ -111,32 +111,9 @@ def read_yaml(path):
         return json.load(f)
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Slurm job submission options",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+def generate_script(args_dict) -> str:
 
-    sbatch_parser.add_slurm_options(parser=parser)
-
-    slurm_options_dict = {}
-    for action in parser._actions:
-        slurm_options_dict[action.dest] = action.help
-
-    add_misc_options(parser=parser)
-
-    sbatch_args = parser.parse_args()
-
-    if sbatch_args.input is not None:
-        args_dict = read_yaml(sbatch_args.input)
-    else:
-        args_dict = {}
-    for arg in sbatch_args.__dict__:
-        val = sbatch_args.__dict__[arg]
-        if val is not None and val is not False:
-            if isinstance(val, list) and len(val) == 0:
-                continue
-            args_dict.update({arg: val})
+    slurm_options_dict = sbatch.get_slurm_options_dict()
 
     line_length = args_dict.get("line_length", 60)
 
@@ -235,5 +212,35 @@ def main():
     if args_dict.get("output") is not None:
         with open(args_dict.get("output"), "w") as f:
             f.write(script)
+
+    return script
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Slurm job submission options",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    sbatch.add_slurm_options(parser=parser)
+    add_misc_options(parser=parser)
+    sbatch_args = parser.parse_args()
+
+    if sbatch_args.input is not None:
+        args_dict = read_yaml(sbatch_args.input)
     else:
-        print(script)
+        args_dict = {}
+    for arg in sbatch_args.__dict__:
+        val = sbatch_args.__dict__[arg]
+        if val is not None and val is not False:
+            if isinstance(val, list) and len(val) == 0:
+                continue
+            args_dict.update({arg: val})
+
+    script = generate_script(args_dict=args_dict)
+
+    print(script)
+
+
+if __name__ == "__main__":
+    main()

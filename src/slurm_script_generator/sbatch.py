@@ -578,3 +578,16 @@ def add_slurm_options(parser):
         dest="nvmps",
         help="launching NVIDIA MPS for job",
     )
+
+
+def get_slurm_options_dict():
+    _parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    add_slurm_options(parser=_parser)
+
+    slurm_options_dict = {}
+    for action in _parser._actions:
+        slurm_options_dict[action.dest] = action.help
+
+    return slurm_options_dict
