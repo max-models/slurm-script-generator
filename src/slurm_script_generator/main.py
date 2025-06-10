@@ -154,8 +154,6 @@ def main():
         )
 
     # Load modules
-    print(f'{args_dict.get("modules") = }')
-
     if len(args_dict.get("modules", [])) > 0:
         script += add_line(
             "module purge",
@@ -216,7 +214,7 @@ def main():
         path = args_dict.pop("export_json")
         export_json(args_dict=args_dict, path=path)
     if args_dict.get("output") is not None:
-        with open(sbatch_args.get("output"), "w") as f:
+        with open(args_dict.get("output"), "w") as f:
             f.write(script)
     else:
         print(script)
