@@ -161,7 +161,7 @@ def main():
             line_length=line_length,
         )
         script += add_line(
-            f"module load {' '.join(args_dict.get("modules"))}",
+            f"module load {' '.join(args_dict.get('modules'))}",
             "modules",
             line_length=line_length,
         )
