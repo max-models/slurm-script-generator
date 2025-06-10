@@ -1,7 +1,7 @@
 import argparse
 import json
 
-import slurm_script_generator.sbatch_parser as sbatch_parser
+import slurm_script_generator.sbatch as sbatch
 
 
 def add_misc_options(parser):
@@ -111,21 +111,9 @@ def read_yaml(path):
         return json.load(f)
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Slurm job submission options",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+def generate_script(sbatch_args):
 
-    sbatch_parser.add_slurm_options(parser=parser)
-
-    slurm_options_dict = {}
-    for action in parser._actions:
-        slurm_options_dict[action.dest] = action.help
-
-    add_misc_options(parser=parser)
-
-    sbatch_args = parser.parse_args()
+    slurm_options_dict = sbatch.get_slurm_options_dict()
 
     if sbatch_args.input is not None:
         args_dict = read_yaml(sbatch_args.input)
@@ -237,3 +225,20 @@ def main():
             f.write(script)
     else:
         print(script)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Slurm job submission options",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    sbatch.add_slurm_options(parser=parser)
+    add_misc_options(parser=parser)
+    sbatch_args = parser.parse_args()
+
+    generate_script(sbatch_args=sbatch_args)
+
+
+if __name__ == "__main__":
+    main()

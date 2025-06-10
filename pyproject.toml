@@ -33,7 +33,7 @@ optional-dependencies.dev = [
 ]
 optional-dependencies.test = [ "coverage" ]
 urls."Source" = "https://github.com/max-models/slurm-script-generator"
-scripts.generate-slurm-script = "slurm_script_generator.main:main"
+scripts.generate-slurm-script = "slurm_script_generator.main:generate_script"
 
 [tool.setuptools.packages.find]
 where = [ "src" ]
