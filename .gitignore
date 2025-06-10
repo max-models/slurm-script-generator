@@ -171,3 +171,9 @@ cython_debug/
 
 # Unit test output
 junit/
+
+# Exported files
+*.yml
+*.yaml
+*.sh
+*.slurm

@@ -1,5 +1,7 @@
 import argparse
 
+import yaml
+
 import slurm_script_generator.sbatch_parser as sbatch_parser
 
 
@@ -54,7 +56,6 @@ def add_misc_options(parser):
         help="Set up likwid environment variables",
     )
 
-
     parser.add_argument(
         "--input",
         dest="input",
@@ -72,6 +73,15 @@ def add_misc_options(parser):
         metavar="OUTPUT_PATH",
         help="path to save slurm batch script to",
     )
+
+    parser.add_argument(
+        "--export-yaml",
+        dest="export_yaml",
+        type=str,
+        default=None,
+        metavar="YAML_PATH",
+        help="path to export yaml for generating the slurm script to",
+    )
     return parser
 
 
@@ -80,6 +90,16 @@ def add_line(line, comment="", line_length=40):
         return f"{line} # {comment}\n"
     else:
         return f"{line} {' ' * (line_length - len(line))}# {comment}\n"
+
+
+def export_yaml(args_dict, path):
+    with open(path, "w") as f:
+        yaml.dump(args_dict, f, default_flow_style=False)
+
+
+def read_yaml(path):
+    with open(path, "r") as f:
+        return yaml.safe_load(f)
 
 
 def main():
@@ -98,46 +118,34 @@ def main():
 
     sbatch_args = parser.parse_args()
 
-    line_length = sbatch_args.line_length
+    if sbatch_args.input is not None:
+        args_dict = read_yaml(sbatch_args.input)
+        for arg in sbatch_args.__dict__:
+            val = sbatch_args.__dict__[arg]
+            if val is not None and val is not False:
+                if isinstance(val, list) and len(val) == 0:
+                    continue
+                args_dict.update({arg: val})
 
-    # Default parameters for the batch script
-    params = {
-        "working_directory": "./",
-        "job_name": "job_struphy",
-        "output_file": "./job_struphy_%j.out",
-        "error_file": "./job_struphy_%j.err",
-        "nodes": 1,
-        "ntasks_per_node": 72,
-        "mail_user": "",
-        "time": "00:10:00",
-        "venv_path": "~/git_repos/env_struphy_devel",
-        "partition": None,
-        "ntasks_per_core": None,
-        "cpus_per_task": None,
-        "memory": "2GB",
-        "module_setup": "module load anaconda/3/2023.03 gcc/12 openmpi/4.1 likwid/5.2",
-        "likwid": False,
-    }
-
-    # Update params with any provided keyword arguments
-    # params.update(kwargs)
+    line_length = args_dict.get("line_length", 60)
 
     # Start generating the SLURM batch script
     script = "#!/bin/bash\n"
     script += "#" * (line_length + 2) + "\n"
-    for arg in sbatch_args.__dict__:
-        val = sbatch_args.__dict__[arg]
+
+    for arg_help in slurm_options_dict.items():
+        arg = arg_help[0]
+        help = arg_help[1]
+        val = args_dict.get(arg)
         if val is not None and val is not False:
-            # print(f"{arg} {list(slurm_options_dict.keys()) = }")
-            if arg in list(slurm_options_dict.keys()):
-                script += add_line(
-                    f"#SBATCH --{arg} {val}",
-                    slurm_options_dict[arg],
-                    line_length=line_length,
-                )
+            script += add_line(
+                f"#SBATCH --{arg} {val}",
+                help,
+                line_length=line_length,
+            )
     script += "#" * (line_length + 2) + "\n\n"
 
-    if sbatch_args.printself:
+    if args_dict.get("printself", False):
         script += add_line(
             f"cat $0",
             "print this batch script",
@@ -145,14 +153,16 @@ def main():
         )
 
     # Load modules
-    if len(sbatch_args.modules) > 0:
+    print(f'{args_dict.get("modules") = }')
+
+    if len(args_dict.get("modules", [])) > 0:
         script += add_line(
             "module purge",
             "Purge modules",
             line_length=line_length,
         )
         script += add_line(
-            f"module load {' '.join(sbatch_args.modules)}",
+            f"module load {' '.join(args_dict.get("modules"))}",
             "modules",
             line_length=line_length,
         )
@@ -162,21 +172,21 @@ def main():
             line_length=line_length,
         )
 
-    if sbatch_args.venv is not None:
+    if args_dict.get("venv", None) is not None:
         script += add_line(
-            f"source {sbatch_args.venv}/bin/activate",
+            f"source {args_dict.get('venv')}/bin/activate",
             "virtual environment",
             line_length=line_length,
         )
 
-    if sbatch_args.printenv:
+    if args_dict.get("printenv", False):
         script += add_line(
             "printenv",
             "print environment variables",
             line_length=line_length,
         )
 
-    if sbatch_args.likwid:
+    if args_dict.get("likwid", False):
         script += add_line(
             "LIKWID_PREFIX=$(realpath $(dirname $(which likwid-topology))/..)",
             "Set LIKWID prefix",
@@ -201,9 +211,11 @@ def main():
         )
 
         script += "\n"
-
-    if sbatch_args.output is not None:
-        with open(sbatch_args.output, 'w') as f:
+    if args_dict.get("export_yaml", None) is not None:
+        path = args_dict.pop("export_yaml")
+        export_yaml(args_dict=args_dict, path=path)
+    if args_dict.get("output") is not None:
+        with open(sbatch_args.get("output"), "w") as f:
             f.write(script)
     else:
         print(script)
