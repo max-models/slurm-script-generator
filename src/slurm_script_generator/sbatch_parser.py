@@ -561,8 +561,7 @@ def add_slurm_options(parser):
     parser.add_argument(
         "--mem-per-gpu",
         dest="mem_per_gpu",
-        metavar="N",
-        type=int,
+        type=str,
         help="real memory required per allocated GPU",
     )
 

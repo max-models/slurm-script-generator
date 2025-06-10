@@ -1,6 +1,5 @@
 import argparse
-
-import yaml
+import json
 
 import slurm_script_generator.sbatch_parser as sbatch_parser
 
@@ -62,7 +61,7 @@ def add_misc_options(parser):
         type=str,
         default=None,
         metavar="INPUT_PATH",
-        help="path to input yaml file",
+        help="path to input json file",
     )
 
     parser.add_argument(
@@ -71,15 +70,15 @@ def add_misc_options(parser):
         type=str,
         default=None,
         metavar="OUTPUT_PATH",
-        help="path to save slurm batch script to",
+        help="json path to save slurm batch script to",
     )
 
     parser.add_argument(
-        "--export-yaml",
-        dest="export_yaml",
+        "--export-json",
+        dest="export_json",
         type=str,
         default=None,
-        metavar="YAML_PATH",
+        metavar="JSON_PATH",
         help="path to export yaml for generating the slurm script to",
     )
     return parser
@@ -92,14 +91,14 @@ def add_line(line, comment="", line_length=40):
         return f"{line} {' ' * (line_length - len(line))}# {comment}\n"
 
 
-def export_yaml(args_dict, path):
+def export_json(args_dict, path):
     with open(path, "w") as f:
-        yaml.dump(args_dict, f, default_flow_style=False)
+        json.dump(args_dict, f)
 
 
 def read_yaml(path):
     with open(path, "r") as f:
-        return yaml.safe_load(f)
+        return json.load(f)
 
 
 def main():
@@ -120,12 +119,14 @@ def main():
 
     if sbatch_args.input is not None:
         args_dict = read_yaml(sbatch_args.input)
-        for arg in sbatch_args.__dict__:
-            val = sbatch_args.__dict__[arg]
-            if val is not None and val is not False:
-                if isinstance(val, list) and len(val) == 0:
-                    continue
-                args_dict.update({arg: val})
+    else:
+        args_dict = {}
+    for arg in sbatch_args.__dict__:
+        val = sbatch_args.__dict__[arg]
+        if val is not None and val is not False:
+            if isinstance(val, list) and len(val) == 0:
+                continue
+            args_dict.update({arg: val})
 
     line_length = args_dict.get("line_length", 60)
 
@@ -211,9 +212,9 @@ def main():
         )
 
         script += "\n"
-    if args_dict.get("export_yaml", None) is not None:
-        path = args_dict.pop("export_yaml")
-        export_yaml(args_dict=args_dict, path=path)
+    if args_dict.get("export_json", None) is not None:
+        path = args_dict.pop("export_json")
+        export_json(args_dict=args_dict, path=path)
     if args_dict.get("output") is not None:
         with open(sbatch_args.get("output"), "w") as f:
             f.write(script)
