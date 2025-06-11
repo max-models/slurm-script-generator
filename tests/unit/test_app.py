@@ -10,7 +10,7 @@ def test_options():
     args = {"nodes": 1, "ntasks_per_node": 16}
     script = generate_script(args_dict=args)
     assert "#SBATCH --nodes 1" in script
-    assert "#SBATCH --ntasks_per_node 16" in script
+    assert "#SBATCH --ntasks-per-node 16" in script
     print(script)
 
 
