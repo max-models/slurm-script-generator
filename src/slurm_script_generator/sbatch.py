@@ -36,24 +36,30 @@ def add_slurm_options(parser):
         help="do NOT ring the terminal bell",
     )
     parser.add_argument(
-        "--bb", dest="burst_buffer", metavar="SPEC", help="burst buffer specifications"
+        "--bb",
+        dest="burst-buffer",
+        metavar="SPEC",
+        help="burst buffer specifications",
     )
     parser.add_argument(
         "--bbf",
-        dest="bb_file",
+        dest="bb-file",
         metavar="FILE_NAME",
         help="burst buffer specification file",
     )
     parser.add_argument(
         "-c",
         "--cpus-per-task",
-        dest="cpus_per_task",
+        dest="cpus-per-task",
         type=int,
         metavar="NCPUS",
         help="number of cpus required per task",
     )
     parser.add_argument(
-        "--comment", dest="comment", metavar="NAME", help="arbitrary comment"
+        "--comment",
+        dest="comment",
+        metavar="NAME",
+        help="arbitrary comment",
     )
     parser.add_argument(
         "--container",
@@ -62,17 +68,20 @@ def add_slurm_options(parser):
         help="Path to OCI container bundle",
     )
     parser.add_argument(
-        "--container-id", dest="container_id", metavar="ID", help="OCI container ID"
+        "--container-id",
+        dest="container-id",
+        metavar="ID",
+        help="OCI container ID",
     )
     parser.add_argument(
         "--cpu-freq",
-        dest="cpu_freq",
+        dest="cpu-freq",
         metavar="MIN[-MAX[:GOV]]",
         help="requested cpu frequency (and governor)",
     )
     parser.add_argument(
         "--delay-boot",
-        dest="delay_boot",
+        dest="delay-boot",
         type=int,
         metavar="MINS",
         help="delay boot for desired node features",
@@ -91,12 +100,16 @@ def add_slurm_options(parser):
         help="remove the job if no ending possible before this deadline",
     )
     parser.add_argument(
-        "-D", "--chdir", dest="chdir", metavar="PATH", help="change working directory"
+        "-D",
+        "--chdir",
+        dest="chdir",
+        metavar="PATH",
+        help="change working directory",
     )
     parser.add_argument(
         "--get-user-env",
         action="store_true",
-        dest="get_user_env",
+        dest="get-user-env",
         help="used by Moab. See srun man page",
     )
     parser.add_argument(
@@ -108,7 +121,7 @@ def add_slurm_options(parser):
     )
     parser.add_argument(
         "--gres-flags",
-        dest="gres_flags",
+        dest="gres-flags",
         metavar="OPTS",
         help="flags related to GRES management",
     )
@@ -130,13 +143,17 @@ def add_slurm_options(parser):
         help='exit if resources not available in "secs"',
     )
     parser.add_argument(
-        "-J", "--job-name", dest="job_name", metavar="NAME", help="name of job"
+        "-J",
+        "--job-name",
+        dest="job_name",
+        metavar="NAME",
+        help="name of job",
     )
     parser.add_argument(
         "-k",
         "--no-kill",
         action="store_true",
-        dest="no_kill",
+        dest="no-kill",
         help="do not kill job on node failure",
     )
     parser.add_argument(
@@ -144,7 +161,7 @@ def add_slurm_options(parser):
         "--kill-command",
         nargs="?",
         const="TERM",
-        dest="kill_command",
+        dest="kill-command",
         metavar="SIGNAL",
         help="signal to send terminating job",
     )
@@ -174,20 +191,20 @@ def add_slurm_options(parser):
     )
     parser.add_argument(
         "--mail-type",
-        dest="mail_type",
+        dest="mail-type",
         metavar="TYPE",
         choices=["BEGIN", "END", "FAIL", "ALL"],
         help="notify on state change",
     )
     parser.add_argument(
         "--mail-user",
-        dest="mail_user",
+        dest="mail-user",
         metavar="USER",
         help="who to send email notification for job state changes",
     )
     parser.add_argument(
         "--mcs-label",
-        dest="mcs_label",
+        dest="mcs-label",
         metavar="MCS",
         help="mcs label if mcs plugin mcs/group is used",
     )
@@ -217,7 +234,7 @@ def add_slurm_options(parser):
     )
     parser.add_argument(
         "--ntasks-per-node",
-        dest="ntasks_per_node",
+        dest="ntasks-per-node",
         type=int,
         metavar="N",
         help="number of tasks to invoke on each node",
@@ -226,7 +243,7 @@ def add_slurm_options(parser):
         "--oom-kill-step",
         nargs="?",
         const=1,
-        dest="oom_kill_step",
+        dest="oom-kill-step",
         type=int,
         metavar="0|1",
         help="set the OOMKillStep behaviour",
@@ -239,7 +256,10 @@ def add_slurm_options(parser):
         help="overcommit resources",
     )
     parser.add_argument(
-        "--power", dest="power", metavar="FLAGS", help="power management options"
+        "--power",
+        dest="power",
+        metavar="FLAGS",
+        help="power management options",
     )
     parser.add_argument(
         "--priority",
@@ -262,7 +282,11 @@ def add_slurm_options(parser):
         help="partition requested",
     )
     parser.add_argument(
-        "-q", "--qos", dest="qos", metavar="QOS", help="quality of service"
+        "-q",
+        "--qos",
+        dest="qos",
+        metavar="QOS",
+        help="quality of service",
     )
     parser.add_argument(
         "-Q",
@@ -293,7 +317,7 @@ def add_slurm_options(parser):
     parser.add_argument(
         "--spread-job",
         action="store_true",
-        dest="spread_job",
+        dest="spread-job",
         help="spread job across as many nodes as possible",
     )
     parser.add_argument(
@@ -305,35 +329,40 @@ def add_slurm_options(parser):
     parser.add_argument(
         "-S",
         "--core-spec",
-        dest="core_spec",
+        dest="core-spec",
         metavar="CORES",
         help="count of reserved cores",
     )
     parser.add_argument(
         "--thread-spec",
-        dest="thread_spec",
+        dest="thread-spec",
         metavar="THREADS",
         help="count of reserved threads",
     )
     parser.add_argument(
-        "-t", "--time", dest="time", metavar="MINUTES", type=int, help="time limit"
+        "-t",
+        "--time",
+        dest="time",
+        metavar="MINUTES",
+        type=int,
+        help="time limit",
     )
     parser.add_argument(
         "--time-min",
-        dest="time_min",
+        dest="time-min",
         metavar="MINUTES",
         type=int,
         help="minimum time limit (if distinct)",
     )
     parser.add_argument(
         "--tres-bind",
-        dest="tres_bind",
+        dest="tres-bind",
         metavar="...",
         help="task to tres binding options",
     )
     parser.add_argument(
         "--tres-per-task",
-        dest="tres_per_task",
+        dest="tres-per-task",
         metavar="LIST",
         type=lambda s: s.split(","),
         help="list of tres required per task",
@@ -341,7 +370,7 @@ def add_slurm_options(parser):
     parser.add_argument(
         "--use-min-nodes",
         action="store_true",
-        dest="use_min_nodes",
+        dest="use-min-nodes",
         help="if a range of node counts is given, prefer the smaller count",
     )
     # parser.add_argument(
@@ -353,13 +382,16 @@ def add_slurm_options(parser):
     #     help="verbose mode (multiple -v's increase verbosity)",
     # )
     parser.add_argument(
-        "--wckey", dest="wckey", metavar="WCKEY", help="wckey to run job under"
+        "--wckey",
+        dest="wckey",
+        metavar="WCKEY",
+        help="wckey to run job under",
     )
 
     # Constraint options
     parser.add_argument(
         "--cluster-constraint",
-        dest="cluster_constraint",
+        dest="cluster-constraint",
         metavar="LIST",
         type=lambda s: s.split(","),
         help="specify a list of cluster constraints",
@@ -433,18 +465,18 @@ def add_slurm_options(parser):
     parser.add_argument(
         "--exclusive-user",
         action="store_true",
-        dest="exclusive_user",
+        dest="exclusive-user",
         help="allocate nodes in exclusive mode for cpu consumable resource",
     )
     parser.add_argument(
         "--exclusive-mcs",
         action="store_true",
-        dest="exclusive_mcs",
+        dest="exclusive-mcs",
         help="allocate nodes in exclusive mode when mcs plugin is enabled",
     )
     parser.add_argument(
         "--mem-per-cpu",
-        dest="mem_per_cpu",
+        dest="mem-per-cpu",
         metavar="MB",
         type=int,
         help="maximum amount of real memory per allocated cpu",
@@ -452,28 +484,28 @@ def add_slurm_options(parser):
     parser.add_argument(
         "--resv-ports",
         action="store_true",
-        dest="resv_ports",
+        dest="resv-ports",
         help="reserve communication ports",
     )
 
     # Affinity/Multi-core options
     parser.add_argument(
         "--sockets-per-node",
-        dest="sockets_per_node",
+        dest="sockets-per-node",
         metavar="S",
         type=int,
         help="number of sockets per node to allocate",
     )
     parser.add_argument(
         "--cores-per-socket",
-        dest="cores_per_socket",
+        dest="cores-per-socket",
         metavar="C",
         type=int,
         help="number of cores per socket to allocate",
     )
     parser.add_argument(
         "--threads-per-core",
-        dest="threads_per_core",
+        dest="threads-per-core",
         metavar="T",
         type=int,
         help="number of threads per core to allocate",
@@ -481,20 +513,20 @@ def add_slurm_options(parser):
     parser.add_argument(
         "-B",
         "--extra-node-info",
-        dest="extra_node_info",
+        dest="extra-node-info",
         metavar="S[:C[:T]]",
         help="combine request of sockets, cores and threads",
     )
     parser.add_argument(
         "--ntasks-per-core",
-        dest="ntasks_per_core",
+        dest="ntasks-per-core",
         metavar="N",
         type=int,
         help="number of tasks to invoke on each core",
     )
     parser.add_argument(
         "--ntasks-per-socket",
-        dest="ntasks_per_socket",
+        dest="ntasks-per-socket",
         metavar="N",
         type=int,
         help="number of tasks to invoke on each socket",
@@ -507,7 +539,7 @@ def add_slurm_options(parser):
     )
     parser.add_argument(
         "--mem-bind",
-        dest="mem_bind",
+        dest="mem-bind",
         metavar="BIND",
         help="Bind memory to locality domains",
     )
@@ -515,7 +547,7 @@ def add_slurm_options(parser):
     # GPU scheduling options
     parser.add_argument(
         "--cpus-per-gpu",
-        dest="cpus_per_gpu",
+        dest="cpus-per-gpu",
         metavar="N",
         type=int,
         help="number of CPUs required per allocated GPU",
@@ -529,38 +561,41 @@ def add_slurm_options(parser):
         help="count of GPUs required for the job",
     )
     parser.add_argument(
-        "--gpu-bind", dest="gpu_bind", metavar="...", help="task to gpu binding options"
+        "--gpu-bind",
+        dest="gpu-bind",
+        metavar="...",
+        help="task to gpu binding options",
     )
     parser.add_argument(
         "--gpu-freq",
-        dest="gpu_freq",
-        metavar="...",
+        dest="gpu-freq",
+        metavar="FREQ",
         help="frequency and voltage of GPUs",
     )
     parser.add_argument(
         "--gpus-per-node",
-        dest="gpus_per_node",
+        dest="gpus-per-node",
         metavar="N",
         type=int,
         help="number of GPUs required per allocated node",
     )
     parser.add_argument(
         "--gpus-per-socket",
-        dest="gpus_per_socket",
+        dest="gpus-per-socket",
         metavar="N",
         type=int,
         help="number of GPUs required per allocated socket",
     )
     parser.add_argument(
         "--gpus-per-task",
-        dest="gpus_per_task",
+        dest="gpus-per-task",
         metavar="N",
         type=int,
         help="number of GPUs required per spawned task",
     )
     parser.add_argument(
         "--mem-per-gpu",
-        dest="mem_per_gpu",
+        dest="mem-per-gpu",
         type=str,
         help="real memory required per allocated GPU",
     )
@@ -569,7 +604,7 @@ def add_slurm_options(parser):
     parser.add_argument(
         "--disable-stdout-job-summary",
         action="store_true",
-        dest="disable_stdout_job_summary",
+        dest="disable-stdout-job-summary",
         help="disable job summary in stdout file for the job",
     )
     parser.add_argument(
