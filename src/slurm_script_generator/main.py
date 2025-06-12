@@ -142,6 +142,8 @@ def main():
 
     # Start generating the SLURM batch script
     script = "#!/bin/bash\n"
+    script += "# Generated with slurm-script-generator"
+    script += "# http://github.com/max-models/slurm-script-generator
     script += "#" * (line_length + 2) + "\n"
 
     for arg_help in slurm_options_dict.items():
