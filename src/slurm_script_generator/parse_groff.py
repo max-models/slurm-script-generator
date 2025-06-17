@@ -1,14 +1,17 @@
 import re
+from slurm_script_generator.sbatch import Flag, Pragma
+
 
 def clean_groff(text: str) -> str:
     # Remove font macros like \fB...\fR or \fI...\fR
-    text = re.sub(r'\\f[BI](.*?)\\fR', r'\1', text)
+    text = re.sub(r"\\f[BI](.*?)\\fR", r"\1", text)
     # Remove any remaining font switches (e.g., \fB, \fI, \fR)
-    text = re.sub(r'\\f[BRI]', '', text)
+    text = re.sub(r"\\f[BRI]", "", text)
     # Replace escaped dash
-    text = text.replace(r'\-', '-')
+    text = text.replace(r"\-", "-")
     # Normalize whitespace
-    return re.sub(r'\s+', ' ', text).strip()
+    return re.sub(r"\s+", " ", text).strip()
+
 
 def parse_entry(lines):
     # First line after .TP: flags/options
@@ -20,7 +23,7 @@ def parse_entry(lines):
     return flags, desc
 
 
-with open('sbatch.1','r') as f:
+with open("sbatch.1", "r") as f:
     lines = f.readlines()
 
 tp_level = 0
@@ -31,36 +34,54 @@ for iline, line in enumerate(lines):
     # print(iline, line[:-1])
     if '.SH "OPTIONS"' in line:
         start_options = True
-    
+
+    if '.SH "FILENAME PATTERN"' in line:
+        start_options = False
     if start_options:
-        if line[:3] == '.RS':
+        if line[:3] == ".RS":
             ignore = True
-        elif line[:3] == '.RE':
+        elif line[:3] == ".RE":
             ignore = False
 
         if not ignore:
-            if line[:3] == '.TP':
+            if line[:3] == ".TP":
                 start_entry = iline
                 entry_started = True
                 tp_level += 1
-            elif line[:3] == '.IP' and entry_started:
+            elif line[:3] == ".IP" and entry_started:
                 tp_level -= 1
 
             if tp_level == 0 and entry_started:
                 end_entry = iline
-                entry = lines[start_entry+1:end_entry]
+                entry = lines[start_entry + 1 : end_entry]
                 # print(f"{start_entry = }")
-                flags, description = parse_entry(entry)
-                print("Flags:", flags)
-                print("Description:", description)
+                flag_list, description = parse_entry(entry)
+                # print("Flags:", flag_list)
+                # print("Description:", description)
                 entry_started = False
-            
+
+                flags = []
+                for fl in flag_list:
+                    spl = fl.split("=")
+                    if len(spl) > 1:
+                        help = spl[1]
+                        flag = spl[0]
+                    else:
+                        help = None
+                        flag = fl
+
+                    # print(f"{flag_list = }, {fl = } {line}")
+                    flags.append(Flag(name=flag, help=help))
+
+                    # print(f)
+                p = Pragma(flags=flags, dest="nodes", help=description, type=str)
+                print(f"{p = }")
 
 # print(lines)
 
-with open('test.groff','r') as f:
-    entry= f.readlines()
+# with open('test.groff','r') as f:
+#     entry= f.readlines()
 
-flags, description = parse_entry(entry)
-print("Flags:", flags)
-print("Description:", description)
+# flags, description = parse_entry(entry)
+# print("Flags:", flags)
+# print("Description:", description)

@@ -1,10 +1,17 @@
 from dataclasses import dataclass, field
 from typing import List, Optional, Callable, Any
+from argparse import ArgumentParser
+
+
+@dataclass
+class Flag:
+    name: str
+    help: str
 
 
 @dataclass
 class Pragma:
-    flags: List[str]  # e.g. ['-A', '--account']
+    flags: List[Flag]  # e.g. ['-A', '--account']
     dest: str  # e.g. 'account'
     help: str  # e.g. 'charge job to specified account'
     metavar: Optional[str] = None  # e.g. 'NAME'
@@ -12,6 +19,20 @@ class Pragma:
     default: Optional[str] = None  # Optional default value
     type: Optional[Callable[[str], Any]] = str  # e.g. str, int, float, etc.
     env_var: Optional[str] = None  # Environment variable
+
+    def add_argument_to_parser(self, parser: ArgumentParser):
+
+        kwargs = {
+            "dest": self.dest,
+            "type": self.type,
+            "default": self.default,
+            "help": self.help,
+        }
+        parser.add_argument(
+            self.flags[0].name,
+            **kwargs,
+        )
+
 
 def register_to_parser(parser, pragma: Pragma):
     kwargs = {"dest": pragma.dest, "help": pragma.help}
