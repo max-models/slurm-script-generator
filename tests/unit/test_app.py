@@ -7,11 +7,11 @@ def test_import_app():
 def test_options():
     from slurm_script_generator.main import generate_script
 
-    args = {"nodes": 1, "ntasks-per-node": 16}
-    script = generate_script(args_dict=args)
+    args = {"nodes": 1, "ntasks_per_node": 16}
+    script = generate_script(args_dict=args, print_script=False)
+    print(script)
     assert "#SBATCH --nodes 1" in script
     assert "#SBATCH --ntasks-per-node 16" in script
-    print(script)
 
 
 if __name__ == "__main__":
