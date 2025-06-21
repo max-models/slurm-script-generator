@@ -1,4 +1,5 @@
 import pytest
+
 from slurm_script_generator.main import generate_script
 from slurm_script_generator.sbatch_parser import pragmas
 
