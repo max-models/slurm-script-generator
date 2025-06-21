@@ -112,18 +112,7 @@ def read_yaml(path):
         return json.load(f)
 
 
-def generate_script(sbatch_args):
-
-    if sbatch_args.input is not None:
-        args_dict = read_yaml(sbatch_args.input)
-    else:
-        args_dict = {}
-    for arg in sbatch_args.__dict__:
-        val = sbatch_args.__dict__[arg]
-        if val is not None and val is not False:
-            if isinstance(val, list) and len(val) == 0:
-                continue
-            args_dict.update({arg: val})
+def generate_script(args_dict, print_script=True):
 
     line_length = args_dict.get("line_length", 60)
 
@@ -132,11 +121,13 @@ def generate_script(sbatch_args):
     script += "#" * (line_length + 2) + "\n"
 
     for pragma in sbatch_parser.pragmas:
-        if pragma.dest in list(args_dict.keys()):
-            val = args_dict.get(pragma.dest)
+        if pragma.dest in [k.replace("-", "_") for k in args_dict.keys()]:
+            # print(f"{pragma.dest = }")
+            arg = pragma.dest.replace("_", "-")
+            val = args_dict.get(arg)
             if val is not None and val is not False:
                 script += add_line(
-                    f"#SBATCH --{pragma.dest} {val}",
+                    f"#SBATCH --{arg} {val}",
                     pragma.help,
                     line_length=line_length,
                 )
@@ -221,8 +212,11 @@ def generate_script(sbatch_args):
     if args_dict.get("output") is not None:
         with open(args_dict.get("output"), "w") as f:
             f.write(script)
-    else:
+
+    if print_script:
         print(script)
+
+    return script
 
 
 def main():
@@ -242,7 +236,18 @@ def main():
 
     sbatch_args = parser.parse_args()
 
-    generate_script(sbatch_args)
+    if sbatch_args.input is not None:
+        args_dict = read_yaml(sbatch_args.input)
+    else:
+        args_dict = {}
+    for arg in sbatch_args.__dict__:
+        val = sbatch_args.__dict__[arg]
+        if val is not None and val is not False:
+            if isinstance(val, list) and len(val) == 0:
+                continue
+            args_dict.update({arg: val})
+
+    generate_script(args_dict)
 
 
 if __name__ == "__main__":
