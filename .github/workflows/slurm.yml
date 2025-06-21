@@ -30,3 +30,13 @@ jobs:
 
       # Afterwards, you can submit to the slurm cluster via sbatch and srun, 
       # and interact via all other usual commands.
+      - name: Install slurm-script-generator
+        run: |
+          pip install .
+      
+      - name: Run job with sbatch
+        run: |
+          source env/bin/activate
+          generate-slurm-script --nodes 1 --ntasks-per-node 16 --output batch_script.sh
+          cat batch_script.sh
+          sbatch batch_script.sh
