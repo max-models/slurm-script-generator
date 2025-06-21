@@ -8,6 +8,7 @@ pragmas = [
         dest="account",
         metavar="NAME",
         help="charge job to specified account",
+        example="myacct",
     ),
     Pragma(
         flags=["-b", "--begin"],
@@ -45,9 +46,13 @@ pragmas = [
         type=int,
         metavar="NCPUS",
         help="number of cpus required per task",
+        example=16,
     ),
     Pragma(
-        flags=["--comment"], dest="comment", metavar="NAME", help="arbitrary comment"
+        flags=["--comment"],
+        dest="comment",
+        metavar="NAME",
+        help="arbitrary comment",
     ),
     Pragma(
         flags=["--container"],
@@ -127,7 +132,11 @@ pragmas = [
         help='exit if resources not available in "secs"',
     ),
     Pragma(
-        flags=["-J", "--job-name"], dest="job_name", metavar="NAME", help="name of job"
+        flags=["-J", "--job-name"],
+        dest="job_name",
+        metavar="NAME",
+        help="name of job",
+        example="my_job",
     ),
     Pragma(
         flags=["-k", "--no-kill"],
@@ -170,12 +179,14 @@ pragmas = [
         metavar="TYPE",
         choices=["BEGIN", "END", "FAIL", "ALL"],
         help="notify on state change",
+        example="ALL",
     ),
     Pragma(
         flags=["--mail-user"],
         dest="mail_user",
         metavar="USER",
         help="who to send email notification for job state changes",
+        example="example@email.com",
     ),
     Pragma(
         flags=["--mcs-label"],
@@ -189,21 +200,22 @@ pragmas = [
         type=int,
         metavar="N",
         help="number of processors required",
+        example=16,
     ),
     Pragma(
         flags=["--nice"],
         dest="nice",
-        nargs="?",
-        const=0,
         type=int,
         metavar="VALUE",
         help="decrease scheduling priority by value",
+        example=1,
     ),
     Pragma(
         flags=["-N", "--nodes"],
         dest="nodes",
         metavar="NODES",
         help="number of nodes on which to run",
+        example=2,
     ),
     Pragma(
         flags=["--ntasks-per-node"],
@@ -211,6 +223,7 @@ pragmas = [
         type=int,
         metavar="N",
         help="number of tasks to invoke on each node",
+        example=16,
     ),
     Pragma(
         flags=["--oom-kill-step"],
@@ -307,6 +320,7 @@ pragmas = [
         metavar="MINUTES",
         type=int,
         help="time limit",
+        example="00:45:00",
     ),
     Pragma(
         flags=["--time-min"],
@@ -369,6 +383,7 @@ pragmas = [
         metavar="MB",
         type=int,
         help="minimum amount of real memory",
+        example="25GB",
     ),
     Pragma(
         flags=["--mincpus"],
@@ -442,6 +457,7 @@ pragmas = [
         metavar="C",
         type=int,
         help="number of cores per socket to allocate",
+        example=8,
     ),
     Pragma(
         flags=["--threads-per-core"],
@@ -449,6 +465,7 @@ pragmas = [
         metavar="T",
         type=int,
         help="number of threads per core to allocate",
+        example=4,
     ),
     Pragma(
         flags=["-B", "--extra-node-info"],
@@ -462,6 +479,7 @@ pragmas = [
         metavar="N",
         type=int,
         help="number of tasks to invoke on each core",
+        example=16,
     ),
     Pragma(
         flags=["--ntasks-per-socket"],
@@ -469,6 +487,7 @@ pragmas = [
         metavar="N",
         type=int,
         help="number of tasks to invoke on each socket",
+        example=8,
     ),
     Pragma(
         flags=["--hint"],
@@ -488,6 +507,7 @@ pragmas = [
         metavar="N",
         type=int,
         help="number of CPUs required per allocated GPU",
+        example=4,
     ),
     Pragma(
         flags=["-G", "--gpus"],
@@ -495,6 +515,7 @@ pragmas = [
         metavar="N",
         type=int,
         help="count of GPUs required for the job",
+        example=32,
     ),
     Pragma(
         flags=["--gpu-bind"],
@@ -534,6 +555,7 @@ pragmas = [
         dest="mem_per_gpu",
         type=str,
         help="real memory required per allocated GPU",
+        example="8GB",
     ),
     Pragma(
         flags=["--disable-stdout-job-summary"],

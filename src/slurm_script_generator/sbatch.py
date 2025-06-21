@@ -13,6 +13,7 @@ class Flag:
 class Pragma:
     flags: List[Flag]  # e.g. ['-A', '--account']
     dest: str  # e.g. 'account'
+    example: Optional[str] = None
     help: Optional[str] = ""  # e.g. 'charge job to specified account'
     nargs: Optional[str] = None
     const: Optional[int] = None
