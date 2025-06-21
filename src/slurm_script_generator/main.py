@@ -142,15 +142,6 @@ def generate_script(args_dict, print_script=True):
                 line_length=line_length,
             )
 
-    vars = args_dict.get("vars", [])
-    if len(vars) > 0:
-        for var in vars:
-            script += add_line(
-                f"export {var}",
-                "Set environment variable",
-                line_length=line_length,
-            )
-
     if args_dict.get("printself", False):
         script += add_line(
             f"cat $0",
