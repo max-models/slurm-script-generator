@@ -11,7 +11,7 @@ on:
       - devel
 
 jobs:
-  testing:
+  template_scripts:
     runs-on: ubuntu-latest
     # For the action to work, you have to supply a mysql
     # service as defined below.
