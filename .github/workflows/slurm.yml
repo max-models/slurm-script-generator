@@ -36,7 +36,6 @@ jobs:
       
       - name: Run job with sbatch
         run: |
-          source env/bin/activate
           generate-slurm-script --nodes 1 --ntasks-per-node 16 --output batch_script.sh
           cat batch_script.sh
           sbatch batch_script.sh
