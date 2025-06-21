@@ -1,6 +1,6 @@
 import argparse
 
-from slurm_script_generator.sbatch import Pragma, register_to_parser
+from slurm_script_generator.sbatch import Pragma
 
 pragmas = [
     Pragma(
@@ -548,9 +548,3 @@ pragmas = [
         help="launching NVIDIA MPS for job",
     ),
 ]
-
-
-def add_slurm_options(parser):
-
-    for p in pragmas:
-        register_to_parser(parser, p)

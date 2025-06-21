@@ -2,6 +2,7 @@ import argparse
 import json
 
 import slurm_script_generator.sbatch_parser as sbatch_parser
+from slurm_script_generator.sbatch import register_to_parser
 
 
 def add_misc_options(parser):
@@ -111,21 +112,7 @@ def read_yaml(path):
         return json.load(f)
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Slurm job submission options",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-
-    sbatch_parser.add_slurm_options(parser=parser)
-
-    slurm_options_dict = {}
-    for action in parser._actions:
-        slurm_options_dict[action.dest] = action.help
-
-    add_misc_options(parser=parser)
-
-    sbatch_args = parser.parse_args()
+def generate_script(sbatch_args):
 
     if sbatch_args.input is not None:
         args_dict = read_yaml(sbatch_args.input)
@@ -144,16 +131,15 @@ def main():
     script = "#!/bin/bash\n"
     script += "#" * (line_length + 2) + "\n"
 
-    for arg_help in slurm_options_dict.items():
-        arg = arg_help[0]
-        help = arg_help[1]
-        val = args_dict.get(arg)
-        if val is not None and val is not False:
-            script += add_line(
-                f"#SBATCH --{arg} {val}",
-                help,
-                line_length=line_length,
-            )
+    for pragma in sbatch_parser.pragmas:
+        if pragma.dest in list(args_dict.keys()):
+            val = args_dict.get(pragma.dest)
+            if val is not None and val is not False:
+                script += add_line(
+                    f"#SBATCH --{pragma.dest} {val}",
+                    pragma.help,
+                    line_length=line_length,
+                )
     script += "#" * (line_length + 2) + "\n\n"
 
     vars = args_dict.get("vars", [])
@@ -237,3 +223,27 @@ def main():
             f.write(script)
     else:
         print(script)
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Slurm job submission options",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    for p in sbatch_parser.pragmas:
+        register_to_parser(parser, p)
+
+    # slurm_options_dict = {}
+    # for action in parser._actions:
+    #     slurm_options_dict[action.dest] = action.help
+
+    add_misc_options(parser=parser)
+
+    sbatch_args = parser.parse_args()
+
+    generate_script(sbatch_args)
+
+
+if __name__ == "__main__":
+    main()
