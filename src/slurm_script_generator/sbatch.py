@@ -36,6 +36,10 @@ class Pragma:
             **kwargs,
         )
 
+    @property
+    def sbatch_flag(self):
+        return self.dest.replace("_", "-")
+
 
 def register_to_parser(parser, pragma: Pragma):
     kwargs = {"dest": pragma.dest, "help": pragma.help}

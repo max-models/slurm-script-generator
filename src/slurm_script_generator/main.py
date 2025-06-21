@@ -121,13 +121,13 @@ def generate_script(args_dict, print_script=True):
     script += "#" * (line_length + 2) + "\n"
 
     for pragma in sbatch_parser.pragmas:
-        if pragma.dest in [k.replace("-", "_") for k in args_dict.keys()]:
+        # print(f"{pragma.dest = } {list(args_dict.keys()) = }")
+        if pragma.dest in list(args_dict.keys()):
             # print(f"{pragma.dest = }")
-            arg = pragma.dest.replace("_", "-")
-            val = args_dict.get(arg)
-            if val is not None and val is not False:
+            val = args_dict.get(pragma.dest)
+            if val not in [None, False]:
                 script += add_line(
-                    f"#SBATCH --{arg} {val}",
+                    f"#SBATCH --{pragma.sbatch_flag} {val}",
                     pragma.help,
                     line_length=line_length,
                 )
