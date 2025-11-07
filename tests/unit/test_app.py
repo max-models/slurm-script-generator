@@ -15,8 +15,8 @@ def test_options():
     args = {"--nodes": 1, "--ntasks_per_node": 16}
     script = generate_script(args_dict=args, print_script=False)
     print(script)
-    assert "#SBATCH --nodes 1" in script
-    assert "#SBATCH --ntasks-per-node 16" in script
+    assert "#SBATCH --nodes=1" in script
+    assert "#SBATCH --ntasks-per-node=16" in script
 
 
 @pytest.mark.parametrize("job_name", ["test_job1", "test_job2"])
@@ -52,9 +52,9 @@ def test_default_script(job_name, tasks_per_node, nodes, modules, venv_path, mem
     }
     script = generate_script(args_dict=script_params, print_script=False)
 
-    assert f"#SBATCH --job-name {job_name}" in script
-    assert f"#SBATCH --ntasks-per-node {tasks_per_node}" in script
-    assert f"#SBATCH --nodes {nodes}" in script
+    assert f"#SBATCH --job-name={job_name}" in script
+    assert f"#SBATCH --ntasks-per-node={tasks_per_node}" in script
+    assert f"#SBATCH --nodes={nodes}" in script
     assert f"module load {' '.join(modules)}" in script
 
 
@@ -70,7 +70,7 @@ def test_examples():
 
     for p in pragmas:
         if p.example is not None:
-            assert f"#SBATCH {p.sbatch_flag} {p.example}" in script
+            assert f"#SBATCH {p.sbatch_flag}={p.example}" in script
 
 
 if __name__ == "__main__":
