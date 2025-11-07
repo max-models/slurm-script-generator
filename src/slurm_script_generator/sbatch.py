@@ -62,7 +62,7 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    p = Pragma(flags=["--nodes"], dest="nodes", help="Number of nodes", type=str)
+    p = Pragma(flags=["--nodes"], dest="--nodes", help="Number of nodes", type=str)
 
     register_to_parser(parser, p)
 

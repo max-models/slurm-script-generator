@@ -12,7 +12,7 @@ def test_import_app():
 
 def test_options():
 
-    args = {"nodes": 1, "ntasks_per_node": 16}
+    args = {"--nodes": 1, "--ntasks_per_node": 16}
     script = generate_script(args_dict=args, print_script=False)
     print(script)
     assert "#SBATCH --nodes 1" in script
@@ -41,14 +41,14 @@ def test_options():
 def test_default_script(job_name, tasks_per_node, nodes, modules, venv_path, mem, time):
     """Tests a typical script format."""
     script_params = {
-        "job_name": job_name,
-        "ntasks_per_node": tasks_per_node,
-        "nodes": nodes,
+        "--job_name": job_name,
+        "--ntasks_per_node": tasks_per_node,
+        "--nodes": nodes,
         "modules": modules,
-        "likwid": True,
-        "venv": venv_path,
-        "mem": mem,
-        "time": time,
+        "--likwid": True,
+        "--venv": venv_path,
+        "--mem": mem,
+        "--time": time,
     }
     script = generate_script(args_dict=script_params, print_script=False)
 
@@ -70,7 +70,7 @@ def test_examples():
 
     for p in pragmas:
         if p.example is not None:
-            assert f"#SBATCH --{p.sbatch_flag} {p.example}" in script
+            assert f"#SBATCH {p.sbatch_flag} {p.example}" in script
 
 
 if __name__ == "__main__":
