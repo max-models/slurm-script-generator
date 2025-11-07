@@ -11,7 +11,7 @@ class Flag:
 
 @dataclass
 class Pragma:
-    flags: List[Flag]  # e.g. ['-A', '--account']
+    flags: List[str]  # e.g. ['-A', '--account']
     dest: str  # e.g. 'account'
     example: Optional[str] = None
     help: Optional[str] = ""  # e.g. 'charge job to specified account'
@@ -62,7 +62,7 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    p = Pragma(flags=["--nodes"], dest="nodes", help="Number of nodes", type=str)
+    p = Pragma(flags=["--nodes"], dest="--nodes", help="Number of nodes", type=str)
 
     register_to_parser(parser, p)
 

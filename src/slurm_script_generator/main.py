@@ -127,7 +127,7 @@ def generate_script(args_dict, print_script=True):
             val = args_dict.get(pragma.dest)
             if val not in [None, False]:
                 script += add_line(
-                    f"#SBATCH --{pragma.sbatch_flag} {val}",
+                    f"#SBATCH {pragma.sbatch_flag}={val}",
                     pragma.help,
                     line_length=line_length,
                 )
