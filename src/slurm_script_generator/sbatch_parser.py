@@ -302,14 +302,14 @@ pragmas = [
         flags=["--stderr", "-e"],
         dest="-e",
         metavar="STDERR",
-        help="File to redirect stderr (%x=jobname, %j=jobid)",
+        help="File to redirect stderr (%%x=jobname, %%j=jobid)",
         example="--stdout ./%x.%j.out",
     ),
     Pragma(
         flags=["--stdout", "-o"],
         dest="-o",
         metavar="STDOUT",
-        help="File to redirect stdout (%x=jobname, %j=jobid)",
+        help="File to redirect stdout (%%x=jobname, %%j=jobid)",
         example="--stdout ./%x.%j.out",
     ),
     Pragma(
