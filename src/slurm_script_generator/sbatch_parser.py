@@ -1,5 +1,3 @@
-import argparse
-
 from slurm_script_generator.sbatch import Pragma
 
 pragmas = [
@@ -22,12 +20,12 @@ pragmas = [
         action="store_true",
         help="ring the terminal bell when the job is allocated",
     ),
-    Pragma(
-        flags=["--no-bell"],
-        dest="--bell",
-        action="store_false",
-        help="do NOT ring the terminal bell",
-    ),
+    # Pragma(
+    #     flags=["--no-bell"],
+    #     dest="--bell",
+    #     action="store_false",
+    #     help="do NOT ring the terminal bell",
+    # ),
     Pragma(
         flags=["--bb"],
         dest="--burst_buffer",

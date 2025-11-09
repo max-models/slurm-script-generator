@@ -2,7 +2,10 @@ import argparse
 import json
 
 import slurm_script_generator.sbatch_parser as sbatch_parser
+from slurm_script_generator import slurm_script
 from slurm_script_generator.sbatch import register_to_parser
+from slurm_script_generator.slurm_script import SlurmScript
+from slurm_script_generator.utils import add_line
 
 
 def add_misc_options(parser):
@@ -103,16 +106,6 @@ def add_misc_options(parser):
     )
 
     return parser
-
-
-def add_line(line, comment="", line_length=40):
-    if len(comment) > 0:
-
-        if len(line) > line_length:
-            comment = f" # {comment}\n"
-        else:
-            comment = f" {' ' * (line_length - len(line))}# {comment}\n"
-    return line + comment
 
 
 def export_json(args_dict, path):
@@ -245,29 +238,64 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    for p in sbatch_parser.pragmas:
-        register_to_parser(parser, p)
+    import slurm_script_generator.pragmas as pragmas
 
-    # slurm_options_dict = {}
-    # for action in parser._actions:
-    #     slurm_options_dict[action.dest] = action.help
+    pragma_dict = {}
+
+    for _, pragma_cls in pragmas.__dict__.items():
+        if (
+            isinstance(pragma_cls, type)
+            and issubclass(pragma_cls, pragmas.Pragma)
+            and pragma_cls != pragmas.Pragma
+        ):
+            # print(f"{pragma_cls = }")
+            pragma_dict[pragma_cls.dest] = pragma_cls
+            if pragma_cls.action is None:
+                parser.add_argument(
+                    *pragma_cls.flags,
+                    dest=pragma_cls.dest,
+                    metavar=pragma_cls.metavar,
+                    help=pragma_cls.help,
+                    type=pragma_cls.type,
+                    nargs=pragma_cls.nargs,
+                    choices=pragma_cls.choices,
+                    default=pragma_cls.default,
+                )
+            else:
+                parser.add_argument(
+                    *pragma_cls.flags,
+                    dest=pragma_cls.dest,
+                    help=pragma_cls.help,
+                    action=pragma_cls.action,
+                    default=pragma_cls.default,
+                )
 
     add_misc_options(parser=parser)
 
     sbatch_args = parser.parse_args()
 
-    if sbatch_args.input is not None:
-        args_dict = read_yaml(sbatch_args.input)
-    else:
+    if sbatch_args.input is None:
         args_dict = {}
+    else:
+        args_dict = read_yaml(sbatch_args.input)
+
+    pragma_list = []
     for arg in sbatch_args.__dict__:
         val = sbatch_args.__dict__[arg]
         if val is not None and val is not False:
-            if isinstance(val, list) and len(val) == 0:
-                continue
-            args_dict.update({arg: val})
+            if arg in list(pragma_dict.keys()):
+                pragma_list.append(pragma_dict[arg](val))
+            else:
+                # if isinstance(val, list) and len(val) == 0:
+                #     continue
+                print(arg, val)
+                args_dict.update({arg: val})
 
-    generate_script(args_dict)
+    slurm_script = SlurmScript(pragmas=pragma_list, **args_dict)
+
+    print(slurm_script)
+
+    # generate_script(args_dict)
 
 
 if __name__ == "__main__":
