@@ -149,8 +149,10 @@ def main():
 
     # Export parameters
     if sbatch_args.export_json:
+        path_json = sbatch_args.export_json
+        delattr(sbatch_args, "export_json")
         # print(f"Exporting setup to {sbatch_args.export_json}")
-        with open(sbatch_args.export_json, "w") as f:
+        with open(path_json, "w") as f:
             json.dump(vars(sbatch_args), f, indent=2)
 
     # Read parameters
@@ -158,9 +160,14 @@ def main():
         # print(f"Reading setup from {sbatch_args.input}")
         with open(sbatch_args.input, "r") as f:
             data = json.load(f)
+        delattr(sbatch_args, "input")
 
         # Convert JSON dict to argparse.Namespace
-        sbatch_args = argparse.Namespace(**data)
+        for key, val in data.items():
+            if val is not None:
+                if isinstance(val, list) and len(val) == 0:
+                    continue
+                setattr(sbatch_args, key, val)
 
     args_dict = {}
     pragma_list = []
