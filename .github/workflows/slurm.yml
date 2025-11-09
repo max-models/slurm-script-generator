@@ -36,5 +36,5 @@ jobs:
       
       - name: Run job with sbatch
         run: |
-          generate-slurm-script -D ./ -J test_slurm --nodes 16 --ntasks-per-node 72 --mail-type=none --mail-user=userid@example.mpg.de --time=12:00:00 --modules intel/21.2.0 impi/2021.2 --output batch_script.sh
+          generate-slurm-script -D ./ -J test_slurm --nodes 16 --ntasks-per-node 72 --mail-type=ALL --mail-user=userid@example.mpg.de --time=12:00:00 --modules intel/21.2.0 impi/2021.2 --output batch_script.sh
           sbatch batch_script.sh
