@@ -26,13 +26,13 @@ class Pragma:
 
     def __repr__(self) -> str:
         return add_line(
-            f"#SBATCH --{self.dest.replace('_', '-')}={self.value}", comment=self.help
+            f"#SBATCH {self.dest.replace('_', '-')}={self.value}", comment=self.help
         )
 
 
 class Account(Pragma):
     flags = ["-A", "--account"]
-    dest = "account"
+    dest = "--account"
     metavar = "NAME"
     help = "charge job to specified account"
     example = "myacct"
@@ -837,6 +837,17 @@ class Nvmps(Pragma):
     help = "launching NVIDIA MPS for job"
     action = "store_true"
     type = str
+
+
+pragma_dict = {}
+
+for _, pragma_cls in list(globals().items()):
+    if (
+        isinstance(pragma_cls, type)
+        and issubclass(pragma_cls, Pragma)
+        and pragma_cls is not Pragma
+    ):
+        pragma_dict[pragma_cls.dest] = pragma_cls
 
 
 if __name__ == "__main__":

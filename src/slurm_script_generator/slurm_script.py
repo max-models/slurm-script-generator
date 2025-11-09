@@ -1,7 +1,6 @@
 from typing import List
 
 from slurm_script_generator.pragmas import Pragma
-from slurm_script_generator.sbatch_parser import pragmas
 from slurm_script_generator.utils import add_line
 
 

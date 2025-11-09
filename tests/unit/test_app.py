@@ -1,7 +1,8 @@
 import pytest
 
-from slurm_script_generator.main import generate_script
-from slurm_script_generator.sbatch_parser import pragmas
+# from slurm_script_generator.main import generate_script
+from slurm_script_generator.pragmas import pragma_dict
+from slurm_script_generator.slurm_script import SlurmScript
 
 
 def test_import_app():
@@ -13,8 +14,11 @@ def test_import_app():
 def test_options():
 
     args = {"--nodes": 1, "--ntasks_per_node": 16}
-    script = generate_script(args_dict=args, print_script=False)
-    print(script)
+    pragmas = []
+    for key, item in args.items():
+        pragmas.append(pragma_dict[key](item))
+    slurm_script = SlurmScript(pragmas=pragmas)
+    script = slurm_script.generate_script()
     assert "#SBATCH --nodes=1" in script
     assert "#SBATCH --ntasks-per-node=16" in script
 
@@ -44,15 +48,23 @@ def test_default_script(job_name, tasks_per_node, nodes, modules, venv_path, mem
         "--job_name": job_name,
         "--ntasks_per_node": tasks_per_node,
         "--nodes": nodes,
-        "modules": modules,
-        "--likwid": True,
-        "--venv": venv_path,
         "--mem": mem,
         "--time": time,
-        "custom_command": "mpirun -n 4 ./bin > run.out",
     }
-    script = generate_script(args_dict=script_params, print_script=False)
-    print(script)
+    pragmas = []
+    for key, item in script_params.items():
+        pragmas.append(pragma_dict[key](item))
+
+    # Generate script
+    slurm_script = SlurmScript(
+        pragmas=pragmas,
+        custom_command="mpirun -n 4 ./bin > run.out",
+        modules=modules,
+        likwid=True,
+        venv=venv_path,
+    )
+    script = slurm_script.generate_script()
+
     assert f"#SBATCH --job-name={job_name}" in script
     assert f"#SBATCH --ntasks-per-node={tasks_per_node}" in script
     assert f"#SBATCH --nodes={nodes}" in script
@@ -61,19 +73,22 @@ def test_default_script(job_name, tasks_per_node, nodes, modules, venv_path, mem
 
 
 def test_examples():
-    script_params = {}
-    for p in pragmas:
-        if p.example is not None:
-            script_params[p.dest] = p.example
+    pragmas = []
+    for key, pragma in pragma_dict.items():
+        if pragma.example is not None:
+            # script_params[pragma.dest] = p.example
+            pragmas.append(pragma(pragma.example))
 
-    script = generate_script(args_dict=script_params, print_script=False)
+    slurm_script = SlurmScript(pragmas=pragmas)
+    script = slurm_script.generate_script()
 
-    print(script)
+    for key, pragma in pragma_dict.items():
+        if pragma.example is not None:
+            assert f"#SBATCH {pragma.dest.replace('_','-')}" in script
 
-    for p in pragmas:
-        if p.example is not None:
-            assert f"#SBATCH {p.sbatch_flag}={p.example}" in script
 
+# SBATCH --cpus-per-task
+# SBATCH --cpus_per_task
 
 if __name__ == "__main__":
     test_import_app()
