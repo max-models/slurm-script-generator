@@ -49,13 +49,15 @@ def test_default_script(job_name, tasks_per_node, nodes, modules, venv_path, mem
         "--venv": venv_path,
         "--mem": mem,
         "--time": time,
+        "custom_command": "mpirun -n 4 ./bin > run.out",
     }
     script = generate_script(args_dict=script_params, print_script=False)
-
+    print(script)
     assert f"#SBATCH --job-name={job_name}" in script
     assert f"#SBATCH --ntasks-per-node={tasks_per_node}" in script
     assert f"#SBATCH --nodes={nodes}" in script
     assert f"module load {' '.join(modules)}" in script
+    assert "mpirun -n 4 ./bin > run.out" in script
 
 
 def test_examples():

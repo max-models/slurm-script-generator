@@ -92,14 +92,27 @@ def add_misc_options(parser):
         metavar="JSON_PATH",
         help="path to export yaml for generating the slurm script to",
     )
+
+    parser.add_argument(
+        "--command",
+        dest="custom_command",
+        type=str,
+        default=None,
+        metavar="COMMAND",
+        help="Add a custom command at the end of the script (e.g. mpirun -n 8 ./bin > run.out)",
+    )
+
     return parser
 
 
 def add_line(line, comment="", line_length=40):
-    if len(line) > line_length:
-        return f"{line} # {comment}\n"
-    else:
-        return f"{line} {' ' * (line_length - len(line))}# {comment}\n"
+    if len(comment) > 0:
+
+        if len(line) > line_length:
+            comment = f" # {comment}\n"
+        else:
+            comment = f" {' ' * (line_length - len(line))}# {comment}\n"
+    return line + comment
 
 
 def export_json(args_dict, path):
@@ -206,6 +219,13 @@ def generate_script(args_dict, print_script=True):
         )
 
         script += "\n"
+
+    if args_dict.get("custom_command", None) is not None:
+        script += add_line(
+            args_dict.get("custom_command"),
+            line_length=line_length,
+        )
+
     if args_dict.get("export_json", None) is not None:
         path = args_dict.pop("export_json")
         export_json(args_dict=args_dict, path=path)
