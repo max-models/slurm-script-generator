@@ -1,9 +1,6 @@
 import argparse
 import json
 
-# import slurm_script_generator.sbatch_parser as sbatch_parser
-# from slurm_script_generator import slurm_script
-# from slurm_script_generator.sbatch import register_to_parser
 from slurm_script_generator.slurm_script import SlurmScript
 from slurm_script_generator.utils import add_line
 
@@ -116,120 +113,6 @@ def export_json(args_dict, path):
 def read_yaml(path):
     with open(path, "r") as f:
         return json.load(f)
-
-
-# def generate_script(args_dict, print_script=True):
-
-#     line_length = args_dict.get("line_length", 60)
-
-#     # Start generating the SLURM batch script
-#     script = "#!/bin/bash\n"
-#     script += "#" * (line_length + 2) + "\n"
-
-#     for pragma in sbatch_parser.pragmas:
-#         # print(f"{pragma.dest = } {list(args_dict.keys()) = }")
-#         if pragma.dest in list(args_dict.keys()):
-#             # print(f"{pragma.dest = }")
-#             val = args_dict.get(pragma.dest)
-#             if val not in [None, False]:
-#                 script += add_line(
-#                     f"#SBATCH {pragma.sbatch_flag}={val}",
-#                     pragma.help,
-#                     line_length=line_length,
-#                 )
-#     script += "#" * (line_length + 2) + "\n\n"
-
-#     vars = args_dict.get("vars", [])
-#     if len(vars) > 0:
-#         for var in vars:
-#             script += add_line(
-#                 f"export {var}",
-#                 "Set environment variable",
-#                 line_length=line_length,
-#             )
-
-#     if args_dict.get("printself", False):
-#         script += add_line(
-#             f"cat $0",
-#             "print this batch script",
-#             line_length=line_length,
-#         )
-
-#     # Load modules
-#     if len(args_dict.get("modules", [])) > 0:
-#         script += add_line(
-#             "module purge",
-#             "Purge modules",
-#             line_length=line_length,
-#         )
-#         script += add_line(
-#             f"module load {' '.join(args_dict.get('modules'))}",
-#             "modules",
-#             line_length=line_length,
-#         )
-#         script += add_line(
-#             "module list",
-#             "List loaded modules",
-#             line_length=line_length,
-#         )
-
-#     if args_dict.get("venv", None) is not None:
-#         script += add_line(
-#             f"source {args_dict.get('venv')}/bin/activate",
-#             "virtual environment",
-#             line_length=line_length,
-#         )
-
-#     if args_dict.get("printenv", False):
-#         script += add_line(
-#             "printenv",
-#             "print environment variables",
-#             line_length=line_length,
-#         )
-
-#     if args_dict.get("likwid", False):
-#         script += add_line(
-#             "LIKWID_PREFIX=$(realpath $(dirname $(which likwid-topology))/..)",
-#             "Set LIKWID prefix",
-#             line_length=line_length,
-#         )
-
-#         script += add_line(
-#             "export LD_LIBRARY_PATH=$LIKWID_PREFIX/lib",
-#             "Set LD_LIBRARY_PATH for LIKWID",
-#             line_length=line_length,
-#         )
-
-#         script += add_line(
-#             "likwid-topology > likwid-topology.txt",
-#             "Save LIKWID topology information",
-#             line_length=line_length,
-#         )
-#         script += add_line(
-#             "likwid-topology -g > likwid-topology-g.txt",
-#             "Save graphical LIKWID topology information",
-#             line_length=line_length,
-#         )
-
-#         script += "\n"
-
-#     if args_dict.get("custom_command", None) is not None:
-#         script += add_line(
-#             args_dict.get("custom_command"),
-#             line_length=line_length,
-#         )
-
-#     if args_dict.get("export_json", None) is not None:
-#         path = args_dict.pop("export_json")
-#         export_json(args_dict=args_dict, path=path)
-#     if args_dict.get("output") is not None:
-#         with open(args_dict.get("output"), "w") as f:
-#             f.write(script)
-
-#     if print_script:
-#         print(script)
-
-#     return script
 
 
 def main():

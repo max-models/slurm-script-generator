@@ -76,7 +76,6 @@ def test_examples():
     pragmas = []
     for key, pragma in pragma_dict.items():
         if pragma.example is not None:
-            # script_params[pragma.dest] = p.example
             pragmas.append(pragma(pragma.example))
 
     slurm_script = SlurmScript(pragmas=pragmas)
@@ -86,9 +85,6 @@ def test_examples():
         if pragma.example is not None:
             assert f"#SBATCH {pragma.dest.replace('_','-')}" in script
 
-
-# SBATCH --cpus-per-task
-# SBATCH --cpus_per_task
 
 if __name__ == "__main__":
     test_import_app()

@@ -256,7 +256,7 @@ class Distribution(Pragma):
     dest = "--distribution"
     metavar = "TYPE"
     help = "distribution method for processes to nodes"
-    choices = "['block', 'cyclic', 'arbitrary']"
+    choices = ['block', 'cyclic', 'arbitrary']
     type = str
 
 
@@ -267,9 +267,8 @@ class Mail_type(Pragma):
     metavar = "TYPE"
     help = "notify on state change"
     example = "ALL"
-    choices = "['BEGIN', 'END', 'FAIL', 'ALL']"
+    choices = ['NONE', 'BEGIN', 'END', 'FAIL', 'REQUEUE', 'ALL']
     type = str
-
 
 class Mail_user(Pragma):
 
