@@ -1,3 +1,4 @@
+import json
 from typing import List
 
 from slurm_script_generator.pragmas import Pragma
@@ -122,16 +123,6 @@ class SlurmScript:
                 self.custom_command,
                 line_length=line_length,
             )
-
-        # if args_dict.get("export_json", None) is not None:
-        #     path = args_dict.pop("export_json")
-        #     export_json(args_dict=args_dict, path=path)
-        # if args_dict.get("output") is not None:
-        #     with open(args_dict.get("output"), "w") as f:
-        #         f.write(script)
-
-        # if print_script:
-        #     print(script)
 
         return script_repr
 

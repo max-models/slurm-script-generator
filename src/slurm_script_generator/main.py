@@ -105,16 +105,6 @@ def add_misc_options(parser):
     return parser
 
 
-def export_json(args_dict, path):
-    with open(path, "w") as f:
-        json.dump(args_dict, f)
-
-
-def read_yaml(path):
-    with open(path, "r") as f:
-        return json.load(f)
-
-
 def main():
     parser = argparse.ArgumentParser(
         description="Slurm job submission options",
@@ -157,11 +147,22 @@ def main():
 
     sbatch_args = parser.parse_args()
 
-    if sbatch_args.input is None:
-        args_dict = {}
-    else:
-        args_dict = read_yaml(sbatch_args.input)
+    # Export parameters
+    if sbatch_args.export_json:
+        # print(f"Exporting setup to {sbatch_args.export_json}")
+        with open(sbatch_args.export_json, "w") as f:
+            json.dump(vars(sbatch_args), f, indent=2)
 
+    # Read parameters
+    if sbatch_args.input is not None:
+        # print(f"Reading setup from {sbatch_args.input}")
+        with open(sbatch_args.input, "r") as f:
+            data = json.load(f)
+
+        # Convert JSON dict to argparse.Namespace
+        sbatch_args = argparse.Namespace(**data)
+
+    args_dict = {}
     pragma_list = []
     for arg in sbatch_args.__dict__:
         val = sbatch_args.__dict__[arg]
@@ -169,24 +170,13 @@ def main():
             if arg in list(pragma_dict.keys()):
                 pragma_list.append(pragma_dict[arg](val))
             else:
-                # if isinstance(val, list) and len(val) == 0:
-                #     continue
-                # print(arg, val)
                 args_dict.update({arg: val})
-
-    path_export = None
-    if args_dict.get("export_json", None) is not None:
-        path_export = args_dict.pop("export_json")
-        # export_json(args_dict=args_dict, path=path)
 
     path_out = None
     if args_dict.get("output") is not None:
         path_out = args_dict.pop("output")
 
     slurm_script = SlurmScript(pragmas=pragma_list, **args_dict)
-
-    # if path_export:
-    #     slurm_script.export_json(path_export)
 
     if path_out:
         with open(path_out, "w") as f:
