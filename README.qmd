@@ -1,0 +1,59 @@
+---
+title: "slurm-script-generator"
+engine: knitr
+execute:
+  echo: true
+  output: true
+---
+
+
+```bash
+pip install slurm-script-generator
+```
+## Generate scripts
+
+Generate a slurm script to `slurm_script.sh` with
+
+```{bash}
+generate-slurm-script --nodes 1 --ntasks-per-node 16
+```
+
+To save the script to file `my_script.sh` use `--output`:
+
+```{bash}
+generate-slurm-script --nodes 1 --ntasks-per-node 16 --output my_script.sh
+```
+
+To export the settings to a json file you can use `--export-json`:
+
+```{bash}
+generate-slurm-script --nodes 2 --export-json setup.json
+```
+
+This json file can used as a basis for creating new scripts
+
+```{bash}
+generate-slurm-script --input setup.json --ntasks-per-node 16
+```
+
+### Add modules
+
+Add modules with
+
+```{bash}
+generate-slurm-script --input setup.json --ntasks-per-node 16 --modules gcc/13 openmpi/5.0
+```
+
+### Add virtual environment
+
+```{bash}
+generate-slurm-script --nodes 1 --ntasks-per-node 16 --venv ~/virtual_envs/env
+```
+
+### Other
+
+All optional arguments can be shown with
+
+```{bash}
+generate-slurm-script -h
+```
