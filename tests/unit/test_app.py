@@ -95,7 +95,7 @@ def test_examples():
 
     for key, pragma in pragma_dict.items():
         if pragma.example is not None:
-            assert f"#SBATCH {pragma.dest.replace('_','-')}" in script
+            assert f"#SBATCH {pragma.dest.replace('_', '-')}" in script
 
 
 if __name__ == "__main__":
