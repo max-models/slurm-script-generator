@@ -33,10 +33,11 @@ class Pragma:
 class Account(Pragma):
     """This class represents the SLURM #SBATCH --account pragma,
     which specifies the account to charge for a job.
-    
+
     args:
         value (str): The name of the account to charge for the job.
     """
+
     flags = ["-A", "--account"]
     dest = "--account"
     metavar = "NAME"
@@ -291,12 +292,13 @@ class Nice(Pragma):
 
 class Nodes(Pragma):
     """
-    This class represents the SLURM #SBATCH --nodes pragma, 
+    This class represents the SLURM #SBATCH --nodes pragma,
     which specifies the number of nodes to allocate for a job.
 
     args:
         value (int): The number of nodes to allocate for the job.
     """
+
     flags = ["-N", "--nodes"]
     dest = "--nodes"
     metavar = "NODES"
@@ -310,6 +312,7 @@ class Ntasks_per_node(Pragma):
     This class represents the SLURM #SBATCH --ntasks-per-node pragma,
     which specifies the number of tasks to invoke on each node.
     """
+
     flags = ["--ntasks-per-node"]
     dest = "--ntasks_per_node"
     metavar = "N"
