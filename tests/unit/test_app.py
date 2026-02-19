@@ -10,6 +10,7 @@ def test_import_app():
 
     print("slurm_script_generator imported")
 
+
 def test_import_pragmas():
     from slurm_script_generator.pragmas import Nodes
 
@@ -20,6 +21,7 @@ def test_import_pragmas():
     slurm_script.add_pragma(nodes)
 
     print(slurm_script)
+
 
 def test_options():
 
