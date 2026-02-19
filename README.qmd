@@ -38,6 +38,12 @@ slurm_script.add_pragma(nodes)
 print(slurm_script)
 ```
 
+You can also generate a string representation of the script with `generate_script`:
+
+```{python}
+script = slurm_script.generate_script()
+```
+
 To export the settings to a json file you can use `--export-json`:
 
 ```{bash}

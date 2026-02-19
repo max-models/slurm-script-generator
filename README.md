@@ -45,6 +45,13 @@ print(slurm_script)
     ##########################################
     mpirun -n 4 ./bin > run.out
 
+You can also generate a string representation of the script with
+`generate_script`:
+
+``` python
+script = slurm_script.generate_script()
+```
+
 To export the settings to a json file you can use `--export-json`:
 
 ``` bash
