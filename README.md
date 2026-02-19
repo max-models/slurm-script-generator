@@ -28,13 +28,15 @@ generate-slurm-script --nodes 1 --ntasks-per-node 16 --output my_script.sh
 You can also generate scripts in Python programmatically:
 
 ``` python
-from slurm_script_generator.pragmas import Nodes
+from slurm_script_generator.pragmas import Nodes, Ntasks_per_node
 from slurm_script_generator.slurm_script import SlurmScript
-nodes = Nodes(value=2)
+
 slurm_script = SlurmScript(
     custom_command="mpirun -n 4 ./bin > run.out",
 )
-slurm_script.add_pragma(nodes)
+
+slurm_script.add_pragma(Nodes(value=2))
+slurm_script.add_pragma(Ntasks_per_node(value=16))
 
 print(slurm_script)
 ```
@@ -42,6 +44,7 @@ print(slurm_script)
     #!/bin/bash
     ##########################################
     #SBATCH --nodes=2                        # number of nodes on which to run
+    #SBATCH --ntasks-per-node=16             # number of tasks to invoke on each node
     ##########################################
     mpirun -n 4 ./bin > run.out
 
