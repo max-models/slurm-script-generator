@@ -32,7 +32,7 @@ from slurm_script_generator.pragmas import Nodes, Ntasks_per_node
 from slurm_script_generator.slurm_script import SlurmScript
 
 slurm_script = SlurmScript(
-    custom_command="mpirun -n 4 ./bin > run.out",
+    custom_command="srun ./bin > run.out",
 )
 
 slurm_script.add_pragma(Nodes(value=2))
@@ -46,7 +46,7 @@ print(slurm_script)
     #SBATCH --nodes=2                        # number of nodes on which to run
     #SBATCH --ntasks-per-node=16             # number of tasks to invoke on each node
     ##########################################
-    mpirun -n 4 ./bin > run.out
+    srun ./bin > run.out
 
 You can also generate a string representation of the script with
 `generate_script`:
