@@ -10,6 +10,16 @@ def test_import_app():
 
     print("slurm_script_generator imported")
 
+def test_import_pragmas():
+    from slurm_script_generator.pragmas import Nodes
+
+    nodes = Nodes(value=2)
+    slurm_script = SlurmScript(
+        custom_command="mpirun -n 4 ./bin > run.out",
+    )
+    slurm_script.add_pragma(nodes)
+
+    print(slurm_script)
 
 def test_options():
 
