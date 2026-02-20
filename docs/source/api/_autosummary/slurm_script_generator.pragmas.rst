@@ -1,0 +1,99 @@
+slurm\_script\_generator.pragmas
+================================
+
+.. automodule:: slurm_script_generator.pragmas
+
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+   
+      Account
+      Bb_file
+      Begin
+      Bell
+      Burst_buffer
+      Chdir
+      Cluster_constraint
+      Clusters
+      Comment
+      Constraint
+      Container
+      Container_id
+      Contiguous
+      Core_spec
+      Cores_per_socket
+      Cpu_freq
+      Cpus_per_gpu
+      Cpus_per_task
+      Deadline
+      Delay_boot
+      Dependency
+      Disable_stdout_job_summary
+      Distribution
+      E
+      Exclude
+      Exclusive_mcs
+      Exclusive_user
+      Extra_node_info
+      Get_user_env
+      Gpu_bind
+      Gpu_freq
+      Gpus
+      Gpus_per_node
+      Gpus_per_socket
+      Gpus_per_task
+      Gres
+      Gres_flags
+      Hint
+      Hold
+      Immediate
+      Job_name
+      Kill_command
+      Licenses
+      Mail_type
+      Mail_user
+      Mcs_label
+      Mem
+      Mem_bind
+      Mem_per_cpu
+      Mem_per_gpu
+      Mincpus
+      Nice
+      No_kill
+      Nodefile
+      Nodelist
+      Nodes
+      Ntasks
+      Ntasks_per_core
+      Ntasks_per_node
+      Ntasks_per_socket
+      Nvmps
+      O
+      Oom_kill_step
+      Overcommit
+      Oversubscribe
+      Partition
+      Power
+      Pragma
+      Priority
+      Profile
+      Qos
+      Quiet
+      Reboot
+      Reservation
+      Resv_ports
+      Signal
+      Sockets_per_node
+      Spread_job
+      Switches
+      Thread_spec
+      Threads_per_core
+      Time
+      Time_min
+      Tmp
+      Tres_bind
+      Tres_per_task
+      Use_min_nodes
+      Wckey
+   

@@ -29,9 +29,30 @@ optional-dependencies.dev = [
   "black",
   "check-manifest",
   "isort",
-  "pytest",
+  "slurm-script-generator[docs]",
+  "slurm-script-generator[test]",
 ]
-optional-dependencies.test = [ "coverage" ]
+optional-dependencies.test = [
+  "pytest",
+  "coverage",
+]
+
+optional-dependencies.docs = [
+  "ipykernel",
+  "myst-parser",
+  "nbconvert",
+  "nbsphinx",
+  "jupyterlab",
+  "linkify-it-py",
+  "pre-commit",
+  "pyproject-fmt",
+  "sphinx",
+  "sphinx-book-theme",
+  "sphinxcontrib-mermaid",
+  "sphinx-design",
+]
+
+
 urls."Source" = "https://github.com/max-models/slurm-script-generator"
 scripts.generate-slurm-script = "slurm_script_generator.main:main"
 
