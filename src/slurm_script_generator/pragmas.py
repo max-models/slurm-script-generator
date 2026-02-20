@@ -419,16 +419,16 @@ class Spread_job(Pragma):
     type = str
 
 
-class E(Pragma):
+class Stderr(Pragma):
     flags = ["--stderr", "-e"]
     dest = "-e"
     metavar = "STDERR"
     help = "File to redirect stderr (%%x=jobname, %%j=jobid)"
-    example = "--stdout ./%x.%j.out"
+    example = "--stderr ./%x.%j.err"
     type = str
 
 
-class O(Pragma):
+class Stdout(Pragma):
     flags = ["--stdout", "-o"]
     dest = "-o"
     metavar = "STDOUT"
