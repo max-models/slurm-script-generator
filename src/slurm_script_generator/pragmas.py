@@ -776,7 +776,7 @@ class Nvmps(Pragma):
 
 
 pragma_dict = {}
-
+pragmas_lowercase = {}
 for _, pragma_cls in list(globals().items()):
     if (
         isinstance(pragma_cls, type)
@@ -784,7 +784,9 @@ for _, pragma_cls in list(globals().items()):
         and pragma_cls is not Pragma
     ):
         pragma_dict[pragma_cls.dest] = pragma_cls
-
+        pragmas_lowercase[pragma_cls.__name__.lower()] = pragma_cls
+        # print(f"{pragma_cls.__name__.lower()}: str | None = None,")
+        # print(f"\"{pragma_cls.__name__.lower()}\": {pragma_cls.__name__.lower()},")
 
 if __name__ == "__main__":
     acc = Account("max")
