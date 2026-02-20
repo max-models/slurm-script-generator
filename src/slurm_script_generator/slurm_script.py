@@ -102,6 +102,7 @@ class SlurmScript:
         printenv: bool = False,
         likwid: bool = False,
         custom_command: str | None = None,
+        custom_commands: list | None = None,
         vars: list | None = None,
         line_length: int = 40,
     ) -> None:
@@ -213,7 +214,14 @@ class SlurmScript:
         self._venv = venv
         self._printenv = printenv
         self._likwid = likwid
-        self._custom_command = custom_command
+        if custom_commands is None:
+            custom_commands: list = []
+        assert isinstance(custom_commands, list)
+
+        if custom_command is not None:
+            custom_commands.append(custom_command)
+
+        self._custom_commands = custom_commands
         if vars is None:
             self._vars = []
         else:
@@ -303,11 +311,12 @@ class SlurmScript:
 
             script_repr += "\n"
 
-        if self.custom_command is not None:
-            script_repr += add_line(
-                self.custom_command,
-                line_length=line_length,
-            )
+        if len(self.custom_commands) > 0:
+            for custom_command in self.custom_commands:
+                script_repr += add_line(
+                    f"{custom_command}\n",
+                    line_length=line_length,
+                )
 
         return script_repr
 
@@ -339,8 +348,8 @@ class SlurmScript:
         return self._likwid
 
     @property
-    def custom_command(self) -> str:
-        return self._custom_command
+    def custom_commands(self) -> list:
+        return self._custom_commands
 
     @property
     def vars(self) -> list:

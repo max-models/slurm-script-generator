@@ -33,7 +33,10 @@ from slurm_script_generator.slurm_script import SlurmScript
 slurm_script = SlurmScript(
     nodes=2,
     ntasks_per_core=16,
-    custom_command="mpirun -n 4 ./bin > run.out",
+    custom_commands=[
+        "# Run simulation",
+        "srun ./bin > run.out",
+    ],
 )
 
 print(slurm_script)
@@ -44,7 +47,8 @@ print(slurm_script)
     #SBATCH --nodes=2                        # number of nodes on which to run
     #SBATCH --ntasks-per-core=16             # number of tasks to invoke on each core
     ##########################################
-    mpirun -n 4 ./bin > run.out
+    # Run simulation
+    srun ./bin > run.out
 
 You can also generate a string representation of the script with
 `generate_script`:
