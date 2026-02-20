@@ -1,4 +1,4 @@
-import json
+import os
 from typing import List
 
 from slurm_script_generator.pragmas import Pragma, pragmas_lowercase
@@ -103,12 +103,15 @@ class SlurmScript:
         likwid: bool = False,
         custom_command: str | None = None,
         custom_commands: list | None = None,
+        inlined_script: str | None = None,
+        inlined_scripts: list | None = None,
         vars: list | None = None,
         line_length: int = 40,
     ) -> None:
 
         if pragmas is None:
             pragmas = []
+        self._pragmas = pragmas
 
         pragma_params = {
             "account": account,
@@ -203,9 +206,7 @@ class SlurmScript:
         for name, param in pragma_params.items():
             if param is not None:
                 pragma = pragmas_lowercase[name](value=param)
-                pragmas.append(pragma)
-
-        self._pragmas = pragmas
+                self.add_pragma(pragma=pragma)
         self._printself = printself
         if modules is None:
             self._modules = []
@@ -214,14 +215,32 @@ class SlurmScript:
         self._venv = venv
         self._printenv = printenv
         self._likwid = likwid
+
+        # Handle custom commands
         if custom_commands is None:
             custom_commands: list = []
         assert isinstance(custom_commands, list)
-
         if custom_command is not None:
             custom_commands.append(custom_command)
-
         self._custom_commands = custom_commands
+
+        # Handle inlined scripts
+        if inlined_scripts is None:
+            inlined_scripts = []
+        assert isinstance(inlined_scripts, list)
+        if inlined_script is not None:
+            inlined_scripts.append(inlined_script)
+
+        for inlined_script in inlined_scripts:
+            assert isinstance(inlined_script, str)
+            assert os.path.isfile(
+                inlined_script
+            ), f"Inlined script '{inlined_script}' does not exist or is not a file."
+            with open(inlined_script, "r") as f:
+                for line in f.readlines():
+                    self._custom_commands.append(line.strip())
+
+        # Handle environment variables
         if vars is None:
             self._vars = []
         else:
@@ -350,6 +369,10 @@ class SlurmScript:
     @property
     def custom_commands(self) -> list:
         return self._custom_commands
+
+    # @property
+    # def inlined_scripts(self) -> list:
+    #     return self._inlined_scripts
 
     @property
     def vars(self) -> list:

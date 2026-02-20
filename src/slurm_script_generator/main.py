@@ -94,12 +94,41 @@ def add_misc_options(parser):
     )
 
     parser.add_argument(
-        "--command",
+        "--custom-command",
         dest="custom_command",
         type=str,
         default=None,
         metavar="COMMAND",
-        help="Add a custom command at the end of the script (e.g. mpirun -n 8 ./bin > run.out)",
+        help="Add a custom command at the end of the script (e.g. --custom-command 'mpirun -n 8 ./bin > run.out')",
+    )
+
+    parser.add_argument(
+        "--custom-commands",
+        dest="custom_commands",
+        type=str,
+        nargs="+",
+        default=[],
+        metavar="COMMAND",
+        help="Add custom commands at the end of the script (e.g. --custom-commands '# Run simulation' 'mpirun -n 8 ./bin > run.out')",
+    )
+
+    parser.add_argument(
+        "--inline-script",
+        dest="inlined_script",
+        type=str,
+        default=None,
+        metavar="COMMAND",
+        help="Inline script to add at the end of the script (e.g. --inline-script script.sh)",
+    )
+
+    parser.add_argument(
+        "--inline-scripts",
+        dest="inlined_scripts",
+        type=str,
+        nargs="+",
+        default=[],
+        metavar="COMMAND",
+        help="Add inline scripts at the end of the script (e.g. --inline-scripts script1.sh script2.sh)",
     )
 
     return parser
