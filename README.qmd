@@ -27,15 +27,16 @@ generate-slurm-script --nodes 1 --ntasks-per-node 16 --output my_script.sh
 You can also generate scripts in Python programmatically:
 
 ```{python}
-from slurm_script_generator.pragmas import Nodes, Ntasks_per_node
 from slurm_script_generator.slurm_script import SlurmScript
 
 slurm_script = SlurmScript(
-    custom_command="srun ./bin > run.out",
+    nodes=2,
+    ntasks_per_core=16,
+    custom_commands=[
+        "# Run simulation",
+        "srun ./bin > run.out",
+    ],
 )
-
-slurm_script.add_pragma(Nodes(value=2))
-slurm_script.add_pragma(Ntasks_per_node(value=16))
 
 print(slurm_script)
 ```
