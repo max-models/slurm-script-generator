@@ -159,7 +159,10 @@ generate-slurm-script -h
                                  [--venv VENV] [--printenv] [--print-self]
                                  [--likwid] [--input INPUT_PATH]
                                  [--output OUTPUT_PATH] [--export-json JSON_PATH]
-                                 [--command COMMAND]
+                                 [--custom-command COMMAND]
+                                 [--custom-commands COMMAND [COMMAND ...]]
+                                 [--inline-script COMMAND]
+                                 [--inline-scripts COMMAND [COMMAND ...]]
 
     Slurm job submission options
 
@@ -324,5 +327,17 @@ generate-slurm-script -h
       --export-json JSON_PATH
                             path to export yaml for generating the slurm script to
                             (default: None)
-      --command COMMAND     Add a custom command at the end of the script (e.g.
-                            mpirun -n 8 ./bin > run.out) (default: None)
+      --custom-command COMMAND
+                            Add a custom command at the end of the script (e.g.
+                            --custom-command 'mpirun -n 8 ./bin > run.out')
+                            (default: None)
+      --custom-commands COMMAND [COMMAND ...]
+                            Add custom commands at the end of the script (e.g.
+                            --custom-commands '# Run simulation' 'mpirun -n 8
+                            ./bin > run.out') (default: [])
+      --inline-script COMMAND
+                            Inline script to add at the end of the script (e.g.
+                            --inline-script script.sh) (default: None)
+      --inline-scripts COMMAND [COMMAND ...]
+                            Add inline scripts at the end of the script (e.g.
+                            --inline-scripts script1.sh script2.sh) (default: [])
