@@ -31,6 +31,13 @@ class Pragma:
 
 
 class Account(Pragma):
+    """This class represents the SLURM #SBATCH --account pragma,
+    which specifies the account to charge for a job.
+
+    args:
+        value (str): The name of the account to charge for the job.
+    """
+
     flags = ["-A", "--account"]
     dest = "--account"
     metavar = "NAME"
@@ -56,7 +63,6 @@ class Bell(Pragma):
 
 
 class Burst_buffer(Pragma):
-
     flags = ["--bb"]
     dest = "--burst_buffer"
     metavar = "SPEC"
@@ -65,7 +71,6 @@ class Burst_buffer(Pragma):
 
 
 class Bb_file(Pragma):
-
     flags = ["--bbf"]
     dest = "--bb_file"
     metavar = "FILE_NAME"
@@ -74,7 +79,6 @@ class Bb_file(Pragma):
 
 
 class Cpus_per_task(Pragma):
-
     flags = ["-c", "--cpus-per-task"]
     dest = "--cpus_per_task"
     metavar = "NCPUS"
@@ -84,7 +88,6 @@ class Cpus_per_task(Pragma):
 
 
 class Comment(Pragma):
-
     flags = ["--comment"]
     dest = "--comment"
     metavar = "NAME"
@@ -93,7 +96,6 @@ class Comment(Pragma):
 
 
 class Container(Pragma):
-
     flags = ["--container"]
     dest = "--container"
     metavar = "PATH"
@@ -102,7 +104,6 @@ class Container(Pragma):
 
 
 class Container_id(Pragma):
-
     flags = ["--container-id"]
     dest = "--container_id"
     metavar = "ID"
@@ -111,7 +112,6 @@ class Container_id(Pragma):
 
 
 class Cpu_freq(Pragma):
-
     flags = ["--cpu-freq"]
     dest = "--cpu_freq"
     metavar = "MIN[-MAX[:GOV]]"
@@ -120,7 +120,6 @@ class Cpu_freq(Pragma):
 
 
 class Delay_boot(Pragma):
-
     flags = ["--delay-boot"]
     dest = "--delay_boot"
     metavar = "MINS"
@@ -129,7 +128,6 @@ class Delay_boot(Pragma):
 
 
 class Dependency(Pragma):
-
     flags = ["-d", "--dependency"]
     dest = "--dependency"
     metavar = "TYPE:JOBID[:TIME]"
@@ -138,7 +136,6 @@ class Dependency(Pragma):
 
 
 class Deadline(Pragma):
-
     flags = ["--deadline"]
     dest = "--deadline"
     metavar = "TIME"
@@ -147,7 +144,6 @@ class Deadline(Pragma):
 
 
 class Chdir(Pragma):
-
     flags = ["-D", "--chdir"]
     dest = "--chdir"
     metavar = "PATH"
@@ -156,7 +152,6 @@ class Chdir(Pragma):
 
 
 class Get_user_env(Pragma):
-
     flags = ["--get-user-env"]
     dest = "--get_user_env"
     help = "used by Moab. See srun man page"
@@ -165,7 +160,6 @@ class Get_user_env(Pragma):
 
 
 class Gres(Pragma):
-
     flags = ["--gres"]
     dest = "--gres"
     metavar = "LIST"
@@ -174,7 +168,6 @@ class Gres(Pragma):
 
 
 class Gres_flags(Pragma):
-
     flags = ["--gres-flags"]
     dest = "--gres_flags"
     metavar = "OPTS"
@@ -183,7 +176,6 @@ class Gres_flags(Pragma):
 
 
 class Hold(Pragma):
-
     flags = ["-H", "--hold"]
     dest = "--hold"
     help = "submit job in held state"
@@ -192,7 +184,6 @@ class Hold(Pragma):
 
 
 class Immediate(Pragma):
-
     flags = ["-I", "--immediate"]
     dest = "--immediate"
     metavar = "SECS"
@@ -203,7 +194,6 @@ class Immediate(Pragma):
 
 
 class Job_name(Pragma):
-
     flags = ["-J", "--job-name"]
     dest = "--job_name"
     metavar = "NAME"
@@ -213,7 +203,6 @@ class Job_name(Pragma):
 
 
 class No_kill(Pragma):
-
     flags = ["-k", "--no-kill"]
     dest = "--no_kill"
     help = "do not kill job on node failure"
@@ -222,7 +211,6 @@ class No_kill(Pragma):
 
 
 class Kill_command(Pragma):
-
     flags = ["-K", "--kill-command"]
     dest = "--kill_command"
     metavar = "SIGNAL"
@@ -233,7 +221,6 @@ class Kill_command(Pragma):
 
 
 class Licenses(Pragma):
-
     flags = ["-L", "--licenses"]
     dest = "--licenses"
     metavar = "NAMES"
@@ -242,7 +229,6 @@ class Licenses(Pragma):
 
 
 class Clusters(Pragma):
-
     flags = ["-M", "--clusters"]
     dest = "--clusters"
     metavar = "NAMES"
@@ -251,7 +237,6 @@ class Clusters(Pragma):
 
 
 class Distribution(Pragma):
-
     flags = ["-m", "--distribution"]
     dest = "--distribution"
     metavar = "TYPE"
@@ -261,7 +246,6 @@ class Distribution(Pragma):
 
 
 class Mail_type(Pragma):
-
     flags = ["--mail-type"]
     dest = "--mail_type"
     metavar = "TYPE"
@@ -272,7 +256,6 @@ class Mail_type(Pragma):
 
 
 class Mail_user(Pragma):
-
     flags = ["--mail-user"]
     dest = "--mail_user"
     metavar = "USER"
@@ -282,7 +265,6 @@ class Mail_user(Pragma):
 
 
 class Mcs_label(Pragma):
-
     flags = ["--mcs-label"]
     dest = "--mcs_label"
     metavar = "MCS"
@@ -291,7 +273,6 @@ class Mcs_label(Pragma):
 
 
 class Ntasks(Pragma):
-
     flags = ["-n", "--ntasks"]
     dest = "--ntasks"
     metavar = "N"
@@ -301,7 +282,6 @@ class Ntasks(Pragma):
 
 
 class Nice(Pragma):
-
     flags = ["--nice"]
     dest = "--nice"
     metavar = "VALUE"
@@ -311,27 +291,37 @@ class Nice(Pragma):
 
 
 class Nodes(Pragma):
+    """
+    This class represents the SLURM #SBATCH --nodes pragma,
+    which specifies the number of nodes to allocate for a job.
+
+    args:
+        value (int): The number of nodes to allocate for the job.
+    """
 
     flags = ["-N", "--nodes"]
     dest = "--nodes"
     metavar = "NODES"
     help = "number of nodes on which to run"
     example = "2"
-    type = str
+    type = int
 
 
 class Ntasks_per_node(Pragma):
+    """
+    This class represents the SLURM #SBATCH --ntasks-per-node pragma,
+    which specifies the number of tasks to invoke on each node.
+    """
 
     flags = ["--ntasks-per-node"]
     dest = "--ntasks_per_node"
     metavar = "N"
     help = "number of tasks to invoke on each node"
     example = "16"
-    type = str
+    type = int
 
 
 class Oom_kill_step(Pragma):
-
     flags = ["--oom-kill-step"]
     dest = "--oom_kill_step"
     metavar = "0|1"
@@ -342,7 +332,6 @@ class Oom_kill_step(Pragma):
 
 
 class Overcommit(Pragma):
-
     flags = ["-O", "--overcommit"]
     dest = "--overcommit"
     help = "overcommit resources"
@@ -351,7 +340,6 @@ class Overcommit(Pragma):
 
 
 class Power(Pragma):
-
     flags = ["--power"]
     dest = "--power"
     metavar = "FLAGS"
@@ -360,7 +348,6 @@ class Power(Pragma):
 
 
 class Priority(Pragma):
-
     flags = ["--priority"]
     dest = "--priority"
     metavar = "VALUE"
@@ -369,7 +356,6 @@ class Priority(Pragma):
 
 
 class Profile(Pragma):
-
     flags = ["--profile"]
     dest = "--profile"
     metavar = "VALUE"
@@ -378,7 +364,6 @@ class Profile(Pragma):
 
 
 class Partition(Pragma):
-
     flags = ["-p", "--partition"]
     dest = "--partition"
     metavar = "PARTITION"
@@ -387,7 +372,6 @@ class Partition(Pragma):
 
 
 class Qos(Pragma):
-
     flags = ["-q", "--qos"]
     dest = "--qos"
     metavar = "QOS"
@@ -396,7 +380,6 @@ class Qos(Pragma):
 
 
 class Quiet(Pragma):
-
     flags = ["-Q", "--quiet"]
     dest = "--quiet"
     help = "quiet mode (suppress informational messages)"
@@ -405,7 +388,6 @@ class Quiet(Pragma):
 
 
 class Reboot(Pragma):
-
     flags = ["--reboot"]
     dest = "--reboot"
     help = "reboot compute nodes before starting job"
@@ -414,7 +396,6 @@ class Reboot(Pragma):
 
 
 class Oversubscribe(Pragma):
-
     flags = ["-s", "--oversubscribe"]
     dest = "--oversubscribe"
     help = "oversubscribe resources with other jobs"
@@ -423,7 +404,6 @@ class Oversubscribe(Pragma):
 
 
 class Signal(Pragma):
-
     flags = ["--signal"]
     dest = "--signal"
     metavar = "[R:]NUM[@TIME]"
@@ -432,7 +412,6 @@ class Signal(Pragma):
 
 
 class Spread_job(Pragma):
-
     flags = ["--spread-job"]
     dest = "--spread_job"
     help = "spread job across as many nodes as possible"
@@ -441,7 +420,6 @@ class Spread_job(Pragma):
 
 
 class E(Pragma):
-
     flags = ["--stderr", "-e"]
     dest = "-e"
     metavar = "STDERR"
@@ -451,7 +429,6 @@ class E(Pragma):
 
 
 class O(Pragma):
-
     flags = ["--stdout", "-o"]
     dest = "-o"
     metavar = "STDOUT"
@@ -461,7 +438,6 @@ class O(Pragma):
 
 
 class Switches(Pragma):
-
     flags = ["--switches"]
     dest = "--switches"
     metavar = "MAX_SWITCHES[@MAX_TIME]"
@@ -470,7 +446,6 @@ class Switches(Pragma):
 
 
 class Core_spec(Pragma):
-
     flags = ["-S", "--core-spec"]
     dest = "--core_spec"
     metavar = "CORES"
@@ -479,7 +454,6 @@ class Core_spec(Pragma):
 
 
 class Thread_spec(Pragma):
-
     flags = ["--thread-spec"]
     dest = "--thread_spec"
     metavar = "THREADS"
@@ -488,7 +462,6 @@ class Thread_spec(Pragma):
 
 
 class Time(Pragma):
-
     flags = ["-t", "--time"]
     dest = "--time"
     metavar = "MINUTES"
@@ -498,7 +471,6 @@ class Time(Pragma):
 
 
 class Time_min(Pragma):
-
     flags = ["--time-min"]
     dest = "--time_min"
     metavar = "MINUTES"
@@ -507,7 +479,6 @@ class Time_min(Pragma):
 
 
 class Tres_bind(Pragma):
-
     flags = ["--tres-bind"]
     dest = "--tres_bind"
     metavar = "..."
@@ -516,7 +487,6 @@ class Tres_bind(Pragma):
 
 
 class Tres_per_task(Pragma):
-
     flags = ["--tres-per-task"]
     dest = "--tres_per_task"
     metavar = "LIST"
@@ -525,7 +495,6 @@ class Tres_per_task(Pragma):
 
 
 class Use_min_nodes(Pragma):
-
     flags = ["--use-min-nodes"]
     dest = "--use_min_nodes"
     help = "if a range of node counts is given, prefer the smaller count"
@@ -534,7 +503,6 @@ class Use_min_nodes(Pragma):
 
 
 class Wckey(Pragma):
-
     flags = ["--wckey"]
     dest = "--wckey"
     metavar = "WCKEY"
@@ -543,7 +511,6 @@ class Wckey(Pragma):
 
 
 class Cluster_constraint(Pragma):
-
     flags = ["--cluster-constraint"]
     dest = "--cluster_constraint"
     metavar = "LIST"
@@ -552,7 +519,6 @@ class Cluster_constraint(Pragma):
 
 
 class Contiguous(Pragma):
-
     flags = ["--contiguous"]
     dest = "--contiguous"
     help = "demand a contiguous range of nodes"
@@ -561,7 +527,6 @@ class Contiguous(Pragma):
 
 
 class Constraint(Pragma):
-
     flags = ["-C", "--constraint"]
     dest = "--constraint"
     metavar = "LIST"
@@ -570,7 +535,6 @@ class Constraint(Pragma):
 
 
 class Nodefile(Pragma):
-
     flags = ["-F", "--nodefile"]
     dest = "--nodefile"
     metavar = "FILENAME"
@@ -579,7 +543,6 @@ class Nodefile(Pragma):
 
 
 class Mem(Pragma):
-
     flags = ["--mem"]
     dest = "--mem"
     metavar = "MB"
@@ -589,7 +552,6 @@ class Mem(Pragma):
 
 
 class Mincpus(Pragma):
-
     flags = ["--mincpus"]
     dest = "--mincpus"
     metavar = "N"
@@ -598,7 +560,6 @@ class Mincpus(Pragma):
 
 
 class Reservation(Pragma):
-
     flags = ["--reservation"]
     dest = "--reservation"
     metavar = "NAME"
@@ -607,7 +568,6 @@ class Reservation(Pragma):
 
 
 class Tmp(Pragma):
-
     flags = ["--tmp"]
     dest = "--tmp"
     metavar = "MB"
@@ -616,7 +576,6 @@ class Tmp(Pragma):
 
 
 class Nodelist(Pragma):
-
     flags = ["-w", "--nodelist"]
     dest = "--nodelist"
     metavar = "HOST"
@@ -626,7 +585,6 @@ class Nodelist(Pragma):
 
 
 class Exclude(Pragma):
-
     flags = ["-x", "--exclude"]
     dest = "--exclude"
     metavar = "HOST"
@@ -636,7 +594,6 @@ class Exclude(Pragma):
 
 
 class Exclusive_user(Pragma):
-
     flags = ["--exclusive-user"]
     dest = "--exclusive_user"
     help = "allocate nodes in exclusive mode for cpu consumable resource"
@@ -645,7 +602,6 @@ class Exclusive_user(Pragma):
 
 
 class Exclusive_mcs(Pragma):
-
     flags = ["--exclusive-mcs"]
     dest = "--exclusive_mcs"
     help = "allocate nodes in exclusive mode when mcs plugin is enabled"
@@ -654,7 +610,6 @@ class Exclusive_mcs(Pragma):
 
 
 class Mem_per_cpu(Pragma):
-
     flags = ["--mem-per-cpu"]
     dest = "--mem_per_cpu"
     metavar = "MB"
@@ -663,7 +618,6 @@ class Mem_per_cpu(Pragma):
 
 
 class Resv_ports(Pragma):
-
     flags = ["--resv-ports"]
     dest = "--resv_ports"
     help = "reserve communication ports"
@@ -672,7 +626,6 @@ class Resv_ports(Pragma):
 
 
 class Sockets_per_node(Pragma):
-
     flags = ["--sockets-per-node"]
     dest = "--sockets_per_node"
     metavar = "S"
@@ -681,7 +634,6 @@ class Sockets_per_node(Pragma):
 
 
 class Cores_per_socket(Pragma):
-
     flags = ["--cores-per-socket"]
     dest = "--cores_per_socket"
     metavar = "C"
@@ -691,7 +643,6 @@ class Cores_per_socket(Pragma):
 
 
 class Threads_per_core(Pragma):
-
     flags = ["--threads-per-core"]
     dest = "--threads_per_core"
     metavar = "T"
@@ -701,7 +652,6 @@ class Threads_per_core(Pragma):
 
 
 class Extra_node_info(Pragma):
-
     flags = ["-B", "--extra-node-info"]
     dest = "--extra_node_info"
     metavar = "S[:C[:T]]"
@@ -710,7 +660,6 @@ class Extra_node_info(Pragma):
 
 
 class Ntasks_per_core(Pragma):
-
     flags = ["--ntasks-per-core"]
     dest = "--ntasks_per_core"
     metavar = "N"
@@ -720,7 +669,6 @@ class Ntasks_per_core(Pragma):
 
 
 class Ntasks_per_socket(Pragma):
-
     flags = ["--ntasks-per-socket"]
     dest = "--ntasks_per_socket"
     metavar = "N"
@@ -730,7 +678,6 @@ class Ntasks_per_socket(Pragma):
 
 
 class Hint(Pragma):
-
     flags = ["--hint"]
     dest = "--hint"
     metavar = "HINT"
@@ -739,7 +686,6 @@ class Hint(Pragma):
 
 
 class Mem_bind(Pragma):
-
     flags = ["--mem-bind"]
     dest = "--mem_bind"
     metavar = "BIND"
@@ -748,7 +694,6 @@ class Mem_bind(Pragma):
 
 
 class Cpus_per_gpu(Pragma):
-
     flags = ["--cpus-per-gpu"]
     dest = "--cpus_per_gpu"
     metavar = "N"
@@ -758,7 +703,6 @@ class Cpus_per_gpu(Pragma):
 
 
 class Gpus(Pragma):
-
     flags = ["-G", "--gpus"]
     dest = "--gpus"
     metavar = "N"
@@ -768,7 +712,6 @@ class Gpus(Pragma):
 
 
 class Gpu_bind(Pragma):
-
     flags = ["--gpu-bind"]
     dest = "--gpu_bind"
     metavar = "..."
@@ -777,7 +720,6 @@ class Gpu_bind(Pragma):
 
 
 class Gpu_freq(Pragma):
-
     flags = ["--gpu-freq"]
     dest = "--gpu_freq"
     metavar = "..."
@@ -786,7 +728,6 @@ class Gpu_freq(Pragma):
 
 
 class Gpus_per_node(Pragma):
-
     flags = ["--gpus-per-node"]
     dest = "--gpus_per_node"
     metavar = "N"
@@ -795,7 +736,6 @@ class Gpus_per_node(Pragma):
 
 
 class Gpus_per_socket(Pragma):
-
     flags = ["--gpus-per-socket"]
     dest = "--gpus_per_socket"
     metavar = "N"
@@ -804,7 +744,6 @@ class Gpus_per_socket(Pragma):
 
 
 class Gpus_per_task(Pragma):
-
     flags = ["--gpus-per-task"]
     dest = "--gpus_per_task"
     metavar = "N"
@@ -813,7 +752,6 @@ class Gpus_per_task(Pragma):
 
 
 class Mem_per_gpu(Pragma):
-
     flags = ["--mem-per-gpu"]
     dest = "--mem_per_gpu"
     help = "real memory required per allocated GPU"
@@ -822,7 +760,6 @@ class Mem_per_gpu(Pragma):
 
 
 class Disable_stdout_job_summary(Pragma):
-
     flags = ["--disable-stdout-job-summary"]
     dest = "--disable_stdout_job_summary"
     help = "disable job summary in stdout file for the job"
@@ -831,7 +768,6 @@ class Disable_stdout_job_summary(Pragma):
 
 
 class Nvmps(Pragma):
-
     flags = ["--nvmps"]
     dest = "--nvmps"
     help = "launching NVIDIA MPS for job"

@@ -25,6 +25,36 @@ To save the script to file `my_script.sh` use `--output`:
 generate-slurm-script --nodes 1 --ntasks-per-node 16 --output my_script.sh
 ```
 
+You can also generate scripts in Python programmatically:
+
+``` python
+from slurm_script_generator.pragmas import Nodes, Ntasks_per_node
+from slurm_script_generator.slurm_script import SlurmScript
+
+slurm_script = SlurmScript(
+    custom_command="srun ./bin > run.out",
+)
+
+slurm_script.add_pragma(Nodes(value=2))
+slurm_script.add_pragma(Ntasks_per_node(value=16))
+
+print(slurm_script)
+```
+
+    #!/bin/bash
+    ##########################################
+    #SBATCH --nodes=2                        # number of nodes on which to run
+    #SBATCH --ntasks-per-node=16             # number of tasks to invoke on each node
+    ##########################################
+    srun ./bin > run.out
+
+You can also generate a string representation of the script with
+`generate_script`:
+
+``` python
+script = slurm_script.generate_script()
+```
+
 To export the settings to a json file you can use `--export-json`:
 
 ``` bash

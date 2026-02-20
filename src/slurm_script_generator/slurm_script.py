@@ -8,7 +8,7 @@ from slurm_script_generator.utils import add_line
 class SlurmScript:
     def __init__(
         self,
-        pragmas: List[Pragma],
+        pragmas: List[Pragma] | None = None,
         printself: bool = False,
         modules: List[str] | None = None,
         venv: str | None = None,
@@ -19,6 +19,8 @@ class SlurmScript:
         line_length: int = 40,
     ) -> None:
 
+        if pragmas is None:
+            pragmas = []
         self._pragmas = pragmas
         self._printself = printself
         if modules is None:
@@ -35,11 +37,11 @@ class SlurmScript:
             self._vars = vars
         self._line_length = line_length
 
-    def add_pragma(self, pragma) -> None:
+    def add_pragma(self, pragma: Pragma) -> None:
         assert isinstance(pragma, Pragma)
         self._pragmas.append(pragma)
 
-    def generate_script(self, line_length=40) -> str:
+    def generate_script(self, line_length: int = 40) -> str:
         script_repr = "#!/bin/bash\n"
         script_repr += "#" * (line_length + 2) + "\n"
         for pragma in self.pragmas:
@@ -126,7 +128,7 @@ class SlurmScript:
 
         return script_repr
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return self.generate_script()
 
     @property
