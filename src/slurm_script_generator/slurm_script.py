@@ -9,7 +9,201 @@ from slurm_script_generator.utils import add_line
 
 
 class SlurmScript:
-    """Class representing a Slurm batch script with pragmas, modules, and custom commands."""
+    """Class representing a Slurm batch script with pragmas, modules, and custom commands.
+
+    Parameters
+    ----------
+    account : str, optional
+        The account to charge for the job.
+    array : str, optional
+        The job array specification.
+    begin : str, optional
+        The time to begin the job.
+    bell : str, optional
+        Ring terminal bell when job is allocated.
+    burst_buffer : str, optional
+        Burst buffer specifications.
+    bb_file : str, optional
+        Burst buffer specification file.
+    cpus_per_task : int, optional
+        Number of CPUs required per task.
+    comment : str, optional
+        Arbitrary comment for the job.
+    container : str, optional
+        Path to OCI container bundle.
+    container_id : str, optional
+        OCI container ID.
+    cpu_freq : str, optional
+        Requested CPU frequency and governor.
+    delay_boot : str, optional
+        Delay boot for desired node features.
+    dependency : str, optional
+        Job dependency specification.
+    deadline : str, optional
+        Remove job if no ending possible before deadline.
+    chdir : str, optional
+        Change working directory for the job.
+    get_user_env : str, optional
+        Used by Moab for environment setup.
+    gres : str, optional
+        Required generic resources.
+    gres_flags : str, optional
+        Flags related to GRES management.
+    hold : str, optional
+        Submit job in held state.
+    immediate : str, optional
+        Exit if resources not available within seconds.
+    job_name : str, optional
+        Name of the job.
+    no_kill : str, optional
+        Do not kill job on node failure.
+    kill_command : str, optional
+        Signal to send terminating job.
+    licenses : str, optional
+        Required licenses, comma separated.
+    clusters : str, optional
+        Comma separated list of clusters.
+    distribution : str, optional
+        Distribution method for processes.
+    mail_type : str, optional
+        Notify on state change.
+    mail_user : str, optional
+        Email for job state changes.
+    mcs_label : str, optional
+        MCS label if mcs plugin is used.
+    ntasks : str, optional
+        Number of processors required.
+    nice : str, optional
+        Decrease scheduling priority by value.
+    nodes : int, optional
+        Number of nodes to allocate.
+    ntasks_per_node : int, optional
+        Number of tasks to invoke on each node.
+    oom_kill_step : str, optional
+        Set OOMKillStep behaviour.
+    overcommit : str, optional
+        Overcommit resources.
+    power : str, optional
+        Power management options.
+    priority : str, optional
+        Set job priority.
+    profile : str, optional
+        Enable acct_gather_profile for detailed data.
+    partition : str, optional
+        Partition requested.
+    qos : str, optional
+        Quality of service.
+    quiet : str, optional
+        Suppress informational messages.
+    reboot : str, optional
+        Reboot compute nodes before starting job.
+    oversubscribe : str, optional
+        Oversubscribe resources with other jobs.
+    signal : str, optional
+        Send signal when time limit within seconds.
+    spread_job : str, optional
+        Spread job across as many nodes as possible.
+    stderr : str, optional
+        Redirect stderr to file.
+    stdout : str, optional
+        Redirect stdout to file.
+    switches : str, optional
+        Optimum switches and max wait time.
+    core_spec : str, optional
+        Count of reserved cores.
+    thread_spec : str, optional
+        Count of reserved threads.
+    time : str, optional
+        Time limit for the job.
+    time_min : str, optional
+        Minimum time limit.
+    tres_bind : str, optional
+        Task to TRES binding options.
+    tres_per_task : str, optional
+        TRES required per task.
+    use_min_nodes : str, optional
+        Prefer smaller node count.
+    wckey : str, optional
+        Wckey to run job under.
+    cluster_constraint : str, optional
+        List of cluster constraints.
+    contiguous : str, optional
+        Demand contiguous range of nodes.
+    constraint : str, optional
+        List of constraints.
+    nodefile : str, optional
+        Request specific list of hosts from file.
+    mem : str, optional
+        Minimum real memory required.
+    mincpus : str, optional
+        Minimum logical processors per node.
+    reservation : str, optional
+        Allocate resources from named reservation.
+    tmp : str, optional
+        Minimum temporary disk required.
+    nodelist : str, optional
+        Request specific list of hosts.
+    exclude : str, optional
+        Exclude specific list of hosts.
+    exclusive_user : str, optional
+        Allocate nodes in exclusive mode.
+    exclusive_mcs : str, optional
+        Exclusive mode when mcs plugin enabled.
+    mem_per_cpu : str, optional
+        Real memory per allocated CPU.
+    resv_ports : str, optional
+        Reserve communication ports.
+    sockets_per_node : int, optional
+        Number of sockets per node to allocate.
+    cores_per_socket : int, optional
+        Number of cores per socket to allocate.
+    threads_per_core : int, optional
+        Number of threads per core to allocate.
+    extra_node_info : str, optional
+        Combine sockets, cores, threads.
+    ntasks_per_core : int, optional
+        Number of tasks per core.
+    ntasks_per_socket : int, optional
+        Number of tasks per socket.
+    hint : str, optional
+        Application binding hints.
+    mem_bind : str, optional
+        Bind memory to locality domains.
+    cpus_per_gpu : int, optional
+        Number of CPUs required per allocated GPU.
+    gpus : str, optional
+        Count of GPUs required.
+    gpu_bind : str, optional
+        Task to GPU binding options.
+    gpu_freq : str, optional
+        Frequency and voltage of GPUs.
+    gpus_per_node : str, optional
+        GPUs per allocated node.
+    gpus_per_socket : str, optional
+        GPUs per allocated socket.
+    gpus_per_task : str, optional
+        GPUs per spawned task.
+    mem_per_gpu : str, optional
+        Real memory per allocated GPU.
+    disable_stdout_job_summary : str, optional
+        Disable job summary in stdout file.
+    nvmps : str, optional
+        Launch NVIDIA MPS for job.
+    pragmas : List[Pragma], optional
+        List of pragmas to add to the script.
+    modules : List[str], optional
+        List of modules to load in the script.
+    custom_command : str, optional
+        Custom command to run in the script.
+    custom_commands : list, optional
+        List of custom commands to run in the script.
+    inlined_script : str, optional
+        Inline script to include in the batch script.
+    inlined_scripts : list, optional
+        List of inline scripts to include in the batch script.
+    line_length : int, optional
+        Line length for formatting output.
+    """
 
     def __init__(
         self,
@@ -111,202 +305,6 @@ class SlurmScript:
         inlined_scripts: list | None = None,
         line_length: int = 54,
     ) -> None:
-        """
-        Class representing a Slurm batch script with pragmas, modules, and custom commands.
-
-        Parameters
-        ----------
-        account : str, optional
-            The account to charge for the job.
-        array : str, optional
-            The job array specification.
-        begin : str, optional
-            The time to begin the job.
-        bell : str, optional
-            Ring terminal bell when job is allocated.
-        burst_buffer : str, optional
-            Burst buffer specifications.
-        bb_file : str, optional
-            Burst buffer specification file.
-        cpus_per_task : int, optional
-            Number of CPUs required per task.
-        comment : str, optional
-            Arbitrary comment for the job.
-        container : str, optional
-            Path to OCI container bundle.
-        container_id : str, optional
-            OCI container ID.
-        cpu_freq : str, optional
-            Requested CPU frequency and governor.
-        delay_boot : str, optional
-            Delay boot for desired node features.
-        dependency : str, optional
-            Job dependency specification.
-        deadline : str, optional
-            Remove job if no ending possible before deadline.
-        chdir : str, optional
-            Change working directory for the job.
-        get_user_env : str, optional
-            Used by Moab for environment setup.
-        gres : str, optional
-            Required generic resources.
-        gres_flags : str, optional
-            Flags related to GRES management.
-        hold : str, optional
-            Submit job in held state.
-        immediate : str, optional
-            Exit if resources not available within seconds.
-        job_name : str, optional
-            Name of the job.
-        no_kill : str, optional
-            Do not kill job on node failure.
-        kill_command : str, optional
-            Signal to send terminating job.
-        licenses : str, optional
-            Required licenses, comma separated.
-        clusters : str, optional
-            Comma separated list of clusters.
-        distribution : str, optional
-            Distribution method for processes.
-        mail_type : str, optional
-            Notify on state change.
-        mail_user : str, optional
-            Email for job state changes.
-        mcs_label : str, optional
-            MCS label if mcs plugin is used.
-        ntasks : str, optional
-            Number of processors required.
-        nice : str, optional
-            Decrease scheduling priority by value.
-        nodes : int, optional
-            Number of nodes to allocate.
-        ntasks_per_node : int, optional
-            Number of tasks to invoke on each node.
-        oom_kill_step : str, optional
-            Set OOMKillStep behaviour.
-        overcommit : str, optional
-            Overcommit resources.
-        power : str, optional
-            Power management options.
-        priority : str, optional
-            Set job priority.
-        profile : str, optional
-            Enable acct_gather_profile for detailed data.
-        partition : str, optional
-            Partition requested.
-        qos : str, optional
-            Quality of service.
-        quiet : str, optional
-            Suppress informational messages.
-        reboot : str, optional
-            Reboot compute nodes before starting job.
-        oversubscribe : str, optional
-            Oversubscribe resources with other jobs.
-        signal : str, optional
-            Send signal when time limit within seconds.
-        spread_job : str, optional
-            Spread job across as many nodes as possible.
-        stderr : str, optional
-            Redirect stderr to file.
-        stdout : str, optional
-            Redirect stdout to file.
-        switches : str, optional
-            Optimum switches and max wait time.
-        core_spec : str, optional
-            Count of reserved cores.
-        thread_spec : str, optional
-            Count of reserved threads.
-        time : str, optional
-            Time limit for the job.
-        time_min : str, optional
-            Minimum time limit.
-        tres_bind : str, optional
-            Task to TRES binding options.
-        tres_per_task : str, optional
-            TRES required per task.
-        use_min_nodes : str, optional
-            Prefer smaller node count.
-        wckey : str, optional
-            Wckey to run job under.
-        cluster_constraint : str, optional
-            List of cluster constraints.
-        contiguous : str, optional
-            Demand contiguous range of nodes.
-        constraint : str, optional
-            List of constraints.
-        nodefile : str, optional
-            Request specific list of hosts from file.
-        mem : str, optional
-            Minimum real memory required.
-        mincpus : str, optional
-            Minimum logical processors per node.
-        reservation : str, optional
-            Allocate resources from named reservation.
-        tmp : str, optional
-            Minimum temporary disk required.
-        nodelist : str, optional
-            Request specific list of hosts.
-        exclude : str, optional
-            Exclude specific list of hosts.
-        exclusive_user : str, optional
-            Allocate nodes in exclusive mode.
-        exclusive_mcs : str, optional
-            Exclusive mode when mcs plugin enabled.
-        mem_per_cpu : str, optional
-            Real memory per allocated CPU.
-        resv_ports : str, optional
-            Reserve communication ports.
-        sockets_per_node : int, optional
-            Number of sockets per node to allocate.
-        cores_per_socket : int, optional
-            Number of cores per socket to allocate.
-        threads_per_core : int, optional
-            Number of threads per core to allocate.
-        extra_node_info : str, optional
-            Combine sockets, cores, threads.
-        ntasks_per_core : int, optional
-            Number of tasks per core.
-        ntasks_per_socket : int, optional
-            Number of tasks per socket.
-        hint : str, optional
-            Application binding hints.
-        mem_bind : str, optional
-            Bind memory to locality domains.
-        cpus_per_gpu : int, optional
-            Number of CPUs required per allocated GPU.
-        gpus : str, optional
-            Count of GPUs required.
-        gpu_bind : str, optional
-            Task to GPU binding options.
-        gpu_freq : str, optional
-            Frequency and voltage of GPUs.
-        gpus_per_node : str, optional
-            GPUs per allocated node.
-        gpus_per_socket : str, optional
-            GPUs per allocated socket.
-        gpus_per_task : str, optional
-            GPUs per spawned task.
-        mem_per_gpu : str, optional
-            Real memory per allocated GPU.
-        disable_stdout_job_summary : str, optional
-            Disable job summary in stdout file.
-        nvmps : str, optional
-            Launch NVIDIA MPS for job.
-        pragmas : List[Pragma], optional
-            List of pragmas to add to the script.
-        modules : List[str], optional
-            List of modules to load in the script.
-        custom_command : str, optional
-            Custom command to run in the script.
-        custom_commands : list, optional
-            List of custom commands to run in the script.
-        inlined_script : str, optional
-            Inline script to include in the batch script.
-        inlined_scripts : list, optional
-            List of inline scripts to include in the batch script.
-        line_length : int, optional
-            Line length for formatting output.
-        """
 
         # Set default values for non-pragma parameters
         self._modules = []
@@ -974,7 +972,10 @@ class SlurmScript:
 
     @property
     def line_length(self) -> int:
-        """Get the maximum line length for the script.
+        """Get the maximum line length for the script, used for formatting the output.
+        This value is used to determine how many characters fit on a line
+        when generating the script string, and is also used for formatting
+        the header and section separators.
 
         Parameters
         ----------
