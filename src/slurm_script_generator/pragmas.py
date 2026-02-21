@@ -25,10 +25,16 @@ class Pragma:
     def __init__(self, value: str):
         self.value = value
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return add_line(
             f"#SBATCH {self.dest.replace('_', '-')}={self.value}", comment=self.help
         )
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(value={self.value})"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {self.arg_varname: self.value}
 
 
 class Account(Pragma):
@@ -887,6 +893,7 @@ class PragmaFactory:
             raise ValueError(f"Unknown pragma key: {key}")
         return PragmaFactory.pragmas[key]
 
+
 if __name__ == "__main__":
     acc = Account("max")
-    print(acc)
+    print(acc.to_dict())

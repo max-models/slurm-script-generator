@@ -1,6 +1,6 @@
 import os
-from typing import List
-
+from typing import List, Any
+import json
 from slurm_script_generator.pragmas import Pragma, PragmaFactory
 from slurm_script_generator.utils import add_line
 
@@ -339,6 +339,48 @@ class SlurmScript:
 
         return script_repr
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "pragmas": [pragma.to_dict() for pragma in self.pragmas],
+            "printself": self.printself,
+            "modules": self.modules,
+            "venv": self.venv,
+            "printenv": self.printenv,
+            "likwid": self.likwid,
+            "custom_commands": self.custom_commands,
+            "vars": self.vars,
+        }
+
+    @staticmethod
+    def from_dict(data: dict[str, Any]) -> "SlurmScript":
+        script = SlurmScript()
+        for pragma in data.get("pragmas", []):
+            print(f"Creating pragma from dict: {pragma}")
+        script._pragmas = [
+            PragmaFactory.create_pragma(
+                key=list(pragma.keys())[0], value=list(pragma.values())[0]
+            )
+            for pragma in data.get("pragmas", [])
+        ]
+        script._printself = data.get("printself", False)
+        script._modules = data.get("modules", [])
+        script._venv = data.get("venv", None)
+        script._printenv = data.get("printenv", False)
+        script._likwid = data.get("likwid", False)
+        script._custom_commands = data.get("custom_commands", [])
+        script._vars = data.get("vars", [])
+        return script
+
+    def to_json(self, path: str) -> str:
+        with open(path, "w") as f:
+            json.dump(self.to_dict(), f, indent=4)
+    
+    @staticmethod
+    def from_json(path: str) -> "SlurmScript":
+        with open(path, "r") as f:
+            data = json.load(f)
+        return SlurmScript.from_dict(data)
+
     def __str__(self) -> str:
         return self.generate_script()
 
@@ -382,13 +424,19 @@ class SlurmScript:
 if __name__ == "__main__":
     import slurm_script_generator.pragmas as pragmas
 
-    pragma_classes = []
-    for _, cls in pragmas.__dict__.items():
-        if isinstance(cls, type) and issubclass(cls, Pragma) and cls != Pragma:
-            pragma_classes.append(cls.__name__)
-    print(pragma_classes)
-
     pragma = pragmas.Account("max")
     nodes = pragmas.Nodes(1)
-    script = SlurmScript([pragma, nodes])
-    print(script)
+    script = SlurmScript(
+        account="max",
+        nodes=1,
+        printself=True,
+        modules=["gcc/12", "openmpi/4.1"],
+        venv="~/virtual_envs/env_slurm",
+        custom_commands=["mpirun -n 4 ./bin > run.out"],
+    )
+
+    slurm_dict = script.to_dict()
+    print(slurm_dict)
+
+    script2 = SlurmScript.from_dict(slurm_dict)
+    print(script2.to_json())
