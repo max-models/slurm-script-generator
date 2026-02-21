@@ -69,15 +69,22 @@ class Pragma:
         return f"{self.__class__.__name__}(value={self.value})"
 
     def to_dict(self) -> dict[str, Any]:
+        """ """
         return {self.arg_varname: self.value}
 
 
 # --- 1. Job Identification & Basic Info (job_config) ---
 class Job_name(Pragma):
-    """
-    Represents the SLURM #SBATCH --job-name pragma.
+    """Represents the SLURM #SBATCH --job-name pragma.
     Sets a custom name for the submitted job, which appears in job listings and output files.
     Usage: --job-name <NAME>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 0
@@ -92,10 +99,16 @@ class Job_name(Pragma):
 
 
 class Account(Pragma):
-    """
-    Represents the SLURM #SBATCH --account pragma.
+    """Represents the SLURM #SBATCH --account pragma.
     Specifies the account to charge for resource usage of the job.
     Usage: --account <ACCOUNT_NAME>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     """This class represents the SLURM #SBATCH --account pragma."""
@@ -112,10 +125,16 @@ class Account(Pragma):
 
 
 class Partition(Pragma):
-    """
-    Represents the SLURM #SBATCH --partition pragma.
+    """Represents the SLURM #SBATCH --partition pragma.
     Requests a specific partition (queue) for job scheduling.
     Usage: --partition <PARTITION>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 2
@@ -129,10 +148,16 @@ class Partition(Pragma):
 
 
 class Qos(Pragma):
-    """
-    Represents the SLURM #SBATCH --qos pragma.
+    """Represents the SLURM #SBATCH --qos pragma.
     Sets the quality of service for the job, affecting priority and limits.
     Usage: --qos <QOS>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 3
@@ -146,10 +171,16 @@ class Qos(Pragma):
 
 
 class Clusters(Pragma):
-    """
-    Represents the SLURM #SBATCH --clusters pragma.
+    """Represents the SLURM #SBATCH --clusters pragma.
     Specifies a comma-separated list of clusters to issue commands to, for multi-cluster environments.
     Usage: --clusters <CLUSTER1,CLUSTER2,...>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 4
@@ -163,10 +194,16 @@ class Clusters(Pragma):
 
 
 class Reservation(Pragma):
-    """
-    Represents the SLURM #SBATCH --reservation pragma.
+    """Represents the SLURM #SBATCH --reservation pragma.
     Allocates resources from a named reservation, useful for reserved compute time or special projects.
     Usage: --reservation <RESERVATION_NAME>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 5
@@ -180,10 +217,16 @@ class Reservation(Pragma):
 
 
 class Wckey(Pragma):
-    """
-    Represents the SLURM #SBATCH --wckey pragma.
+    """Represents the SLURM #SBATCH --wckey pragma.
     Runs the job under a specified workload key (wckey) for accounting or tracking purposes.
     Usage: --wckey <WCKEY>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 6
@@ -197,10 +240,16 @@ class Wckey(Pragma):
 
 
 class Mcs_label(Pragma):
-    """
-    Represents the SLURM #SBATCH --mcs-label pragma.
+    """Represents the SLURM #SBATCH --mcs-label pragma.
     Sets an MCS label if the mcs plugin is enabled, for group-based resource allocation.
     Usage: --mcs-label <LABEL>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 7
@@ -214,10 +263,16 @@ class Mcs_label(Pragma):
 
 
 class Comment(Pragma):
-    """
-    Represents the SLURM #SBATCH --comment pragma.
+    """Represents the SLURM #SBATCH --comment pragma.
     Adds an arbitrary comment to the job for annotation or tracking.
     Usage: --comment <TEXT>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 8
@@ -232,10 +287,16 @@ class Comment(Pragma):
 
 # --- 2. Time & Priority (time_and_priority) ---
 class Time(Pragma):
-    """
-    Represents the SLURM #SBATCH --time pragma.
+    """Represents the SLURM #SBATCH --time pragma.
     Sets the maximum walltime for the job in minutes or HH:MM:SS format.
     Usage: --time <DURATION>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 0
@@ -250,10 +311,16 @@ class Time(Pragma):
 
 
 class Time_min(Pragma):
-    """
-    Represents the SLURM #SBATCH --time-min pragma.
+    """Represents the SLURM #SBATCH --time-min pragma.
     Specifies the minimum walltime for the job, if distinct from the maximum.
     Usage: --time-min <DURATION>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 1
@@ -267,10 +334,16 @@ class Time_min(Pragma):
 
 
 class Begin(Pragma):
-    """
-    Represents the SLURM #SBATCH --begin pragma.
+    """Represents the SLURM #SBATCH --begin pragma.
     Defers job start until a specified time (absolute or relative).
     Usage: --begin <TIME>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 2
@@ -284,10 +357,16 @@ class Begin(Pragma):
 
 
 class Deadline(Pragma):
-    """
-    Represents the SLURM #SBATCH --deadline pragma.
+    """Represents the SLURM #SBATCH --deadline pragma.
     Removes the job if it cannot finish before the specified deadline.
     Usage: --deadline <TIME>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 3
@@ -301,10 +380,16 @@ class Deadline(Pragma):
 
 
 class Priority(Pragma):
-    """
-    Represents the SLURM #SBATCH --priority pragma.
+    """Represents the SLURM #SBATCH --priority pragma.
     Sets the priority value for the job, influencing scheduling order.
     Usage: --priority <VALUE>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 4
@@ -318,10 +403,16 @@ class Priority(Pragma):
 
 
 class Nice(Pragma):
-    """
-    Represents the SLURM #SBATCH --nice pragma.
+    """Represents the SLURM #SBATCH --nice pragma.
     Decreases the job's scheduling priority by the specified value.
     Usage: --nice <VALUE>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 5
@@ -337,10 +428,16 @@ class Nice(Pragma):
 
 # --- 3. Standard IO & Directory (io_and_directory) ---
 class Chdir(Pragma):
-    """
-    Represents the SLURM #SBATCH --chdir pragma.
+    """Represents the SLURM #SBATCH --chdir pragma.
     Changes the working directory for the job before execution.
     Usage: --chdir <PATH>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 0
@@ -354,10 +451,16 @@ class Chdir(Pragma):
 
 
 class Stdout(Pragma):
-    """
-    Represents the SLURM #SBATCH --stdout pragma.
+    """Represents the SLURM #SBATCH --stdout pragma.
     Redirects job standard output to a specified file, supporting job and jobname variables.
     Usage: --stdout <FILE>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 1
@@ -372,10 +475,16 @@ class Stdout(Pragma):
 
 
 class Stderr(Pragma):
-    """
-    Represents the SLURM #SBATCH --stderr pragma.
+    """Represents the SLURM #SBATCH --stderr pragma.
     Redirects job standard error to a specified file, supporting job and jobname variables.
     Usage: --stderr <FILE>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 2
@@ -390,10 +499,16 @@ class Stderr(Pragma):
 
 
 class Disable_stdout_job_summary(Pragma):
-    """
-    Represents the SLURM #SBATCH --disable-stdout-job-summary pragma.
+    """Represents the SLURM #SBATCH --disable-stdout-job-summary pragma.
     Disables the job summary in the stdout file for the job.
     Usage: --disable-stdout-job-summary
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 3
@@ -407,10 +522,16 @@ class Disable_stdout_job_summary(Pragma):
 
 
 class Get_user_env(Pragma):
-    """
-    Represents the SLURM #SBATCH --get-user-env pragma.
+    """Represents the SLURM #SBATCH --get-user-env pragma.
     Used by Moab for environment setup; see srun man page for details.
     Usage: --get-user-env
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 4
@@ -424,10 +545,16 @@ class Get_user_env(Pragma):
 
 
 class Quiet(Pragma):
-    """
-    Represents the SLURM #SBATCH --quiet pragma.
+    """Represents the SLURM #SBATCH --quiet pragma.
     Suppresses informational messages during job submission.
     Usage: --quiet
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 5
@@ -442,10 +569,16 @@ class Quiet(Pragma):
 
 # --- 4. Notifications (notifications) ---
 class Mail_user(Pragma):
-    """
-    Represents the SLURM #SBATCH --mail-user pragma.
+    """Represents the SLURM #SBATCH --mail-user pragma.
     Specifies the email address to receive job state notifications.
     Usage: --mail-user <EMAIL>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 0
@@ -460,10 +593,16 @@ class Mail_user(Pragma):
 
 
 class Mail_type(Pragma):
-    """
-    Represents the SLURM #SBATCH --mail-type pragma.
+    """Represents the SLURM #SBATCH --mail-type pragma.
     Sets which job state changes trigger email notifications (e.g., BEGIN, END, FAIL).
     Usage: --mail-type <TYPE>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 1
@@ -479,10 +618,16 @@ class Mail_type(Pragma):
 
 
 class Bell(Pragma):
-    """
-    Represents the SLURM #SBATCH --bell pragma.
+    """Represents the SLURM #SBATCH --bell pragma.
     Rings the terminal bell when the job is allocated.
     Usage: --bell
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 2
@@ -497,10 +642,16 @@ class Bell(Pragma):
 
 # --- 5. Dependencies & Job Arrays (dependencies_and_arrays) ---
 class Dependency(Pragma):
-    """
-    Represents the SLURM #SBATCH --dependency pragma.
+    """Represents the SLURM #SBATCH --dependency pragma.
     Defers job start until a condition on another job ID is satisfied (e.g., after, afterok).
     Usage: --dependency <TYPE:JOBID[:TIME]>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 0
@@ -514,10 +665,16 @@ class Dependency(Pragma):
 
 
 class Array(Pragma):
-    """
-    Represents the SLURM #SBATCH --array pragma.
+    """Represents the SLURM #SBATCH --array pragma.
     Submits a job array, allowing multiple similar jobs to be managed together.
     Usage: --array <INDEXES>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 1
@@ -532,10 +689,16 @@ class Array(Pragma):
 
 # --- 6. Core Node & Task Allocation (core_node_and_task_allocation) ---
 class Nodes(Pragma):
-    """
-    Represents the SLURM #SBATCH --nodes pragma.
+    """Represents the SLURM #SBATCH --nodes pragma.
     Specifies the number of nodes to allocate for the job.
     Usage: --nodes <COUNT>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 0
@@ -550,10 +713,16 @@ class Nodes(Pragma):
 
 
 class Ntasks(Pragma):
-    """
-    Represents the SLURM #SBATCH --ntasks pragma.
+    """Represents the SLURM #SBATCH --ntasks pragma.
     Sets the total number of tasks (processes) to run for the job.
     Usage: --ntasks <COUNT>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 1
@@ -568,10 +737,16 @@ class Ntasks(Pragma):
 
 
 class Ntasks_per_node(Pragma):
-    """
-    Represents the SLURM #SBATCH --ntasks-per-node pragma.
+    """Represents the SLURM #SBATCH --ntasks-per-node pragma.
     Specifies the number of tasks to invoke on each node.
     Usage: --ntasks-per-node <COUNT>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 2
@@ -586,10 +761,16 @@ class Ntasks_per_node(Pragma):
 
 
 class Cpus_per_task(Pragma):
-    """
-    Represents the SLURM #SBATCH --cpus-per-task pragma.
+    """Represents the SLURM #SBATCH --cpus-per-task pragma.
     Sets the number of CPUs required per task.
     Usage: --cpus-per-task <COUNT>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 3
@@ -604,10 +785,16 @@ class Cpus_per_task(Pragma):
 
 
 class Mincpus(Pragma):
-    """
-    Represents the SLURM #SBATCH --mincpus pragma.
+    """Represents the SLURM #SBATCH --mincpus pragma.
     Specifies the minimum number of logical processors per node.
     Usage: --mincpus <COUNT>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 4
@@ -621,10 +808,16 @@ class Mincpus(Pragma):
 
 
 class Distribution(Pragma):
-    """
-    Represents the SLURM #SBATCH --distribution pragma.
+    """Represents the SLURM #SBATCH --distribution pragma.
     Sets the distribution method for processes across nodes (block, cyclic, arbitrary).
     Usage: --distribution <TYPE>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 5
@@ -639,10 +832,16 @@ class Distribution(Pragma):
 
 
 class Spread_job(Pragma):
-    """
-    Represents the SLURM #SBATCH --spread-job pragma.
+    """Represents the SLURM #SBATCH --spread-job pragma.
     Spreads the job across as many nodes as possible.
     Usage: --spread-job
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 6
@@ -656,10 +855,16 @@ class Spread_job(Pragma):
 
 
 class Use_min_nodes(Pragma):
-    """
-    Represents the SLURM #SBATCH --use-min-nodes pragma.
+    """Represents the SLURM #SBATCH --use-min-nodes pragma.
     If a range of node counts is given, prefers the smaller count for allocation.
     Usage: --use-min-nodes
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 7
@@ -674,10 +879,16 @@ class Use_min_nodes(Pragma):
 
 # --- 7. CPU Topology & Binding (cpu_topology_and_binding) ---
 class Sockets_per_node(Pragma):
-    """
-    Represents the SLURM #SBATCH --sockets-per-node pragma.
+    """Represents the SLURM #SBATCH --sockets-per-node pragma.
     Specifies the number of sockets per node to allocate.
     Usage: --sockets-per-node <COUNT>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 0
@@ -691,10 +902,16 @@ class Sockets_per_node(Pragma):
 
 
 class Cores_per_socket(Pragma):
-    """
-    Represents the SLURM #SBATCH --cores-per-socket pragma.
+    """Represents the SLURM #SBATCH --cores-per-socket pragma.
     Sets the number of cores per socket to allocate.
     Usage: --cores-per-socket <COUNT>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 1
@@ -709,10 +926,16 @@ class Cores_per_socket(Pragma):
 
 
 class Threads_per_core(Pragma):
-    """
-    Represents the SLURM #SBATCH --threads-per-core pragma.
+    """Represents the SLURM #SBATCH --threads-per-core pragma.
     Specifies the number of threads per core to allocate.
     Usage: --threads-per-core <COUNT>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 2
@@ -727,10 +950,16 @@ class Threads_per_core(Pragma):
 
 
 class Ntasks_per_core(Pragma):
-    """
-    Represents the SLURM #SBATCH --ntasks-per-core pragma.
+    """Represents the SLURM #SBATCH --ntasks-per-core pragma.
     Sets the number of tasks to invoke on each core.
     Usage: --ntasks-per-core <COUNT>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 3
@@ -745,10 +974,16 @@ class Ntasks_per_core(Pragma):
 
 
 class Ntasks_per_socket(Pragma):
-    """
-    Represents the SLURM #SBATCH --ntasks-per-socket pragma.
+    """Represents the SLURM #SBATCH --ntasks-per-socket pragma.
     Specifies the number of tasks to invoke on each socket.
     Usage: --ntasks-per-socket <COUNT>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 4
@@ -763,10 +998,16 @@ class Ntasks_per_socket(Pragma):
 
 
 class Extra_node_info(Pragma):
-    """
-    Represents the SLURM #SBATCH --extra-node-info pragma.
+    """Represents the SLURM #SBATCH --extra-node-info pragma.
     Combines requests for sockets, cores, and threads in a single specification.
     Usage: --extra-node-info <S[:C[:T]]>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 5
@@ -780,10 +1021,16 @@ class Extra_node_info(Pragma):
 
 
 class Hint(Pragma):
-    """
-    Represents the SLURM #SBATCH --hint pragma.
+    """Represents the SLURM #SBATCH --hint pragma.
     Provides application binding hints to optimize task placement.
     Usage: --hint <HINT>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 6
@@ -798,10 +1045,16 @@ class Hint(Pragma):
 
 # --- 8. Memory (memory) ---
 class Mem(Pragma):
-    """
-    Represents the SLURM #SBATCH --mem pragma.
+    """Represents the SLURM #SBATCH --mem pragma.
     Sets the minimum amount of real memory required for the job.
     Usage: --mem <SIZE>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 0
@@ -816,10 +1069,16 @@ class Mem(Pragma):
 
 
 class Mem_per_cpu(Pragma):
-    """
-    Represents the SLURM #SBATCH --mem-per-cpu pragma.
+    """Represents the SLURM #SBATCH --mem-per-cpu pragma.
     Specifies the maximum amount of real memory per allocated CPU.
     Usage: --mem-per-cpu <SIZE>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 1
@@ -833,10 +1092,16 @@ class Mem_per_cpu(Pragma):
 
 
 class Mem_bind(Pragma):
-    """
-    Represents the SLURM #SBATCH --mem-bind pragma.
+    """Represents the SLURM #SBATCH --mem-bind pragma.
     Binds memory to locality domains for performance optimization.
     Usage: --mem-bind <BIND>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 2
@@ -850,10 +1115,16 @@ class Mem_bind(Pragma):
 
 
 class Oom_kill_step(Pragma):
-    """
-    Represents the SLURM #SBATCH --oom-kill-step pragma.
+    """Represents the SLURM #SBATCH --oom-kill-step pragma.
     Sets the OOMKillStep behavior for jobs that exceed memory limits.
     Usage: --oom-kill-step <0|1>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 3
@@ -870,10 +1141,16 @@ class Oom_kill_step(Pragma):
 
 # --- 9. GPUs (gpus) ---
 class Gpus(Pragma):
-    """
-    Represents the SLURM #SBATCH --gpus pragma.
+    """Represents the SLURM #SBATCH --gpus pragma.
     Specifies the number of GPUs required for the job.
     Usage: --gpus <COUNT>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 0
@@ -888,10 +1165,16 @@ class Gpus(Pragma):
 
 
 class Gpus_per_node(Pragma):
-    """
-    Represents the SLURM #SBATCH --gpus-per-node pragma.
+    """Represents the SLURM #SBATCH --gpus-per-node pragma.
     Sets the number of GPUs required per allocated node.
     Usage: --gpus-per-node <COUNT>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 1
@@ -905,10 +1188,16 @@ class Gpus_per_node(Pragma):
 
 
 class Gpus_per_task(Pragma):
-    """
-    Represents the SLURM #SBATCH --gpus-per-task pragma.
+    """Represents the SLURM #SBATCH --gpus-per-task pragma.
     Specifies the number of GPUs required per spawned task.
     Usage: --gpus-per-task <COUNT>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 2
@@ -922,10 +1211,16 @@ class Gpus_per_task(Pragma):
 
 
 class Gpus_per_socket(Pragma):
-    """
-    Represents the SLURM #SBATCH --gpus-per-socket pragma.
+    """Represents the SLURM #SBATCH --gpus-per-socket pragma.
     Sets the number of GPUs required per allocated socket.
     Usage: --gpus-per-socket <COUNT>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 3
@@ -939,10 +1234,16 @@ class Gpus_per_socket(Pragma):
 
 
 class Cpus_per_gpu(Pragma):
-    """
-    Represents the SLURM #SBATCH --cpus-per-gpu pragma.
+    """Represents the SLURM #SBATCH --cpus-per-gpu pragma.
     Specifies the number of CPUs required per allocated GPU.
     Usage: --cpus-per-gpu <COUNT>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 4
@@ -957,10 +1258,16 @@ class Cpus_per_gpu(Pragma):
 
 
 class Mem_per_gpu(Pragma):
-    """
-    Represents the SLURM #SBATCH --mem-per-gpu pragma.
+    """Represents the SLURM #SBATCH --mem-per-gpu pragma.
     Sets the real memory required per allocated GPU.
     Usage: --mem-per-gpu <SIZE>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 5
@@ -974,10 +1281,16 @@ class Mem_per_gpu(Pragma):
 
 
 class Gpu_bind(Pragma):
-    """
-    Represents the SLURM #SBATCH --gpu-bind pragma.
+    """Represents the SLURM #SBATCH --gpu-bind pragma.
     Specifies task-to-GPU binding options for optimal placement.
     Usage: --gpu-bind <OPTIONS>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 6
@@ -991,10 +1304,16 @@ class Gpu_bind(Pragma):
 
 
 class Gpu_freq(Pragma):
-    """
-    Represents the SLURM #SBATCH --gpu-freq pragma.
+    """Represents the SLURM #SBATCH --gpu-freq pragma.
     Sets the frequency and voltage of GPUs for the job.
     Usage: --gpu-freq <OPTIONS>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 7
@@ -1008,10 +1327,16 @@ class Gpu_freq(Pragma):
 
 
 class Nvmps(Pragma):
-    """
-    Represents the SLURM #SBATCH --nvmps pragma.
+    """Represents the SLURM #SBATCH --nvmps pragma.
     Launches NVIDIA MPS (Multi-Process Service) for the job.
     Usage: --nvmps
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 8
@@ -1026,10 +1351,16 @@ class Nvmps(Pragma):
 
 # --- 10. Generic Resources & Licenses (generic_resources_and_licenses) ---
 class Gres(Pragma):
-    """
-    Represents the SLURM #SBATCH --gres pragma.
+    """Represents the SLURM #SBATCH --gres pragma.
     Specifies required generic resources (e.g., GPUs, licenses).
     Usage: --gres <LIST>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 0
@@ -1043,10 +1374,16 @@ class Gres(Pragma):
 
 
 class Gres_flags(Pragma):
-    """
-    Represents the SLURM #SBATCH --gres-flags pragma.
+    """Represents the SLURM #SBATCH --gres-flags pragma.
     Sets flags related to GRES (Generic Resource) management.
     Usage: --gres-flags <OPTIONS>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 1
@@ -1060,10 +1397,16 @@ class Gres_flags(Pragma):
 
 
 class Tres_bind(Pragma):
-    """
-    Represents the SLURM #SBATCH --tres-bind pragma.
+    """Represents the SLURM #SBATCH --tres-bind pragma.
     Specifies task-to-TRES binding options for resource allocation.
     Usage: --tres-bind <OPTIONS>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 2
@@ -1077,10 +1420,16 @@ class Tres_bind(Pragma):
 
 
 class Tres_per_task(Pragma):
-    """
-    Represents the SLURM #SBATCH --tres-per-task pragma.
+    """Represents the SLURM #SBATCH --tres-per-task pragma.
     Sets the list of TRES (Trackable Resources) required per task.
     Usage: --tres-per-task <LIST>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 3
@@ -1094,10 +1443,16 @@ class Tres_per_task(Pragma):
 
 
 class Licenses(Pragma):
-    """
-    Represents the SLURM #SBATCH --licenses pragma.
+    """Represents the SLURM #SBATCH --licenses pragma.
     Specifies required licenses for the job, comma separated.
     Usage: --licenses <NAMES>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 4
@@ -1112,10 +1467,16 @@ class Licenses(Pragma):
 
 # --- 11. Node Constraints & Selection (node_constraints_and_selection) ---
 class Constraint(Pragma):
-    """
-    Represents the SLURM #SBATCH --constraint pragma.
+    """Represents the SLURM #SBATCH --constraint pragma.
     Specifies a list of constraints for node selection.
     Usage: --constraint <LIST>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 0
@@ -1129,10 +1490,16 @@ class Constraint(Pragma):
 
 
 class Cluster_constraint(Pragma):
-    """
-    Represents the SLURM #SBATCH --cluster-constraint pragma.
+    """Represents the SLURM #SBATCH --cluster-constraint pragma.
     Specifies a list of cluster constraints for node selection.
     Usage: --cluster-constraint <LIST>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 1
@@ -1146,10 +1513,16 @@ class Cluster_constraint(Pragma):
 
 
 class Contiguous(Pragma):
-    """
-    Represents the SLURM #SBATCH --contiguous pragma.
+    """Represents the SLURM #SBATCH --contiguous pragma.
     Demands a contiguous range of nodes for the job.
     Usage: --contiguous
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 2
@@ -1163,10 +1536,16 @@ class Contiguous(Pragma):
 
 
 class Nodelist(Pragma):
-    """
-    Represents the SLURM #SBATCH --nodelist pragma.
+    """Represents the SLURM #SBATCH --nodelist pragma.
     Requests a specific list of hosts for job execution.
     Usage: --nodelist <HOSTS>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 3
@@ -1181,10 +1560,16 @@ class Nodelist(Pragma):
 
 
 class Nodefile(Pragma):
-    """
-    Represents the SLURM #SBATCH --nodefile pragma.
+    """Represents the SLURM #SBATCH --nodefile pragma.
     Requests a specific list of hosts from a file for job execution.
     Usage: --nodefile <FILENAME>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 4
@@ -1198,10 +1583,16 @@ class Nodefile(Pragma):
 
 
 class Exclude(Pragma):
-    """
-    Represents the SLURM #SBATCH --exclude pragma.
+    """Represents the SLURM #SBATCH --exclude pragma.
     Excludes a specific list of hosts from job allocation.
     Usage: --exclude <HOSTS>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 5
@@ -1217,10 +1608,16 @@ class Exclude(Pragma):
 
 # --- 12. Exclusivity & Sharing (exclusivity_and_sharing) ---
 class Exclusive_user(Pragma):
-    """
-    Represents the SLURM #SBATCH --exclusive-user pragma.
+    """Represents the SLURM #SBATCH --exclusive-user pragma.
     Allocates nodes in exclusive mode for CPU consumable resources.
     Usage: --exclusive-user
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 0
@@ -1234,10 +1631,16 @@ class Exclusive_user(Pragma):
 
 
 class Exclusive_mcs(Pragma):
-    """
-    Represents the SLURM #SBATCH --exclusive-mcs pragma.
+    """Represents the SLURM #SBATCH --exclusive-mcs pragma.
     Allocates nodes in exclusive mode when the mcs plugin is enabled.
     Usage: --exclusive-mcs
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 1
@@ -1251,10 +1654,16 @@ class Exclusive_mcs(Pragma):
 
 
 class Oversubscribe(Pragma):
-    """
-    Represents the SLURM #SBATCH --oversubscribe pragma.
+    """Represents the SLURM #SBATCH --oversubscribe pragma.
     Allows resources to be oversubscribed with other jobs.
     Usage: --oversubscribe
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 2
@@ -1268,10 +1677,16 @@ class Oversubscribe(Pragma):
 
 
 class Overcommit(Pragma):
-    """
-    Represents the SLURM #SBATCH --overcommit pragma.
+    """Represents the SLURM #SBATCH --overcommit pragma.
     Allows resources to be overcommitted for the job.
     Usage: --overcommit
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 3
@@ -1286,10 +1701,16 @@ class Overcommit(Pragma):
 
 # --- 13. Execution Behavior & Signals (execution_behavior_and_signals) ---
 class Hold(Pragma):
-    """
-    Represents the SLURM #SBATCH --hold pragma.
+    """Represents the SLURM #SBATCH --hold pragma.
     Submits the job in a held state, preventing immediate execution.
     Usage: --hold
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 0
@@ -1303,10 +1724,16 @@ class Hold(Pragma):
 
 
 class Immediate(Pragma):
-    """
-    Represents the SLURM #SBATCH --immediate pragma.
+    """Represents the SLURM #SBATCH --immediate pragma.
     Exits if resources are not available within the specified seconds.
     Usage: --immediate [SECS]
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 1
@@ -1322,10 +1749,16 @@ class Immediate(Pragma):
 
 
 class Reboot(Pragma):
-    """
-    Represents the SLURM #SBATCH --reboot pragma.
+    """Represents the SLURM #SBATCH --reboot pragma.
     Reboots compute nodes before starting the job.
     Usage: --reboot
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 2
@@ -1339,10 +1772,16 @@ class Reboot(Pragma):
 
 
 class Delay_boot(Pragma):
-    """
-    Represents the SLURM #SBATCH --delay-boot pragma.
+    """Represents the SLURM #SBATCH --delay-boot pragma.
     Delays node boot for desired features before job execution.
     Usage: --delay-boot <MINS>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 3
@@ -1356,10 +1795,16 @@ class Delay_boot(Pragma):
 
 
 class No_kill(Pragma):
-    """
-    Represents the SLURM #SBATCH --no-kill pragma.
+    """Represents the SLURM #SBATCH --no-kill pragma.
     Prevents job termination on node failure.
     Usage: --no-kill
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 4
@@ -1373,10 +1818,16 @@ class No_kill(Pragma):
 
 
 class Kill_command(Pragma):
-    """
-    Represents the SLURM #SBATCH --kill-command pragma.
+    """Represents the SLURM #SBATCH --kill-command pragma.
     Specifies the signal to send when terminating the job.
     Usage: --kill-command [SIGNAL]
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 5
@@ -1392,10 +1843,16 @@ class Kill_command(Pragma):
 
 
 class Signal(Pragma):
-    """
-    Represents the SLURM #SBATCH --signal pragma.
+    """Represents the SLURM #SBATCH --signal pragma.
     Sends a signal when the time limit is within the specified seconds.
     Usage: --signal [R:]NUM[@TIME]
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 6
@@ -1410,10 +1867,16 @@ class Signal(Pragma):
 
 # --- 14. Advanced / Hardware / Misc (advanced_hardware_misc) ---
 class Core_spec(Pragma):
-    """
-    Represents the SLURM #SBATCH --core-spec pragma.
+    """Represents the SLURM #SBATCH --core-spec pragma.
     Sets the count of reserved cores for the job.
     Usage: --core-spec <CORES>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 0
@@ -1427,10 +1890,16 @@ class Core_spec(Pragma):
 
 
 class Thread_spec(Pragma):
-    """
-    Represents the SLURM #SBATCH --thread-spec pragma.
+    """Represents the SLURM #SBATCH --thread-spec pragma.
     Sets the count of reserved threads for the job.
     Usage: --thread-spec <THREADS>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 1
@@ -1444,10 +1913,16 @@ class Thread_spec(Pragma):
 
 
 class Cpu_freq(Pragma):
-    """
-    Represents the SLURM #SBATCH --cpu-freq pragma.
+    """Represents the SLURM #SBATCH --cpu-freq pragma.
     Requests CPU frequency and governor settings for the job.
     Usage: --cpu-freq <MIN[-MAX[:GOV]]>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 2
@@ -1461,10 +1936,16 @@ class Cpu_freq(Pragma):
 
 
 class Tmp(Pragma):
-    """
-    Represents the SLURM #SBATCH --tmp pragma.
+    """Represents the SLURM #SBATCH --tmp pragma.
     Sets the minimum amount of temporary disk required for the job.
     Usage: --tmp <SIZE>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 3
@@ -1478,10 +1959,16 @@ class Tmp(Pragma):
 
 
 class Resv_ports(Pragma):
-    """
-    Represents the SLURM #SBATCH --resv-ports pragma.
+    """Represents the SLURM #SBATCH --resv-ports pragma.
     Reserves communication ports for the job.
     Usage: --resv-ports
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 4
@@ -1495,10 +1982,16 @@ class Resv_ports(Pragma):
 
 
 class Switches(Pragma):
-    """
-    Represents the SLURM #SBATCH --switches pragma.
+    """Represents the SLURM #SBATCH --switches pragma.
     Sets optimum switches and maximum wait time for optimum.
     Usage: --switches <MAX_SWITCHES[@MAX_TIME]>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 5
@@ -1512,10 +2005,16 @@ class Switches(Pragma):
 
 
 class Power(Pragma):
-    """
-    Represents the SLURM #SBATCH --power pragma.
+    """Represents the SLURM #SBATCH --power pragma.
     Sets power management options for the job.
     Usage: --power <FLAGS>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 6
@@ -1529,10 +2028,16 @@ class Power(Pragma):
 
 
 class Profile(Pragma):
-    """
-    Represents the SLURM #SBATCH --profile pragma.
+    """Represents the SLURM #SBATCH --profile pragma.
     Enables acct_gather_profile for detailed job data collection.
     Usage: --profile <VALUE>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 7
@@ -1547,10 +2052,16 @@ class Profile(Pragma):
 
 # --- 15. Plugins (Burst Buffer & Containers) ---
 class Burst_buffer(Pragma):
-    """
-    Represents the SLURM #SBATCH --bb pragma.
+    """Represents the SLURM #SBATCH --bb pragma.
     Specifies burst buffer specifications for the job.
     Usage: --bb <SPEC>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 0
@@ -1564,10 +2075,16 @@ class Burst_buffer(Pragma):
 
 
 class Bb_file(Pragma):
-    """
-    Represents the SLURM #SBATCH --bbf pragma.
+    """Represents the SLURM #SBATCH --bbf pragma.
     Specifies a burst buffer specification file for the job.
     Usage: --bbf <FILE_NAME>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 1
@@ -1581,10 +2098,16 @@ class Bb_file(Pragma):
 
 
 class Container(Pragma):
-    """
-    Represents the SLURM #SBATCH --container pragma.
+    """Represents the SLURM #SBATCH --container pragma.
     Specifies the path to an OCI container bundle for the job.
     Usage: --container <PATH>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 2
@@ -1598,10 +2121,16 @@ class Container(Pragma):
 
 
 class Container_id(Pragma):
-    """
-    Represents the SLURM #SBATCH --container-id pragma.
+    """Represents the SLURM #SBATCH --container-id pragma.
     Specifies the OCI container ID for the job.
     Usage: --container-id <ID>
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragma_id = 3
@@ -1722,35 +2251,63 @@ pragmas_ordered: List[Type[Pragma]] = [
 
 
 class PragmaFactory:
-    """
-    Factory class for creating and managing SLURM pragma classes.
+    """Factory class for creating and managing SLURM pragma classes.
     Provides methods to validate pragma keys, create pragma instances, and retrieve pragma classes.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
     """
 
     pragmas = {pragma_cls.arg_varname: pragma_cls for pragma_cls in pragmas_ordered}
 
     @staticmethod
     def is_valid_pragma_key(key: str) -> bool:
-        """
-        Check if a given key is a valid pragma key.
-        Args:
-            key (str): The pragma key to validate.
-        Returns:
-            bool: True if the key is valid, False otherwise.
+        """Check if a given key is a valid pragma key.
+
+        Parameters
+        ----------
+        key :
+            str:
+        key: str :
+
+
+        Returns
+        -------
+        bool
+            True if the key is valid, False otherwise.
+
         """
         return key in PragmaFactory.pragmas
 
     @staticmethod
     def create_pragma(key: str, value: str) -> Pragma:
-        """
-        Create a Pragma instance for the given key and value.
-        Args:
-            key (str): The pragma key.
-            value (str): The value for the pragma.
-        Returns:
-            Pragma: The created Pragma instance.
-        Raises:
-            ValueError: If the key is not valid.
+        """Create a Pragma instance for the given key and value.
+
+        Parameters
+        ----------
+        key : str
+            The pragma key.
+        key :
+            str:
+        value :
+            str:
+        key: str :
+
+        value: str :
+
+
+        Returns
+        -------
+
+        Raises
+        ------
+        ValueError
+            If the key is not valid.
+
         """
         if key not in PragmaFactory.pragmas:
             raise ValueError(f"Unknown pragma key: {key}")
@@ -1758,15 +2315,29 @@ class PragmaFactory:
 
     @staticmethod
     def flag_to_pragma(flag: str, value: str) -> Pragma | None:
-        """
-        Create a Pragma instance based on a flag and value.
-        Args:
-            flag (str): The flag associated with the pragma (e.g., '--job-name').
-            value (str): The value for the pragma.
-        Returns:
-            Pragma: The created Pragma instance.
-        Raises:
-            ValueError: If the flag is not recognized.
+        """Create a Pragma instance based on a flag and value.
+
+        Parameters
+        ----------
+        flag : str
+            The flag associated with the pragma (e.g., '--job-name').
+        flag :
+            str:
+        value :
+            str:
+        flag: str :
+
+        value: str :
+
+
+        Returns
+        -------
+
+        Raises
+        ------
+        ValueError
+            If the flag is not recognized.
+
         """
         for pragma_cls in PragmaFactory.pragmas.values():
             if flag in pragma_cls.flags:
@@ -1775,14 +2346,23 @@ class PragmaFactory:
 
     @staticmethod
     def get_pragma_cls(key: str) -> Type[Pragma]:
-        """
-        Retrieve the Pragma class for a given key.
-        Args:
-            key (str): The pragma key.
-        Returns:
-            Type[Pragma]: The Pragma class associated with the key.
-        Raises:
-            ValueError: If the key is not valid.
+        """Retrieve the Pragma class for a given key.
+
+        Parameters
+        ----------
+        key :
+            str:
+        key: str :
+
+
+        Returns
+        -------
+
+        Raises
+        ------
+        ValueError
+            If the key is not valid.
+
         """
         if key not in PragmaFactory.pragmas:
             raise ValueError(f"Unknown pragma key: {key}")
