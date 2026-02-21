@@ -382,6 +382,11 @@ class SlurmScript:
             data = json.load(f)
         return SlurmScript.from_dict(data)
 
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, SlurmScript):
+            return False
+        return self.to_dict() == value.to_dict()
+
     def __str__(self) -> str:
         return self.generate_script()
 

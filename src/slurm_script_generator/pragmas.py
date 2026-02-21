@@ -33,6 +33,11 @@ class Pragma:
         #     self.value = value
         self.value = value
 
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, Pragma):
+            return False
+        return self.dest == value.dest and self.value == value.value
+
     def __str__(self) -> str:
         return add_line(
             f"#SBATCH {self.dest.replace('_', '-')}={self.value}", comment=self.help
