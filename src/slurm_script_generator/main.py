@@ -195,16 +195,15 @@ def main():
     if path_json_out is not None:
         slurm_script.to_json(path=path_json_out)
 
-    if path_out:
-        slurm_script.save(path=path_out, include_header=not no_header)
-    else:
-        print(slurm_script.to_string(include_header=not no_header))
-
     if submit:
         if not path_out:
             print("Error: --submit requires --output to be specified")
         else:
             slurm_script.submit_job(path=path_out)
+    elif path_out:
+        slurm_script.save(path=path_out, include_header=not no_header)
+    else:
+        print(slurm_script.to_string(include_header=not no_header))
 
 
 if __name__ == "__main__":
