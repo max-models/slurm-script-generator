@@ -100,6 +100,14 @@ def add_misc_options(parser: argparse.ArgumentParser) -> None:
         help="Do not include the header comment in the generated script",
     )
 
+    parser.add_argument(
+        "--submit",
+        dest="submit",
+        action="store_true",
+        default=False,
+        help="Submit the generated script to the scheduler (requires --output to be specified)",
+    )
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -155,6 +163,8 @@ def main():
     # Extract the no_header flag
     no_header = sbatch_args.no_header
     delattr(sbatch_args, "no_header")
+    submit = sbatch_args.submit
+    delattr(sbatch_args, "submit")
 
     # If a JSON input path is provided, load the SlurmScript from that JSON file.
     # Otherwise, create a new SlurmScript instance.
@@ -186,10 +196,15 @@ def main():
         slurm_script.to_json(path=path_json_out)
 
     if path_out:
-        with open(path_out, "w") as f:
-            f.write(slurm_script.generate_script(include_header=not no_header))
+        slurm_script.save(path=path_out, include_header=not no_header)
     else:
         print(slurm_script.to_string(include_header=not no_header))
+
+    if submit:
+        if not path_out:
+            print("Error: --submit requires --output to be specified")
+        else:
+            slurm_script.submit_job(path=path_out)
 
 
 if __name__ == "__main__":

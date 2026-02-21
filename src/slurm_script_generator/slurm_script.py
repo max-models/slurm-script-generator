@@ -313,9 +313,14 @@ class SlurmScript:
             "custom_commands": self.custom_commands,
         }
 
-    def save(self, path: str) -> None:
+    def save(self, path: str, include_header: bool = True) -> None:
         with open(path, "w") as f:
-            f.write(self.generate_script(line_length=self.line_length))
+            f.write(
+                self.generate_script(
+                    line_length=self.line_length,
+                    include_header=include_header,
+                ),
+            )
 
     def submit_job(self, path: str) -> None:
         self.save(path)
