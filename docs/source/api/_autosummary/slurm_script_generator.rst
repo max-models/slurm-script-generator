@@ -3,7 +3,7 @@
 
 .. automodule:: slurm_script_generator
 
-
+   
 .. rubric:: Modules
 
 .. autosummary::

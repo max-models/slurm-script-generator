@@ -3,11 +3,11 @@ slurm\_script\_generator.pragmas
 
 .. automodule:: slurm_script_generator.pragmas
 
-
+   
    .. rubric:: Classes
 
    .. autosummary::
-
+   
       Account
       Array
       Bb_file
@@ -98,3 +98,4 @@ slurm\_script\_generator.pragmas
       Tres_per_task
       Use_min_nodes
       Wckey
+   
