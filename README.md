@@ -21,10 +21,10 @@ generate-slurm-script --nodes 1 --ntasks-per-node 16
     #      `pip install slurm-script-generator==0.3.0`     #
     ########################################################
 
-    ##########################################
-    #SBATCH --nodes=1                        # number of nodes on which to run
-    #SBATCH --ntasks-per-node=16             # number of tasks to invoke on each node
-    ##########################################
+    ########################################################
+    #SBATCH --nodes=1                                      # number of nodes on which to run
+    #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
+    ########################################################
 
 To save the script to file `my_script.sh` use `--output`:
 
@@ -39,10 +39,10 @@ generate-slurm-script --nodes 1 --ntasks-per-node 16 --no-header
 ```
 
     #!/bin/bash
-    ##########################################
-    #SBATCH --nodes=1                        # number of nodes on which to run
-    #SBATCH --ntasks-per-node=16             # number of tasks to invoke on each node
-    ##########################################
+    ########################################################
+    #SBATCH --nodes=1                                      # number of nodes on which to run
+    #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
+    ########################################################
 
 You can also generate scripts in Python programmatically:
 
@@ -69,10 +69,10 @@ print(slurm_script)
     #      `pip install slurm-script-generator==0.3.0`     #
     ########################################################
 
-    ##########################################
-    #SBATCH --nodes=2                        # number of nodes on which to run
-    #SBATCH --ntasks-per-core=16             # number of tasks to invoke on each core
-    ##########################################
+    ########################################################
+    #SBATCH --nodes=2                                      # number of nodes on which to run
+    #SBATCH --ntasks-per-core=16                           # number of tasks to invoke on each core
+    ########################################################
     # Run simulation
     srun ./bin > run.out
 
@@ -83,6 +83,11 @@ You can also generate a string representation of the script with
 script = slurm_script.generate_script()
 ```
 
+You can read more examples of the Python API in the [tutorial
+notebooks](https://max-models.github.io/slurm-script-generator/tutorials.html).
+
+## Exporting and reading scripts
+
 To export the settings to a json file you can use `--export-json`:
 
 ``` bash
@@ -90,9 +95,9 @@ generate-slurm-script --nodes 2 --export-json setup.json --no-header
 ```
 
     #!/bin/bash
-    ##########################################
-    #SBATCH --nodes=2                        # number of nodes on which to run
-    ##########################################
+    ########################################################
+    #SBATCH --nodes=2                                      # number of nodes on which to run
+    ########################################################
 
 This json file can used as a basis for creating new scripts
 
@@ -101,10 +106,10 @@ generate-slurm-script --input setup.json --ntasks-per-node 16 --no-header
 ```
 
     #!/bin/bash
-    ##########################################
-    #SBATCH --nodes=2                        # number of nodes on which to run
-    #SBATCH --ntasks-per-node=16             # number of tasks to invoke on each node
-    ##########################################
+    ########################################################
+    #SBATCH --nodes=2                                      # number of nodes on which to run
+    #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
+    ########################################################
 
 ### Add modules
 
@@ -115,13 +120,49 @@ generate-slurm-script --input setup.json --ntasks-per-node 16 --modules gcc/13 o
 ```
 
     #!/bin/bash
-    ##########################################
-    #SBATCH --nodes=2                        # number of nodes on which to run
-    #SBATCH --ntasks-per-node=16             # number of tasks to invoke on each node
-    ##########################################
-    module purge                             # Purge modules
-    module load gcc/13 openmpi/5.0           # modules
-    module list                              # List loaded modules
+    ########################################################
+    #SBATCH --nodes=2                                      # number of nodes on which to run
+    #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
+    ########################################################
+    module purge                                           # Purge modules
+    module load gcc/13 openmpi/5.0                         # modules
+    module list                                            # List loaded modules
+
+### Read from script
+
+You can also read pragmas and commands from an existing script with
+`--read-script`:
+
+Let’s say you have a script `slurm_script.sh` with the following
+content:
+
+``` bash
+cat slurm_script.sh
+```
+
+    #!/bin/bash
+    ########################################################
+    #SBATCH --nodes=2                                      # number of nodes on which to run
+    #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
+    #SBATCH --job-name=OLD_JOB_NAME                        # name of job
+    ########################################################
+    srun ./myprog > prog.out
+
+You can read the script and add extra pragmas (for example, changing the
+job name with `--job-name NEW_JOB_NAME`) or commands to generate a new
+script with
+
+``` bash
+generate-slurm-script --read-script slurm_script.sh --job-name NEW_JOB_NAME --no-header
+```
+
+    #!/bin/bash
+    ########################################################
+    #SBATCH --nodes=2                                      # number of nodes on which to run
+    #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
+    #SBATCH --job-name=NEW_JOB_NAME                        # name of job
+    ########################################################
+    srun ./myprog > prog.out
 
 ### Other
 
@@ -131,15 +172,16 @@ All optional arguments can be shown with
 generate-slurm-script -h
 ```
 
-    usage: generate-slurm-script [-h] [-A NAME] [-b TIME] [--bell] [--bb SPEC]
-                                 [--bbf FILE_NAME] [-c NCPUS] [--comment NAME]
-                                 [--container PATH] [--container-id ID]
-                                 [--cpu-freq MIN[-MAX[:GOV]]] [--delay-boot MINS]
-                                 [-d TYPE:JOBID[:TIME]] [--deadline TIME]
-                                 [-D PATH] [--get-user-env] [--gres LIST]
-                                 [--gres-flags OPTS] [-H] [-I [SECS]] [-J NAME]
-                                 [-k] [-K [SIGNAL]] [-L NAMES] [-M NAMES]
-                                 [-m TYPE] [--mail-type TYPE] [--mail-user USER]
+    usage: generate-slurm-script [-h] [-A NAME] [-b TIME] [--array INDEXES]
+                                 [--bell] [--bb SPEC] [--bbf FILE_NAME] [-c NCPUS]
+                                 [--comment NAME] [--container PATH]
+                                 [--container-id ID] [--cpu-freq MIN[-MAX[:GOV]]]
+                                 [--delay-boot MINS] [-d TYPE:JOBID[:TIME]]
+                                 [--deadline TIME] [-D PATH] [--get-user-env]
+                                 [--gres LIST] [--gres-flags OPTS] [-H]
+                                 [-I [SECS]] [-J NAME] [-k] [-K [SIGNAL]]
+                                 [-L NAMES] [-M NAMES] [-m TYPE]
+                                 [--mail-type TYPE] [--mail-user USER]
                                  [--mcs-label MCS] [-n N] [--nice VALUE]
                                  [-N NODES] [--ntasks-per-node N]
                                  [--oom-kill-step [0|1]] [-O] [--power FLAGS]
@@ -172,9 +214,10 @@ generate-slurm-script -h
                                  [--export-json JSON_PATH]
                                  [--custom-command COMMAND]
                                  [--custom-commands COMMAND [COMMAND ...]]
+                                 [--read-script SCRIPT_PATH]
                                  [--inline-script COMMAND]
                                  [--inline-scripts COMMAND [COMMAND ...]]
-                                 [--no-header]
+                                 [--no-header] [--submit]
 
     Slurm job submission options
 
@@ -182,6 +225,7 @@ generate-slurm-script -h
       -h, --help            show this help message and exit
       -A, --account NAME    charge job to specified account (default: None)
       -b, --begin TIME      defer job until HH:MM MM/DD/YY (default: None)
+      --array INDEXES       submit a job array (default: None)
       --bell                ring the terminal bell when the job is allocated
                             (default: None)
       --bb SPEC             burst buffer specifications (default: None)
@@ -338,6 +382,10 @@ generate-slurm-script -h
                             Add custom commands at the end of the script (e.g.
                             --custom-commands '# Run simulation' 'mpirun -n 8
                             ./bin > run.out') (default: [])
+      --read-script SCRIPT_PATH
+                            Path to a slurm script file to read and include
+                            pragmas and commands from (e.g. --read-script
+                            sbatch_script.sh) (default: None)
       --inline-script COMMAND
                             Inline script to add at the end of the script (e.g.
                             --inline-script script.sh) (default: None)
@@ -346,3 +394,5 @@ generate-slurm-script -h
                             --inline-scripts script1.sh script2.sh) (default: [])
       --no-header           Do not include the header comment in the generated
                             script (default: False)
+      --submit              Submit the generated script to the scheduler (requires
+                            --output to be specified) (default: False)

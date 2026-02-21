@@ -1,4 +1,4 @@
-def add_line(line, comment="", line_length=40):
+def add_line(line, comment="", line_length=54):
     if len(comment) > 0:
         if len(line) > line_length:
             comment = f" # {comment}\n"

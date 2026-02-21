@@ -12,6 +12,7 @@ class SlurmScript:
     def __init__(
         self,
         account: str | None = None,
+        array: str | None = None,
         begin: str | None = None,
         bell: str | None = None,
         burst_buffer: str | None = None,
@@ -106,7 +107,7 @@ class SlurmScript:
         custom_commands: list | None = None,
         inlined_script: str | None = None,
         inlined_scripts: list | None = None,
-        line_length: int = 40,
+        line_length: int = 54,
     ) -> None:
         if pragmas is None:
             pragmas = []
@@ -114,6 +115,7 @@ class SlurmScript:
 
         pragma_params = {
             "account": account,
+            "array": array,
             "begin": begin,
             "bell": bell,
             "burst_buffer": burst_buffer,
@@ -240,6 +242,11 @@ class SlurmScript:
 
     def add_pragma(self, pragma: Pragma) -> None:
         assert isinstance(pragma, Pragma)
+        # Check if pragma with same dest already exists and replace it
+        for i, existing_pragma in enumerate(self._pragmas):
+            if existing_pragma.dest == pragma.dest:
+                self._pragmas[i] = pragma
+                return
         self._pragmas.append(pragma)
 
     def add_param(self, key: str, value: Any) -> None:
@@ -255,7 +262,7 @@ class SlurmScript:
             raise ValueError(f"Unknown parameter key: {key}")
 
     def generate_script(
-        self, line_length: int = 40, include_header: bool = False
+        self, line_length: int = 54, include_header: bool = False
     ) -> str:
         script_str = "#!/bin/bash\n"
 
@@ -341,6 +348,62 @@ class SlurmScript:
         script._modules = data.get("modules", [])
         script._custom_commands = data.get("custom_commands", [])
         return script
+
+    @staticmethod
+    def read_script(path: str, verbose: bool = False) -> "SlurmScript":
+        with open(path, "r") as f:
+            script_str = f.read()
+        return SlurmScript.from_script(script_str, verbose=verbose)
+
+    @staticmethod
+    def from_script(script: str, verbose: bool = False) -> "SlurmScript":
+        lines = script.splitlines()
+        pragmas = []
+        modules = []
+        custom_commands = []
+        for line in lines:
+            if verbose:
+                print(f"Processing line: '{line}'")
+            line = line.strip()
+
+            if line.startswith("#SBATCH"):
+                if verbose:
+                    print(f"Found SBATCH pragma line: '{line}'")
+                pragma_line = line[len("#SBATCH") :].strip()
+                if verbose:
+                    print(f"Extracted pragma line: '{pragma_line}'")
+
+                # Split on = or whitespace
+                if "=" in pragma_line:
+                    key, value = pragma_line.split("=", 1)
+                else:
+                    key, value = pragma_line.split(None, 1)
+                if verbose:
+                    print(f"Extracted key='{key}', value='{value}'")
+                flag = key.strip().split()[0]
+                # key = key.strip().lstrip("-").replace("-", "_")
+                value = value.strip()
+                # Extract comment if present
+                if "#" in value:
+                    value, comment = value.split("#", 1)
+                    value = value.strip()
+                    comment = comment.strip()
+                else:
+                    comment = None
+                if verbose:
+                    print(f"Parsing pragma: {flag = }, {value = }")
+                pragmas.append(PragmaFactory.flag_to_pragma(flag, value))
+            elif line.startswith("#") or line == "":
+                continue
+            elif line.startswith("module load"):
+                modules.extend(line[len("module load") :].strip().split())
+            elif line.startswith("module purge") or line.startswith("module list"):
+                continue
+            else:
+                custom_commands.append(line)
+        return SlurmScript(
+            pragmas=pragmas, modules=modules, custom_commands=custom_commands
+        )
 
     def to_json(self, path: str) -> None:
         with open(path, "w") as f:

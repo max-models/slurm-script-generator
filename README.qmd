@@ -53,6 +53,10 @@ You can also generate a string representation of the script with `generate_scrip
 script = slurm_script.generate_script()
 ```
 
+You can read more examples of the Python API in the [tutorial notebooks](https://max-models.github.io/slurm-script-generator/tutorials.html).
+
+## Exporting and reading scripts
+
 To export the settings to a json file you can use `--export-json`:
 
 ```{bash}
@@ -71,6 +75,22 @@ Add modules with
 
 ```{bash}
 generate-slurm-script --input setup.json --ntasks-per-node 16 --modules gcc/13 openmpi/5.0 --no-header
+```
+
+### Read from script
+
+You can also read pragmas and commands from an existing script with `--read-script`:
+
+Let's say you have a script `slurm_script.sh` with the following content:
+
+```{bash}
+cat slurm_script.sh
+```
+
+You can read the script and add extra pragmas (for example, changing the job name with `--job-name NEW_JOB_NAME`) or commands to generate a new script with
+
+```{bash}
+generate-slurm-script --read-script slurm_script.sh --job-name NEW_JOB_NAME --no-header
 ```
 
 ### Other

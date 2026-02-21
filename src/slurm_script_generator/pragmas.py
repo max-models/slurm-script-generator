@@ -73,6 +73,15 @@ class Begin(Pragma):
     type = str
 
 
+class Array(Pragma):
+    arg_varname = "array"
+    flags = ["--array"]
+    dest = "--array"
+    metavar = "INDEXES"
+    help = "submit a job array"
+    type = str
+
+
 class Bell(Pragma):
     arg_varname = "bell"
     flags = ["--bell"]
@@ -899,6 +908,13 @@ class PragmaFactory:
         if key not in PragmaFactory.pragmas:
             raise ValueError(f"Unknown pragma key: {key}")
         return PragmaFactory.pragmas[key](value)
+
+    @staticmethod
+    def flag_to_pragma(flag: str, value: str) -> Pragma | None:
+        for pragma_cls in PragmaFactory.pragmas.values():
+            if flag in pragma_cls.flags:
+                return pragma_cls(value=value)
+        raise ValueError(f"Unknown pragma flag: {flag}")
 
     @staticmethod
     def get_pragma_cls(key: str) -> Type[Pragma]:
