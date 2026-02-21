@@ -28,46 +28,6 @@ def add_misc_options(parser: argparse.ArgumentParser) -> None:
     )
 
     parser.add_argument(
-        "--vars",
-        dest="vars",
-        type=str,
-        nargs="+",
-        default=[],
-        metavar="ENVIRONMENT_VARS",
-        help="Environment variables to export (e.g., --vars VAR1=a VAR2=b)",
-    )
-
-    parser.add_argument(
-        "--venv",
-        dest="venv",
-        type=str,
-        default=None,
-        metavar="VENV",
-        help="virtual environment to load with `source VENV/bin/activate`",
-    )
-
-    parser.add_argument(
-        "--printenv",
-        action="store_true",
-        dest="printenv",
-        help="print all environment variables",
-    )
-
-    parser.add_argument(
-        "--print-self",
-        action="store_true",
-        dest="printself",
-        help="print the batch script in the batch script",
-    )
-
-    parser.add_argument(
-        "--likwid",
-        action="store_true",
-        dest="likwid",
-        help="Set up likwid environment variables",
-    )
-
-    parser.add_argument(
         "--input",
         dest="input",
         type=str,

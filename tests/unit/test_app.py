@@ -72,8 +72,6 @@ def test_default_script(job_name, tasks_per_node, nodes, modules, venv_path, mem
         pragmas=pragmas,
         custom_command="mpirun -n 4 ./bin > run.out",
         modules=modules,
-        likwid=True,
-        venv=venv_path,
     )
     script = slurm_script.generate_script()
 

@@ -67,12 +67,6 @@ Add modules with
 generate-slurm-script --input setup.json --ntasks-per-node 16 --modules gcc/13 openmpi/5.0
 ```
 
-### Add virtual environment
-
-```{bash}
-generate-slurm-script --nodes 1 --ntasks-per-node 16 --venv ~/virtual_envs/env
-```
-
 ### Other
 
 All optional arguments can be shown with

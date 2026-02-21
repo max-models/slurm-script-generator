@@ -96,17 +96,14 @@ class SlurmScript:
         mem_per_gpu: str | None = None,
         disable_stdout_job_summary: str | None = None,
         nvmps: str | None = None,
+        # List of pragmas to add to the script
         pragmas: List[Pragma] | None = None,
-        printself: bool = False,
+        # Non-pragma parameters
         modules: List[str] | None = None,
-        venv: str | None = None,
-        printenv: bool = False,
-        likwid: bool = False,
         custom_command: str | None = None,
         custom_commands: list | None = None,
         inlined_script: str | None = None,
         inlined_scripts: list | None = None,
-        vars: list | None = None,
         line_length: int = 40,
     ) -> None:
 
@@ -208,14 +205,11 @@ class SlurmScript:
             if param is not None:
                 pragma = PragmaFactory.create_pragma(name, param)
                 self.add_pragma(pragma=pragma)
-        self._printself = printself
+
         if modules is None:
             self._modules = []
         else:
             self._modules = modules
-        self._venv = venv
-        self._printenv = printenv
-        self._likwid = likwid
 
         # Handle custom commands
         if custom_commands is None:
@@ -241,11 +235,6 @@ class SlurmScript:
                 for line in f.readlines():
                     self._custom_commands.append(line.strip())
 
-        # Handle environment variables
-        if vars is None:
-            self._vars = []
-        else:
-            self._vars = vars
         self._line_length = line_length
 
     def add_pragma(self, pragma: Pragma) -> None:
@@ -257,20 +246,10 @@ class SlurmScript:
 
         if key == "line_length":
             self._line_length = value
-        elif key == "printself":
-            self._printself = value
         elif key == "modules":
             self._modules = value
-        elif key == "venv":
-            self._venv = value
-        elif key == "printenv":
-            self._printenv = value
-        elif key == "likwid":
-            self._likwid = value
         elif key == "custom_commands":
             self._custom_commands = value
-        elif key == "vars":
-            self._vars = value
         else:
             raise ValueError(f"Unknown parameter key: {key}")
 
@@ -280,20 +259,6 @@ class SlurmScript:
         for pragma in self.pragmas:
             script_repr += f"{pragma}"
         script_repr += "#" * (line_length + 2) + "\n"
-
-        if self.printself:
-            script_repr += add_line(
-                f"cat $0",
-                "print this batch script",
-                line_length=line_length,
-            )
-
-        for var in self.vars:
-            script_repr += add_line(
-                f"export {var}",
-                "Export environment variable",
-                line_length=line_length,
-            )
 
         # Load modules
         if len(self.modules) > 0:
@@ -313,46 +278,6 @@ class SlurmScript:
                 line_length=line_length,
             )
 
-        if self.venv is not None:
-            script_repr += add_line(
-                f"source {self.venv}/bin/activate",
-                "virtual environment",
-                line_length=line_length,
-            )
-
-        if self.printenv:
-            script_repr += add_line(
-                "printenv",
-                "print environment variables",
-                line_length=line_length,
-            )
-
-        if self.likwid:
-            script_repr += add_line(
-                "LIKWID_PREFIX=$(realpath $(dirname $(which likwid-topology))/..)",
-                "Set LIKWID prefix",
-                line_length=line_length,
-            )
-
-            script_repr += add_line(
-                "export LD_LIBRARY_PATH=$LIKWID_PREFIX/lib",
-                "Set LD_LIBRARY_PATH for LIKWID",
-                line_length=line_length,
-            )
-
-            script_repr += add_line(
-                "likwid-topology > likwid-topology.txt",
-                "Save LIKWID topology information",
-                line_length=line_length,
-            )
-            script_repr += add_line(
-                "likwid-topology -g > likwid-topology-g.txt",
-                "Save graphical LIKWID topology information",
-                line_length=line_length,
-            )
-
-            script_repr += "\n"
-
         if len(self.custom_commands) > 0:
             for custom_command in self.custom_commands:
                 script_repr += add_line(
@@ -365,13 +290,8 @@ class SlurmScript:
     def to_dict(self) -> dict[str, Any]:
         return {
             "pragmas": [pragma.to_dict() for pragma in self.pragmas],
-            "printself": self.printself,
             "modules": self.modules,
-            "venv": self.venv,
-            "printenv": self.printenv,
-            "likwid": self.likwid,
             "custom_commands": self.custom_commands,
-            "vars": self.vars,
         }
 
     def save(self, path: str) -> None:
@@ -389,13 +309,8 @@ class SlurmScript:
             )
             for pragma in data.get("pragmas", [])
         ]
-        script._printself = data.get("printself", False)
         script._modules = data.get("modules", [])
-        script._venv = data.get("venv", None)
-        script._printenv = data.get("printenv", False)
-        script._likwid = data.get("likwid", False)
         script._custom_commands = data.get("custom_commands", [])
-        script._vars = data.get("vars", [])
         return script
 
     def to_json(self, path: str) -> None:
@@ -425,36 +340,16 @@ class SlurmScript:
         return self._pragmas
 
     @property
-    def printself(self) -> bool:
-        return self._printself
-
-    @property
-    def modules(self) -> list:
+    def modules(self) -> List[str]:
         return self._modules
 
     @property
-    def venv(self) -> str:
-        return self._venv
-
-    @property
-    def printenv(self) -> bool:
-        return self._printenv
-
-    @property
-    def likwid(self) -> bool:
-        return self._likwid
-
-    @property
-    def custom_commands(self) -> list:
+    def custom_commands(self) -> List[str]:
         return self._custom_commands
 
     # @property
     # def inlined_scripts(self) -> list:
     #     return self._inlined_scripts
-
-    @property
-    def vars(self) -> list:
-        return self._vars
 
 
 if __name__ == "__main__":
@@ -465,10 +360,11 @@ if __name__ == "__main__":
     script = SlurmScript(
         account="max",
         nodes=1,
-        printself=True,
         modules=["gcc/12", "openmpi/4.1"],
-        venv="~/virtual_envs/env_slurm",
-        custom_commands=["mpirun -n 4 ./bin > run.out"],
+        custom_commands=[
+            "source ~/virtual_envs/env_slurm/bin/activate",
+            "mpirun -n 4 ./bin > run.out",
+        ],
     )
 
     slurm_dict = script.to_dict()
