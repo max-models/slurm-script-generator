@@ -442,12 +442,36 @@ class SlurmScript:
         self.add_inlined_scripts(paths=inlined_scripts)
 
     def add_custom_command(self, command: str) -> None:
+        """
+        Add a single custom command to the script.
+
+        Parameters
+        ----------
+        command : str
+            The custom command to add.
+
+        Returns
+        -------
+        None
+        """
         if command is None:
             return
         assert isinstance(command, str)
         self._custom_commands.append(command)
 
     def add_custom_commands(self, commands: List[str] | None) -> None:
+        """
+        Add multiple custom commands to the script.
+
+        Parameters
+        ----------
+        commands : list of str, optional
+            List of custom commands to add.
+
+        Returns
+        -------
+        None
+        """
         if commands is None:
             return
         assert isinstance(commands, list)
@@ -456,6 +480,18 @@ class SlurmScript:
 
     # Modules
     def add_module(self, module: str) -> None:
+        """
+        Add a single module to the script.
+
+        Parameters
+        ----------
+        module : str
+            The module to add.
+
+        Returns
+        -------
+        None
+        """
         if module is None:
             return
         assert isinstance(module, str)
@@ -463,6 +499,18 @@ class SlurmScript:
             self._modules.append(module)
 
     def add_modules(self, modules: List[str] | None) -> None:
+        """
+        Add multiple modules to the script.
+
+        Parameters
+        ----------
+        modules : list of str, optional
+            List of modules to add.
+
+        Returns
+        -------
+        None
+        """
         if modules is None:
             return
         assert isinstance(modules, list)
@@ -471,6 +519,18 @@ class SlurmScript:
 
     # Inlined scripts
     def add_inlined_script(self, path: str) -> None:
+        """
+        Add lines from an inlined script file to the custom commands.
+
+        Parameters
+        ----------
+        path : str
+            Path to the script file to inline.
+
+        Returns
+        -------
+        None
+        """
         if path is None:
             return
         assert isinstance(path, str)
@@ -482,6 +542,18 @@ class SlurmScript:
                 self._custom_commands.append(line.strip())
 
     def add_inlined_scripts(self, paths: List[str] | None) -> None:
+        """
+        Add lines from multiple inlined script files to the custom commands.
+
+        Parameters
+        ----------
+        paths : list of str, optional
+            List of script file paths to inline.
+
+        Returns
+        -------
+        None
+        """
         if paths is None:
             return
         assert isinstance(paths, list)
@@ -490,6 +562,18 @@ class SlurmScript:
 
     # Pragmas
     def add_pragma(self, pragma: Pragma) -> None:
+        """
+        Add a Pragma object to the script, replacing any existing pragma with the same destination.
+
+        Parameters
+        ----------
+        pragma : Pragma
+            The Pragma object to add.
+
+        Returns
+        -------
+        None
+        """
         assert isinstance(pragma, Pragma)
         pragma_type: PragmaTypes = pragma.pragma_type
         # Check if pragma with same dest already exists and replace it
@@ -500,6 +584,18 @@ class SlurmScript:
         self._pragma_dict[pragma_type].append(pragma)
 
     def add_pragmas(self, pragmas: List[Pragma] | None) -> None:
+        """
+        Add multiple Pragma objects to the script.
+
+        Parameters
+        ----------
+        pragmas : list of Pragma, optional
+            List of Pragma objects to add.
+
+        Returns
+        -------
+        None
+        """
         if pragmas is None:
             return
         assert isinstance(pragmas, list)
@@ -507,6 +603,20 @@ class SlurmScript:
             self.add_pragma(pragma=pragma)
 
     def add_param(self, key: str, value: Any) -> None:
+        """
+        Add a non-pragma parameter to the script.
+
+        Parameters
+        ----------
+        key : str
+            The parameter key.
+        value : Any
+            The parameter value.
+
+        Returns
+        -------
+        None
+        """
         assert not isinstance(key, Pragma), "Use add_pragma() to add Pragma instances"
 
         if key == "line_length":
