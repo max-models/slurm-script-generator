@@ -881,6 +881,11 @@ class PragmaFactory:
             raise ValueError(f"Unknown pragma key: {key}")
         return PragmaFactory.pragmas[key](value)
 
+    @staticmethod
+    def get_pragma_cls(key: str) -> Type[Pragma]:
+        if key not in PragmaFactory.pragmas:
+            raise ValueError(f"Unknown pragma key: {key}")
+        return PragmaFactory.pragmas[key]
 
 if __name__ == "__main__":
     acc = Account("max")
