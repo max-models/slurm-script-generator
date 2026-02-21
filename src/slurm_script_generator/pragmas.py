@@ -1722,20 +1722,52 @@ pragmas_ordered: List[Type[Pragma]] = [
 
 
 class PragmaFactory:
+    """
+    Factory class for creating and managing SLURM pragma classes.
+    Provides methods to validate pragma keys, create pragma instances, and retrieve pragma classes.
+    """
+
     pragmas = {pragma_cls.arg_varname: pragma_cls for pragma_cls in pragmas_ordered}
 
     @staticmethod
     def is_valid_pragma_key(key: str) -> bool:
+        """
+        Check if a given key is a valid pragma key.
+        Args:
+            key (str): The pragma key to validate.
+        Returns:
+            bool: True if the key is valid, False otherwise.
+        """
         return key in PragmaFactory.pragmas
 
     @staticmethod
     def create_pragma(key: str, value: str) -> Pragma:
+        """
+        Create a Pragma instance for the given key and value.
+        Args:
+            key (str): The pragma key.
+            value (str): The value for the pragma.
+        Returns:
+            Pragma: The created Pragma instance.
+        Raises:
+            ValueError: If the key is not valid.
+        """
         if key not in PragmaFactory.pragmas:
             raise ValueError(f"Unknown pragma key: {key}")
         return PragmaFactory.pragmas[key](value)
 
     @staticmethod
     def flag_to_pragma(flag: str, value: str) -> Pragma | None:
+        """
+        Create a Pragma instance based on a flag and value.
+        Args:
+            flag (str): The flag associated with the pragma (e.g., '--job-name').
+            value (str): The value for the pragma.
+        Returns:
+            Pragma: The created Pragma instance.
+        Raises:
+            ValueError: If the flag is not recognized.
+        """
         for pragma_cls in PragmaFactory.pragmas.values():
             if flag in pragma_cls.flags:
                 return pragma_cls(value=value)
@@ -1743,6 +1775,15 @@ class PragmaFactory:
 
     @staticmethod
     def get_pragma_cls(key: str) -> Type[Pragma]:
+        """
+        Retrieve the Pragma class for a given key.
+        Args:
+            key (str): The pragma key.
+        Returns:
+            Type[Pragma]: The Pragma class associated with the key.
+        Raises:
+            ValueError: If the key is not valid.
+        """
         if key not in PragmaFactory.pragmas:
             raise ValueError(f"Unknown pragma key: {key}")
         return PragmaFactory.pragmas[key]

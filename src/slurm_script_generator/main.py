@@ -5,6 +5,18 @@ from slurm_script_generator.slurm_script import SlurmScript
 
 
 def add_misc_options(parser: argparse.ArgumentParser) -> None:
+    """
+    Add miscellaneous SLURM script options to the argument parser.
+
+    Parameters
+    ----------
+    parser : argparse.ArgumentParser
+        The argument parser to which options are added.
+
+    Returns
+    -------
+    None
+    """
     parser.add_argument(
         "--line-length",
         dest="line_length",
@@ -116,6 +128,15 @@ def add_misc_options(parser: argparse.ArgumentParser) -> None:
 
 
 def main():
+    """
+    Main entry point for the SLURM script generator CLI.
+
+    Parses command-line arguments, constructs a SlurmScript object, and handles input/output operations.
+
+    Returns
+    -------
+    None
+    """
     parser = argparse.ArgumentParser(
         description="Slurm job submission options",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,

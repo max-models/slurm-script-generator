@@ -12,6 +12,5 @@
 
    main
    pragmas
-   script
    slurm_script
    utils
