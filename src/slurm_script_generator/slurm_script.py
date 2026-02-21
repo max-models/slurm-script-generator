@@ -280,7 +280,9 @@ class SlurmScript:
         # Add sbatch pragmas
         line_separator = "#" * (line_length + 2) + "\n"
         script_str += add_line(line_separator)
-        for pragma in self.pragmas:
+
+        # Loop over pragmas (ordered by pragma_id)
+        for pragma in sorted(self.pragmas, key=lambda p: p.pragma_id):
             script_str += f"{pragma}"
         script_str += add_line(line_separator)
 
