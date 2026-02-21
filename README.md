@@ -14,6 +14,13 @@ generate-slurm-script --nodes 1 --ntasks-per-node 16
 ```
 
     #!/bin/bash
+    ########################################################
+    #            This script was generated using           #
+    #             slurm-script-generator v0.3.0            #
+    # https://github.com/max-models/slurm-script-generator #
+    #      `pip install slurm-script-generator==0.3.0`     #
+    ########################################################
+
     ##########################################
     #SBATCH --nodes=1                        # number of nodes on which to run
     #SBATCH --ntasks-per-node=16             # number of tasks to invoke on each node
@@ -24,6 +31,18 @@ To save the script to file `my_script.sh` use `--output`:
 ``` bash
 generate-slurm-script --nodes 1 --ntasks-per-node 16 --output my_script.sh
 ```
+
+Remove the header comment with `--no-header`:
+
+``` bash
+generate-slurm-script --nodes 1 --ntasks-per-node 16 --no-header
+```
+
+    #!/bin/bash
+    ##########################################
+    #SBATCH --nodes=1                        # number of nodes on which to run
+    #SBATCH --ntasks-per-node=16             # number of tasks to invoke on each node
+    ##########################################
 
 You can also generate scripts in Python programmatically:
 
@@ -43,6 +62,13 @@ print(slurm_script)
 ```
 
     #!/bin/bash
+    ########################################################
+    #            This script was generated using           #
+    #             slurm-script-generator v0.3.0            #
+    # https://github.com/max-models/slurm-script-generator #
+    #      `pip install slurm-script-generator==0.3.0`     #
+    ########################################################
+
     ##########################################
     #SBATCH --nodes=2                        # number of nodes on which to run
     #SBATCH --ntasks-per-core=16             # number of tasks to invoke on each core
@@ -60,7 +86,7 @@ script = slurm_script.generate_script()
 To export the settings to a json file you can use `--export-json`:
 
 ``` bash
-generate-slurm-script --nodes 2 --export-json setup.json
+generate-slurm-script --nodes 2 --export-json setup.json --no-header
 ```
 
     #!/bin/bash
@@ -71,7 +97,7 @@ generate-slurm-script --nodes 2 --export-json setup.json
 This json file can used as a basis for creating new scripts
 
 ``` bash
-generate-slurm-script --input setup.json --ntasks-per-node 16
+generate-slurm-script --input setup.json --ntasks-per-node 16 --no-header
 ```
 
     #!/bin/bash
@@ -85,7 +111,7 @@ generate-slurm-script --input setup.json --ntasks-per-node 16
 Add modules with
 
 ``` bash
-generate-slurm-script --input setup.json --ntasks-per-node 16 --modules gcc/13 openmpi/5.0
+generate-slurm-script --input setup.json --ntasks-per-node 16 --modules gcc/13 openmpi/5.0 --no-header
 ```
 
     #!/bin/bash
@@ -148,6 +174,7 @@ generate-slurm-script -h
                                  [--custom-commands COMMAND [COMMAND ...]]
                                  [--inline-script COMMAND]
                                  [--inline-scripts COMMAND [COMMAND ...]]
+                                 [--no-header]
 
     Slurm job submission options
 
@@ -317,3 +344,5 @@ generate-slurm-script -h
       --inline-scripts COMMAND [COMMAND ...]
                             Add inline scripts at the end of the script (e.g.
                             --inline-scripts script1.sh script2.sh) (default: [])
+      --no-header           Do not include the header comment in the generated
+                            script (default: False)
