@@ -446,15 +446,18 @@ class SlurmScript:
             inlined_scripts.append(inlined_script)
 
         for inlined_script in inlined_scripts:
-            assert isinstance(inlined_script, str)
-            assert os.path.isfile(
-                inlined_script
-            ), f"Inlined script '{inlined_script}' does not exist or is not a file."
-            with open(inlined_script, "r") as f:
-                for line in f.readlines():
-                    self._custom_commands.append(line.strip())
+            self.add_inlined_script(inlined_script)
 
         self._line_length = line_length
+
+    def add_inlined_script(self, path: str) -> None:
+        assert isinstance(path, str)
+        assert os.path.isfile(
+            path
+        ), f"Inlined script '{path}' does not exist or is not a file."
+        with open(path, "r") as f:
+            for line in f.readlines():
+                self._custom_commands.append(line.strip())
 
     def add_pragma(self, pragma: Pragma) -> None:
         assert isinstance(pragma, Pragma)
@@ -475,6 +478,11 @@ class SlurmScript:
             self._modules = value
         elif key == "custom_commands":
             self._custom_commands = value
+        elif key == "inline_script":
+            self.add_inlined_script(value)
+        elif key == "inlined_scripts":
+            for inlined_script in value:
+                self.add_inlined_script(inlined_script)
         else:
             raise ValueError(f"Unknown parameter key: {key}")
 
