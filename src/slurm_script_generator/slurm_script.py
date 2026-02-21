@@ -252,6 +252,28 @@ class SlurmScript:
         assert isinstance(pragma, Pragma)
         self._pragmas.append(pragma)
 
+    def add_param(self, key: str, value: Any) -> None:
+        assert not isinstance(key, Pragma), "Use add_pragma() to add Pragma instances"
+
+        if key == "line_length":
+            self._line_length = value
+        elif key == "printself":
+            self._printself = value
+        elif key == "modules":
+            self._modules = value
+        elif key == "venv":
+            self._venv = value
+        elif key == "printenv":
+            self._printenv = value
+        elif key == "likwid":
+            self._likwid = value
+        elif key == "custom_commands":
+            self._custom_commands = value
+        elif key == "vars":
+            self._vars = value
+        else:
+            raise ValueError(f"Unknown parameter key: {key}")
+
     def generate_script(self, line_length: int = 40) -> str:
         script_repr = "#!/bin/bash\n"
         script_repr += "#" * (line_length + 2) + "\n"
@@ -359,8 +381,8 @@ class SlurmScript:
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "SlurmScript":
         script = SlurmScript()
-        for pragma in data.get("pragmas", []):
-            print(f"Creating pragma from dict: {pragma}")
+        # for pragma in data.get("pragmas", []):
+        #     print(f"Creating pragma from dict: {pragma}")
         script._pragmas = [
             PragmaFactory.create_pragma(
                 key=list(pragma.keys())[0], value=list(pragma.values())[0]

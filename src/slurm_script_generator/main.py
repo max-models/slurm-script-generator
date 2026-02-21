@@ -1,9 +1,9 @@
 import argparse
 import json
 
+import slurm_script_generator.pragmas as pragmas
 from slurm_script_generator.slurm_script import SlurmScript
 from slurm_script_generator.utils import add_line
-import slurm_script_generator.pragmas as pragmas
 
 
 def add_misc_options(parser: argparse.ArgumentParser) -> None:
@@ -192,8 +192,6 @@ def main():
         slurm_script = SlurmScript()
 
     # Convert the remaining arguments to pragmas or other SlurmScript parameters
-    args_dict = {}
-    pragma_list = []
     for arg_varname in vars(sbatch_args):
         value = getattr(sbatch_args, arg_varname)
         # print(f"Processing argument {arg_varname} with value {value}")
@@ -208,11 +206,9 @@ def main():
                 key=arg_varname,
                 value=value,
             )
-            print(pragma)
             slurm_script.add_pragma(pragma=pragma)
         else:
-            args_dict.update({arg_varname: value})
-    print(args_dict)
+            slurm_script.add_param(arg_varname, value)
 
     if path_json_out is not None:
         slurm_script.to_json(path=path_json_out)
