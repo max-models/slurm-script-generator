@@ -205,6 +205,7 @@ class SlurmScript:
     line_length : int, optional
         Line length for formatting output.
     """
+
     def __init__(
         self,
         account: str | None = None,
