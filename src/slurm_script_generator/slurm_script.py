@@ -307,6 +307,10 @@ class SlurmScript:
         line_length: int = 54,
     ) -> None:
 
+        # Set default values for non-pragma parameters
+        self._modules = []
+        self._custom_commands = []
+        self._line_length = line_length
         self._pragma_dict = {
             "job_config": [],
             "time_and_priority": [],
@@ -325,6 +329,7 @@ class SlurmScript:
             "plugins": [],
         }
 
+        # Pragma dict for creating pragmas from individual parameters
         pragma_params = {
             "account": account,
             "array": array,
@@ -416,41 +421,58 @@ class SlurmScript:
             "nvmps": nvmps,
         }
 
-        if pragmas is not None:
-            for pragma in pragmas:
-                self.add_pragma(pragma=pragma)
+        # Add pragmas from list
+        self.add_pragmas(pragmas=pragmas)
 
+        # Add pragmas from individual parameters
         for name, param in pragma_params.items():
             if param is not None:
                 pragma = PragmaFactory.create_pragma(name, param)
                 self.add_pragma(pragma=pragma)
 
-        if modules is None:
-            self._modules = []
-        else:
-            self._modules = modules
+        # Handle modules
+        self.add_modules(modules=modules)
 
         # Handle custom commands
-        if custom_commands is None:
-            custom_commands: list = []
-        assert isinstance(custom_commands, list)
-        if custom_command is not None:
-            custom_commands.append(custom_command)
-        self._custom_commands = custom_commands
+        self.add_custom_command(command=custom_command)
+        self.add_custom_commands(commands=custom_commands)
 
         # Handle inlined scripts
-        if inlined_scripts is None:
-            inlined_scripts = []
-        assert isinstance(inlined_scripts, list)
-        if inlined_script is not None:
-            inlined_scripts.append(inlined_script)
+        self.add_inlined_script(path=inlined_script)
+        self.add_inlined_scripts(paths=inlined_scripts)
 
-        for inlined_script in inlined_scripts:
-            self.add_inlined_script(inlined_script)
+    def add_custom_command(self, command: str) -> None:
+        if command is None:
+            return
+        assert isinstance(command, str)
+        self._custom_commands.append(command)
 
-        self._line_length = line_length
+    def add_custom_commands(self, commands: List[str] | None) -> None:
+        if commands is None:
+            return
+        assert isinstance(commands, list)
+        for command in commands:
+            self.add_custom_command(command=command)
 
+    # Modules
+    def add_module(self, module: str) -> None:
+        if module is None:
+            return
+        assert isinstance(module, str)
+        if module not in self._modules:
+            self._modules.append(module)
+
+    def add_modules(self, modules: List[str] | None) -> None:
+        if modules is None:
+            return
+        assert isinstance(modules, list)
+        for module in modules:
+            self.add_module(module)
+
+    # Inlined scripts
     def add_inlined_script(self, path: str) -> None:
+        if path is None:
+            return
         assert isinstance(path, str)
         assert os.path.isfile(
             path
@@ -459,6 +481,14 @@ class SlurmScript:
             for line in f.readlines():
                 self._custom_commands.append(line.strip())
 
+    def add_inlined_scripts(self, paths: List[str] | None) -> None:
+        if paths is None:
+            return
+        assert isinstance(paths, list)
+        for path in paths:
+            self.add_inlined_script(path)
+
+    # Pragmas
     def add_pragma(self, pragma: Pragma) -> None:
         assert isinstance(pragma, Pragma)
         pragma_type: PragmaTypes = pragma.pragma_type
@@ -468,6 +498,13 @@ class SlurmScript:
                 self._pragma_dict[pragma_type][i] = pragma
                 return
         self._pragma_dict[pragma_type].append(pragma)
+
+    def add_pragmas(self, pragmas: List[Pragma] | None) -> None:
+        if pragmas is None:
+            return
+        assert isinstance(pragmas, list)
+        for pragma in pragmas:
+            self.add_pragma(pragma=pragma)
 
     def add_param(self, key: str, value: Any) -> None:
         assert not isinstance(key, Pragma), "Use add_pragma() to add Pragma instances"
@@ -481,8 +518,7 @@ class SlurmScript:
         elif key == "inline_script":
             self.add_inlined_script(value)
         elif key == "inlined_scripts":
-            for inlined_script in value:
-                self.add_inlined_script(inlined_script)
+            self.add_inlined_scripts(value)
         else:
             raise ValueError(f"Unknown parameter key: {key}")
 
