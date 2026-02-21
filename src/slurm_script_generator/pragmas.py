@@ -242,7 +242,7 @@ class Stdout(Pragma):
     flags = ["--stdout", "-o"]
     dest = "--stdout"
     metavar = "STDOUT"
-    help = "File to redirect stdout (%x=jobname, %j=jobid)"
+    help = "File to redirect stdout (%%x=jobname, %%j=jobid)"
     example = "--stdout ./%x.%j.out"
     type = str
 
@@ -253,7 +253,7 @@ class Stderr(Pragma):
     flags = ["--stderr", "-e"]
     dest = "--stderr"
     metavar = "STDERR"
-    help = "File to redirect stderr (%x=jobname, %j=jobid)"
+    help = "File to redirect stderr (%%x=jobname, %%j=jobid)"
     example = "--stderr ./%x.%j.err"
     type = str
 
