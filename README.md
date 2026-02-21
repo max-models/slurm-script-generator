@@ -22,9 +22,6 @@ generate-slurm-script --nodes 1 --ntasks-per-node 16
     ########################################################
 
     ########################################################
-    #SBATCH --nodes=1                                      # number of nodes on which to run
-    #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
-    #                                                      #
     # Pragmas for Core Node And Task Allocation            #
     #SBATCH --nodes=1                                      # number of nodes on which to run
     #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
@@ -44,9 +41,6 @@ generate-slurm-script --nodes 1 --ntasks-per-node 16 --no-header
 
     #!/bin/bash
     ########################################################
-    #SBATCH --nodes=1                                      # number of nodes on which to run
-    #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
-    #                                                      #
     # Pragmas for Core Node And Task Allocation            #
     #SBATCH --nodes=1                                      # number of nodes on which to run
     #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
@@ -78,9 +72,6 @@ print(slurm_script)
     ########################################################
 
     ########################################################
-    #SBATCH --nodes=2                                      # number of nodes on which to run
-    #SBATCH --ntasks-per-core=16                           # number of tasks to invoke on each core
-    #                                                      #
     # Pragmas for Core Node And Task Allocation            #
     #SBATCH --nodes=2                                      # number of nodes on which to run
     #                                                      #
@@ -110,8 +101,6 @@ generate-slurm-script --nodes 2 --export-json setup.json --no-header
 
     #!/bin/bash
     ########################################################
-    #SBATCH --nodes=2                                      # number of nodes on which to run
-    #                                                      #
     # Pragmas for Core Node And Task Allocation            #
     #SBATCH --nodes=2                                      # number of nodes on which to run
     ########################################################
@@ -124,9 +113,6 @@ generate-slurm-script --input setup.json --ntasks-per-node 16 --no-header
 
     #!/bin/bash
     ########################################################
-    #SBATCH --nodes=2                                      # number of nodes on which to run
-    #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
-    #                                                      #
     # Pragmas for Core Node And Task Allocation            #
     #SBATCH --nodes=2                                      # number of nodes on which to run
     #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
@@ -142,9 +128,6 @@ generate-slurm-script --input setup.json --ntasks-per-node 16 --modules gcc/13 o
 
     #!/bin/bash
     ########################################################
-    #SBATCH --nodes=2                                      # number of nodes on which to run
-    #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
-    #                                                      #
     # Pragmas for Core Node And Task Allocation            #
     #SBATCH --nodes=2                                      # number of nodes on which to run
     #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
@@ -183,10 +166,6 @@ generate-slurm-script --read-script slurm_script.sh --job-name NEW_JOB_NAME --no
 
     #!/bin/bash
     ########################################################
-    #SBATCH --job-name=NEW_JOB_NAME                        # name of job
-    #SBATCH --nodes=2                                      # number of nodes on which to run
-    #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
-    #                                                      #
     # Pragmas for Job Config                               #
     #SBATCH --job-name=NEW_JOB_NAME                        # name of job
     #                                                      #
