@@ -23,6 +23,14 @@ class Pragma:
     default: str | None = None
 
     def __init__(self, value: str):
+        # Convert value to the correct type if 'type' attribute is set
+        # if hasattr(self, "type") and self.type is not None:
+        #     try:
+        #         self.value = self.type(value)
+        #     except Exception:
+        #         self.value = value
+        # else:
+        #     self.value = value
         self.value = value
 
     def __str__(self) -> str:
