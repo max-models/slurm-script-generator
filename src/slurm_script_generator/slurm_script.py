@@ -1,5 +1,6 @@
 import json
 import os
+import subprocess
 from importlib.metadata import version
 from typing import Any, List
 
@@ -312,9 +313,21 @@ class SlurmScript:
             "custom_commands": self.custom_commands,
         }
 
-    def save(self, path: str) -> None:
+    def save(self, path: str, include_header: bool = True) -> None:
         with open(path, "w") as f:
-            f.write(self.generate_script(line_length=self.line_length))
+            f.write(
+                self.generate_script(
+                    line_length=self.line_length,
+                    include_header=include_header,
+                ),
+            )
+
+    def submit_job(self, path: str) -> None:
+        self.save(path)
+        result = subprocess.run(["sbatch", path], capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(f"sbatch failed: {result.stderr.strip()}")
+        print(result.stdout.strip())
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "SlurmScript":
