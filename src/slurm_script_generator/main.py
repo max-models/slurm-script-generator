@@ -1,18 +1,19 @@
 import argparse
 import json
 
+import slurm_script_generator.pragmas as pragmas
 from slurm_script_generator.slurm_script import SlurmScript
 from slurm_script_generator.utils import add_line
 
 
-def add_misc_options(parser):
+def add_misc_options(parser: argparse.ArgumentParser) -> None:
 
     parser.add_argument(
         "--line-length",
         dest="line_length",
         type=int,
-        default=40,
-        metavar="LINE_LENGHT",
+        default=None,
+        metavar="LINE_LENGTH",
         help="line length before start of comment",
     )
 
@@ -24,46 +25,6 @@ def add_misc_options(parser):
         default=[],
         metavar="MODULES",
         help="Modules to load (e.g., --modules mod1 mod2 mod3)",
-    )
-
-    parser.add_argument(
-        "--vars",
-        dest="vars",
-        type=str,
-        nargs="+",
-        default=[],
-        metavar="ENVIRONMENT_VARS",
-        help="Environment variables to export (e.g., --vars VAR1=a VAR2=b)",
-    )
-
-    parser.add_argument(
-        "--venv",
-        dest="venv",
-        type=str,
-        default=None,
-        metavar="VENV",
-        help="virtual environment to load with `source VENV/bin/activate`",
-    )
-
-    parser.add_argument(
-        "--printenv",
-        action="store_true",
-        dest="printenv",
-        help="print all environment variables",
-    )
-
-    parser.add_argument(
-        "--print-self",
-        action="store_true",
-        dest="printself",
-        help="print the batch script in the batch script",
-    )
-
-    parser.add_argument(
-        "--likwid",
-        action="store_true",
-        dest="likwid",
-        help="Set up likwid environment variables",
     )
 
     parser.add_argument(
@@ -131,8 +92,6 @@ def add_misc_options(parser):
         help="Add inline scripts at the end of the script (e.g. --inline-scripts script1.sh script2.sh)",
     )
 
-    return parser
-
 
 def main():
     parser = argparse.ArgumentParser(
@@ -140,10 +99,9 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    import slurm_script_generator.pragmas as pragmas
-
     pragma_dict = {}
 
+    # Add each pragma as an argument to the parser
     for _, pragma_cls in pragmas.__dict__.items():
         if (
             isinstance(pragma_cls, type)
@@ -155,7 +113,7 @@ def main():
             if pragma_cls.action is None:
                 parser.add_argument(
                     *pragma_cls.flags,
-                    dest=pragma_cls.dest,
+                    dest=pragma_cls.arg_varname,
                     metavar=pragma_cls.metavar,
                     help=pragma_cls.help,
                     type=pragma_cls.type,
@@ -166,53 +124,54 @@ def main():
             else:
                 parser.add_argument(
                     *pragma_cls.flags,
-                    dest=pragma_cls.dest,
+                    dest=pragma_cls.arg_varname,
                     help=pragma_cls.help,
                     action=pragma_cls.action,
                     default=pragma_cls.default,
                 )
 
+    # Add the other options
     add_misc_options(parser=parser)
 
+    # Parse the arguments
     sbatch_args = parser.parse_args()
 
-    # Export parameters
-    if sbatch_args.export_json:
-        path_json = sbatch_args.export_json
-        delattr(sbatch_args, "export_json")
-        # print(f"Exporting setup to {sbatch_args.export_json}")
-        with open(path_json, "w") as f:
-            json.dump(vars(sbatch_args), f, indent=2)
+    # Extract the paths for JSON input/output and the output script
+    path_json_out = sbatch_args.export_json
+    path_json_in = sbatch_args.input
+    path_out = sbatch_args.output
+    delattr(sbatch_args, "export_json")
+    delattr(sbatch_args, "input")
+    delattr(sbatch_args, "output")
 
-    # Read parameters
-    if sbatch_args.input is not None:
-        # print(f"Reading setup from {sbatch_args.input}")
-        with open(sbatch_args.input, "r") as f:
-            data = json.load(f)
-        delattr(sbatch_args, "input")
+    # If a JSON input path is provided, load the SlurmScript from that JSON file.
+    # Otherwise, create a new SlurmScript instance.
+    if path_json_in is not None:
+        slurm_script = SlurmScript.from_json(path=path_json_in)
+    else:
+        slurm_script = SlurmScript()
 
-        # Convert JSON dict to argparse.Namespace
-        for key, val in data.items():
-            if val is not None:
-                if isinstance(val, list) and len(val) == 0:
-                    continue
-                setattr(sbatch_args, key, val)
+    # Convert the remaining arguments to pragmas or other SlurmScript parameters
+    for arg_varname in vars(sbatch_args):
+        value = getattr(sbatch_args, arg_varname)
+        # print(f"Processing argument {arg_varname} with value {value}")
+        if value is None:
+            continue
+        if value is False:
+            continue
+        if isinstance(value, list) and len(value) == 0:
+            continue
+        if pragmas.PragmaFactory.is_valid_pragma_key(arg_varname):
+            pragma = pragmas.PragmaFactory.create_pragma(
+                key=arg_varname,
+                value=value,
+            )
+            slurm_script.add_pragma(pragma=pragma)
+        else:
+            slurm_script.add_param(arg_varname, value)
 
-    args_dict = {}
-    pragma_list = []
-    for arg in sbatch_args.__dict__:
-        val = sbatch_args.__dict__[arg]
-        if val is not None and val is not False:
-            if arg in list(pragma_dict.keys()):
-                pragma_list.append(pragma_dict[arg](val))
-            else:
-                args_dict.update({arg: val})
-
-    path_out = None
-    if args_dict.get("output") is not None:
-        path_out = args_dict.pop("output")
-
-    slurm_script = SlurmScript(pragmas=pragma_list, **args_dict)
+    if path_json_out is not None:
+        slurm_script.to_json(path=path_json_out)
 
     if path_out:
         with open(path_out, "w") as f:

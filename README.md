@@ -97,19 +97,6 @@ generate-slurm-script --input setup.json --ntasks-per-node 16 --modules gcc/13 o
     module load gcc/13 openmpi/5.0           # modules
     module list                              # List loaded modules
 
-### Add virtual environment
-
-``` bash
-generate-slurm-script --nodes 1 --ntasks-per-node 16 --venv ~/virtual_envs/env
-```
-
-    #!/bin/bash
-    ##########################################
-    #SBATCH --nodes=1                        # number of nodes on which to run
-    #SBATCH --ntasks-per-node=16             # number of tasks to invoke on each node
-    ##########################################
-    source /Users/max/virtual_envs/env/bin/activate # virtual environment
-
 ### Other
 
 All optional arguments can be shown with
@@ -151,14 +138,12 @@ generate-slurm-script -h
                                  [--cpus-per-gpu N] [-G N] [--gpu-bind ...]
                                  [--gpu-freq ...] [--gpus-per-node N]
                                  [--gpus-per-socket N] [--gpus-per-task N]
-                                 [--mem-per-gpu --MEM_PER_GPU]
+                                 [--mem-per-gpu MEM_PER_GPU]
                                  [--disable-stdout-job-summary] [--nvmps]
-                                 [--line-length LINE_LENGHT]
+                                 [--line-length LINE_LENGTH]
                                  [--modules MODULES [MODULES ...]]
-                                 [--vars ENVIRONMENT_VARS [ENVIRONMENT_VARS ...]]
-                                 [--venv VENV] [--printenv] [--print-self]
-                                 [--likwid] [--input INPUT_PATH]
-                                 [--output OUTPUT_PATH] [--export-json JSON_PATH]
+                                 [--input INPUT_PATH] [--output OUTPUT_PATH]
+                                 [--export-json JSON_PATH]
                                  [--custom-command COMMAND]
                                  [--custom-commands COMMAND [COMMAND ...]]
                                  [--inline-script COMMAND]
@@ -301,26 +286,17 @@ generate-slurm-script -h
                             None)
       --gpus-per-task N     number of GPUs required per spawned task (default:
                             None)
-      --mem-per-gpu --MEM_PER_GPU
+      --mem-per-gpu MEM_PER_GPU
                             real memory required per allocated GPU (default: None)
       --disable-stdout-job-summary
                             disable job summary in stdout file for the job
                             (default: None)
       --nvmps               launching NVIDIA MPS for job (default: None)
-      --line-length LINE_LENGHT
-                            line length before start of comment (default: 40)
+      --line-length LINE_LENGTH
+                            line length before start of comment (default: None)
       --modules MODULES [MODULES ...]
                             Modules to load (e.g., --modules mod1 mod2 mod3)
                             (default: [])
-      --vars ENVIRONMENT_VARS [ENVIRONMENT_VARS ...]
-                            Environment variables to export (e.g., --vars VAR1=a
-                            VAR2=b) (default: [])
-      --venv VENV           virtual environment to load with `source
-                            VENV/bin/activate` (default: None)
-      --printenv            print all environment variables (default: False)
-      --print-self          print the batch script in the batch script (default:
-                            False)
-      --likwid              Set up likwid environment variables (default: False)
       --input INPUT_PATH    path to input json file (default: None)
       --output OUTPUT_PATH  json path to save slurm batch script to (default:
                             None)

@@ -1,7 +1,7 @@
 import pytest
 
 # from slurm_script_generator.main import generate_script
-from slurm_script_generator.pragmas import pragma_dict
+from slurm_script_generator.pragmas import PragmaFactory
 from slurm_script_generator.slurm_script import SlurmScript
 
 
@@ -25,10 +25,10 @@ def test_import_pragmas():
 
 def test_options():
 
-    args = {"--nodes": 1, "--ntasks_per_node": 16}
+    args = {"nodes": 1, "ntasks_per_node": 16}
     pragmas = []
     for key, item in args.items():
-        pragmas.append(pragma_dict[key](item))
+        pragmas.append(PragmaFactory.create_pragma(key, item))
     slurm_script = SlurmScript(pragmas=pragmas)
     script = slurm_script.generate_script()
     assert "#SBATCH --nodes=1" in script
@@ -57,23 +57,21 @@ def test_options():
 def test_default_script(job_name, tasks_per_node, nodes, modules, venv_path, mem, time):
     """Tests a typical script format."""
     script_params = {
-        "--job_name": job_name,
-        "--ntasks_per_node": tasks_per_node,
-        "--nodes": nodes,
-        "--mem": mem,
-        "--time": time,
+        "job_name": job_name,
+        "ntasks_per_node": tasks_per_node,
+        "nodes": nodes,
+        "mem": mem,
+        "time": time,
     }
     pragmas = []
     for key, item in script_params.items():
-        pragmas.append(pragma_dict[key](item))
+        pragmas.append(PragmaFactory.create_pragma(key, item))
 
     # Generate script
     slurm_script = SlurmScript(
         pragmas=pragmas,
         custom_command="mpirun -n 4 ./bin > run.out",
         modules=modules,
-        likwid=True,
-        venv=venv_path,
     )
     script = slurm_script.generate_script()
 
@@ -86,14 +84,14 @@ def test_default_script(job_name, tasks_per_node, nodes, modules, venv_path, mem
 
 def test_examples():
     pragmas = []
-    for key, pragma in pragma_dict.items():
+    for key, pragma in PragmaFactory.pragmas.items():
         if pragma.example is not None:
-            pragmas.append(pragma(pragma.example))
+            pragmas.append(PragmaFactory.create_pragma(key, pragma.example))
 
     slurm_script = SlurmScript(pragmas=pragmas)
     script = slurm_script.generate_script()
 
-    for key, pragma in pragma_dict.items():
+    for key, pragma in PragmaFactory.pragmas.items():
         if pragma.example is not None:
             assert f"#SBATCH {pragma.dest.replace('_', '-')}" in script
 

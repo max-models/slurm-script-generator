@@ -1,7 +1,8 @@
+import json
 import os
-from typing import List
+from typing import Any, List
 
-from slurm_script_generator.pragmas import Pragma, pragmas_lowercase
+from slurm_script_generator.pragmas import Pragma, PragmaFactory
 from slurm_script_generator.utils import add_line
 
 
@@ -95,17 +96,14 @@ class SlurmScript:
         mem_per_gpu: str | None = None,
         disable_stdout_job_summary: str | None = None,
         nvmps: str | None = None,
+        # List of pragmas to add to the script
         pragmas: List[Pragma] | None = None,
-        printself: bool = False,
+        # Non-pragma parameters
         modules: List[str] | None = None,
-        venv: str | None = None,
-        printenv: bool = False,
-        likwid: bool = False,
         custom_command: str | None = None,
         custom_commands: list | None = None,
         inlined_script: str | None = None,
         inlined_scripts: list | None = None,
-        vars: list | None = None,
         line_length: int = 40,
     ) -> None:
 
@@ -205,16 +203,13 @@ class SlurmScript:
 
         for name, param in pragma_params.items():
             if param is not None:
-                pragma = pragmas_lowercase[name](value=param)
+                pragma = PragmaFactory.create_pragma(name, param)
                 self.add_pragma(pragma=pragma)
-        self._printself = printself
+
         if modules is None:
             self._modules = []
         else:
             self._modules = modules
-        self._venv = venv
-        self._printenv = printenv
-        self._likwid = likwid
 
         # Handle custom commands
         if custom_commands is None:
@@ -240,16 +235,23 @@ class SlurmScript:
                 for line in f.readlines():
                     self._custom_commands.append(line.strip())
 
-        # Handle environment variables
-        if vars is None:
-            self._vars = []
-        else:
-            self._vars = vars
         self._line_length = line_length
 
     def add_pragma(self, pragma: Pragma) -> None:
         assert isinstance(pragma, Pragma)
         self._pragmas.append(pragma)
+
+    def add_param(self, key: str, value: Any) -> None:
+        assert not isinstance(key, Pragma), "Use add_pragma() to add Pragma instances"
+
+        if key == "line_length":
+            self._line_length = value
+        elif key == "modules":
+            self._modules = value
+        elif key == "custom_commands":
+            self._custom_commands = value
+        else:
+            raise ValueError(f"Unknown parameter key: {key}")
 
     def generate_script(self, line_length: int = 40) -> str:
         script_repr = "#!/bin/bash\n"
@@ -257,20 +259,6 @@ class SlurmScript:
         for pragma in self.pragmas:
             script_repr += f"{pragma}"
         script_repr += "#" * (line_length + 2) + "\n"
-
-        if self.printself:
-            script_repr += add_line(
-                f"cat $0",
-                "print this batch script",
-                line_length=line_length,
-            )
-
-        for var in self.vars:
-            script_repr += add_line(
-                f"export {var}",
-                "Export environment variable",
-                line_length=line_length,
-            )
 
         # Load modules
         if len(self.modules) > 0:
@@ -290,46 +278,6 @@ class SlurmScript:
                 line_length=line_length,
             )
 
-        if self.venv is not None:
-            script_repr += add_line(
-                f"source {self.venv}/bin/activate",
-                "virtual environment",
-                line_length=line_length,
-            )
-
-        if self.printenv:
-            script_repr += add_line(
-                "printenv",
-                "print environment variables",
-                line_length=line_length,
-            )
-
-        if self.likwid:
-            script_repr += add_line(
-                "LIKWID_PREFIX=$(realpath $(dirname $(which likwid-topology))/..)",
-                "Set LIKWID prefix",
-                line_length=line_length,
-            )
-
-            script_repr += add_line(
-                "export LD_LIBRARY_PATH=$LIKWID_PREFIX/lib",
-                "Set LD_LIBRARY_PATH for LIKWID",
-                line_length=line_length,
-            )
-
-            script_repr += add_line(
-                "likwid-topology > likwid-topology.txt",
-                "Save LIKWID topology information",
-                line_length=line_length,
-            )
-            script_repr += add_line(
-                "likwid-topology -g > likwid-topology-g.txt",
-                "Save graphical LIKWID topology information",
-                line_length=line_length,
-            )
-
-            script_repr += "\n"
-
         if len(self.custom_commands) > 0:
             for custom_command in self.custom_commands:
                 script_repr += add_line(
@@ -339,56 +287,88 @@ class SlurmScript:
 
         return script_repr
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "pragmas": [pragma.to_dict() for pragma in self.pragmas],
+            "modules": self.modules,
+            "custom_commands": self.custom_commands,
+        }
+
+    def save(self, path: str) -> None:
+        with open(path, "w") as f:
+            f.write(self.generate_script(line_length=self.line_length))
+
+    @staticmethod
+    def from_dict(data: dict[str, Any]) -> "SlurmScript":
+        script = SlurmScript()
+        # for pragma in data.get("pragmas", []):
+        #     print(f"Creating pragma from dict: {pragma}")
+        script._pragmas = [
+            PragmaFactory.create_pragma(
+                key=list(pragma.keys())[0], value=list(pragma.values())[0]
+            )
+            for pragma in data.get("pragmas", [])
+        ]
+        script._modules = data.get("modules", [])
+        script._custom_commands = data.get("custom_commands", [])
+        return script
+
+    def to_json(self, path: str) -> None:
+        with open(path, "w") as f:
+            json.dump(self.to_dict(), f, indent=4)
+
+    @staticmethod
+    def from_json(path: str) -> "SlurmScript":
+        with open(path, "r") as f:
+            data = json.load(f)
+        return SlurmScript.from_dict(data)
+
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, SlurmScript):
+            return False
+        return self.to_dict() == value.to_dict()
+
     def __str__(self) -> str:
         return self.generate_script()
+
+    @property
+    def line_length(self) -> int:
+        return self._line_length
 
     @property
     def pragmas(self) -> List[Pragma]:
         return self._pragmas
 
     @property
-    def printself(self) -> bool:
-        return self._printself
-
-    @property
-    def modules(self) -> list:
+    def modules(self) -> List[str]:
         return self._modules
 
     @property
-    def venv(self) -> str:
-        return self._venv
-
-    @property
-    def printenv(self) -> bool:
-        return self._printenv
-
-    @property
-    def likwid(self) -> bool:
-        return self._likwid
-
-    @property
-    def custom_commands(self) -> list:
+    def custom_commands(self) -> List[str]:
         return self._custom_commands
 
     # @property
     # def inlined_scripts(self) -> list:
     #     return self._inlined_scripts
 
-    @property
-    def vars(self) -> list:
-        return self._vars
-
 
 if __name__ == "__main__":
     import slurm_script_generator.pragmas as pragmas
 
-    pragma_classes = []
-    for _, cls in pragmas.__dict__.items():
-        if isinstance(cls, type) and issubclass(cls, Pragma) and cls != Pragma:
-            pragma_classes.append(cls.__name__)
-    print(pragma_classes)
-
     pragma = pragmas.Account("max")
     nodes = pragmas.Nodes(1)
-    script = SlurmScript([pragma, nodes])
-    print(script)
+    script = SlurmScript(
+        account="max",
+        nodes=1,
+        modules=["gcc/12", "openmpi/4.1"],
+        custom_commands=[
+            "source ~/virtual_envs/env_slurm/bin/activate",
+            "mpirun -n 4 ./bin > run.out",
+        ],
+    )
+
+    slurm_dict = script.to_dict()
+    print(slurm_dict)
+
+    script2 = SlurmScript.from_dict(slurm_dict)
+    script2.to_json("script2.json")
