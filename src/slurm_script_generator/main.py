@@ -71,6 +71,15 @@ def add_misc_options(parser: argparse.ArgumentParser) -> None:
     )
 
     parser.add_argument(
+        "--read-script",
+        dest="read_script",
+        type=str,
+        default=None,
+        metavar="SCRIPT_PATH",
+        help="Path to a slurm script file to read and include pragmas and commands from (e.g. --read-script sbatch_script.sh)",
+    )
+
+    parser.add_argument(
         "--inline-script",
         dest="inlined_script",
         type=str,
@@ -159,14 +168,18 @@ def main():
 
     # Extract the no_header flag
     no_header = sbatch_args.no_header
-    delattr(sbatch_args, "no_header")
     submit = sbatch_args.submit
+    read_script = sbatch_args.read_script
+    delattr(sbatch_args, "no_header")
     delattr(sbatch_args, "submit")
+    delattr(sbatch_args, "read_script")
 
     # If a JSON input path is provided, load the SlurmScript from that JSON file.
     # Otherwise, create a new SlurmScript instance.
     if path_json_in is not None:
         slurm_script = SlurmScript.from_json(path=path_json_in)
+    elif read_script is not None:
+        slurm_script = SlurmScript.read_script(path=read_script)
     else:
         slurm_script = SlurmScript()
 

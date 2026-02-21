@@ -242,6 +242,11 @@ class SlurmScript:
 
     def add_pragma(self, pragma: Pragma) -> None:
         assert isinstance(pragma, Pragma)
+        # Check if pragma with same dest already exists and replace it
+        for i, existing_pragma in enumerate(self._pragmas):
+            if existing_pragma.dest == pragma.dest:
+                self._pragmas[i] = pragma
+                return
         self._pragmas.append(pragma)
 
     def add_param(self, key: str, value: Any) -> None:
@@ -343,6 +348,12 @@ class SlurmScript:
         script._modules = data.get("modules", [])
         script._custom_commands = data.get("custom_commands", [])
         return script
+
+    @staticmethod
+    def read_script(path: str, verbose: bool = False) -> "SlurmScript":
+        with open(path, "r") as f:
+            script_str = f.read()
+        return SlurmScript.from_script(script_str, verbose=verbose)
 
     @staticmethod
     def from_script(script: str, verbose: bool = False) -> "SlurmScript":
