@@ -1,7 +1,8 @@
 import json
 import os
-from typing import Any, List
 from importlib.metadata import version
+from typing import Any, List
+
 from slurm_script_generator.pragmas import Pragma, PragmaFactory
 from slurm_script_generator.utils import add_line
 
@@ -253,13 +254,14 @@ class SlurmScript:
         else:
             raise ValueError(f"Unknown parameter key: {key}")
 
-    def generate_script(self, line_length: int = 40, include_header: bool = False) -> str:
+    def generate_script(
+        self, line_length: int = 40, include_header: bool = False
+    ) -> str:
 
         script_str = "#!/bin/bash\n"
 
         # Add header
-        SLURM_SCRIPT_HEADER = \
-f"""########################################################
+        SLURM_SCRIPT_HEADER = f"""########################################################
 #            This script was generated using           #
 #             slurm-script-generator v{version('slurm-script-generator')}            #
 # https://github.com/max-models/slurm-script-generator #
@@ -344,8 +346,11 @@ f"""########################################################
             return False
         return self.to_dict() == value.to_dict()
 
+    def to_string(self, include_header: bool = True) -> str:
+        return self.generate_script(include_header=include_header)
+
     def __str__(self) -> str:
-        return self.generate_script()
+        return self.generate_script(include_header=True)
 
     @property
     def line_length(self) -> int:

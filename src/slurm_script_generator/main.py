@@ -92,6 +92,14 @@ def add_misc_options(parser: argparse.ArgumentParser) -> None:
         help="Add inline scripts at the end of the script (e.g. --inline-scripts script1.sh script2.sh)",
     )
 
+    parser.add_argument(
+        "--no-header",
+        dest="no_header",
+        action="store_true",
+        default=False,
+        help="Do not include the header comment in the generated script",
+    )
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -144,6 +152,10 @@ def main():
     delattr(sbatch_args, "input")
     delattr(sbatch_args, "output")
 
+    # Extract the no_header flag
+    no_header = sbatch_args.no_header
+    delattr(sbatch_args, "no_header")
+
     # If a JSON input path is provided, load the SlurmScript from that JSON file.
     # Otherwise, create a new SlurmScript instance.
     if path_json_in is not None:
@@ -175,9 +187,9 @@ def main():
 
     if path_out:
         with open(path_out, "w") as f:
-            f.write(str(slurm_script))
+            f.write(slurm_script.generate_script(include_header=not no_header))
     else:
-        print(slurm_script)
+        print(slurm_script.to_string(include_header=not no_header))
 
 
 if __name__ == "__main__":
