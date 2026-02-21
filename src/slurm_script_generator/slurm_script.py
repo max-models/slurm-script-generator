@@ -1,5 +1,6 @@
 import json
 import os
+from importlib.metadata import version
 from typing import Any, List
 
 from slurm_script_generator.pragmas import Pragma, PragmaFactory
@@ -254,11 +255,25 @@ class SlurmScript:
             raise ValueError(f"Unknown parameter key: {key}")
 
     def generate_script(self, line_length: int = 40) -> str:
+
         script_repr = "#!/bin/bash\n"
-        script_repr += "#" * (line_length + 2) + "\n"
+
+        # Add header
+        SLURM_SCRIPT_HEADER = f"""########################################################
+#            This script was generated using           #
+#             slurm-script-generator v{version('slurm-script-generator')}            #
+# https://github.com/max-models/slurm-script-generator #
+#      `pip install slurm-script-generator=={version('slurm-script-generator')}`     #
+########################################################\n
+"""
+        script_repr += SLURM_SCRIPT_HEADER
+
+        # Add sbatch pragmas
+        line_separator = "#" * (line_length + 2) + "\n"
+        script_repr += add_line(line_separator)
         for pragma in self.pragmas:
             script_repr += f"{pragma}"
-        script_repr += "#" * (line_length + 2) + "\n"
+        script_repr += add_line(line_separator)
 
         # Load modules
         if len(self.modules) > 0:
