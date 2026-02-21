@@ -350,7 +350,7 @@ class SlurmScript:
         return self.generate_script(include_header=include_header)
 
     def __str__(self) -> str:
-        return self.generate_script(include_header=True)
+        return self.to_string(include_header=True)
 
     @property
     def line_length(self) -> int:
