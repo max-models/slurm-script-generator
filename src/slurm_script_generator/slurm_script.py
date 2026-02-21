@@ -4,7 +4,7 @@ import subprocess
 from importlib.metadata import version
 from typing import Any, List
 
-from slurm_script_generator.pragmas import Pragma, PragmaFactory
+from slurm_script_generator.pragmas import Pragma, PragmaFactory, PragmaTypes
 from slurm_script_generator.utils import add_line
 
 
@@ -112,6 +112,24 @@ class SlurmScript:
         if pragmas is None:
             pragmas = []
         self._pragmas = pragmas
+
+        self._pragma_dict = {
+            "job_config": [],
+            "time_and_priority": [],
+            "io_and_directory": [],
+            "notifications": [],
+            "dependencies_and_arrays": [],
+            "core_node_and_task_allocation": [],
+            "cpu_topology_and_binding": [],
+            "memory": [],
+            "gpus": [],
+            "generic_resources_and_licenses": [],
+            "node_constraints_and_selection": [],
+            "exclusivity_and_sharing": [],
+            "execution_behavior_and_signals": [],
+            "advanced_hardware_misc": [],
+            "plugins": [],
+        }
 
         pragma_params = {
             "account": account,
@@ -242,12 +260,13 @@ class SlurmScript:
 
     def add_pragma(self, pragma: Pragma) -> None:
         assert isinstance(pragma, Pragma)
+        pragma_type: PragmaTypes = pragma.pragma_type
         # Check if pragma with same dest already exists and replace it
-        for i, existing_pragma in enumerate(self._pragmas):
+        for i, existing_pragma in enumerate(self._pragma_dict[pragma_type]):
             if existing_pragma.dest == pragma.dest:
-                self._pragmas[i] = pragma
+                self._pragma_dict[pragma_type][i] = pragma
                 return
-        self._pragmas.append(pragma)
+        self._pragma_dict[pragma_type].append(pragma)
 
     def add_param(self, key: str, value: Any) -> None:
         assert not isinstance(key, Pragma), "Use add_pragma() to add Pragma instances"
@@ -284,6 +303,19 @@ class SlurmScript:
         # Loop over pragmas (ordered by pragma_id)
         for pragma in sorted(self.pragmas, key=lambda p: p.pragma_id):
             script_str += f"{pragma}"
+        for pragma_type in self._pragma_dict:
+            pragmas = self._pragma_dict[pragma_type]
+            if len(pragmas) > 0:
+                # for pragma in pragmas:
+                #     script_str += f"{pragma}"
+                script_str += add_line("#", "", line_length=line_length)
+                script_str += add_line(
+                    f"# Pragmas for {pragma_type.replace('_', ' ').title()}",
+                    comment="",
+                    line_length=line_length,
+                )
+                for pragma in pragmas:
+                    script_str += f"{pragma}"
         script_str += add_line(line_separator)
 
         # Load modules

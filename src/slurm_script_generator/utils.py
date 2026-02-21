@@ -1,7 +1,9 @@
-def add_line(line, comment="", line_length=54):
-    if len(comment) > 0:
+def add_line(line, comment=None, line_length=54):
+    if comment is not None:
         if len(line) > line_length:
             comment = f" # {comment}\n"
         else:
             comment = f" {' ' * (line_length - len(line))}# {comment}\n"
+    else:
+        comment = ""
     return line + comment
