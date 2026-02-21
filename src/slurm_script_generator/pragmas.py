@@ -82,6 +82,7 @@ class Job_name(Pragma):
 
 class Account(Pragma):
     """This class represents the SLURM #SBATCH --account pragma."""
+
     pragma_id = 1
     pragma_type = "job_config"
     arg_varname = "account"
