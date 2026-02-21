@@ -872,7 +872,6 @@ class Mem_per_gpu(Pragma):
 
 
 class Disable_stdout_job_summary(Pragma):
-    pragma_id = 0
     arg_varname = "disable_stdout_job_summary"
     flags = ["--disable-stdout-job-summary"]
     dest = "--disable_stdout_job_summary"
@@ -882,7 +881,6 @@ class Disable_stdout_job_summary(Pragma):
 
 
 class Nvmps(Pragma):
-    pragma_id = 0
     arg_varname = "nvmps"
     flags = ["--nvmps"]
     dest = "--nvmps"
