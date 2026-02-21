@@ -4,7 +4,7 @@ import subprocess
 from importlib.metadata import version
 from typing import Any, List
 
-from slurm_script_generator.pragmas import Pragma, PragmaFactory
+from slurm_script_generator.pragmas import Pragma, PragmaFactory, PragmaTypes
 from slurm_script_generator.utils import add_line
 
 
@@ -109,9 +109,24 @@ class SlurmScript:
         inlined_scripts: list | None = None,
         line_length: int = 54,
     ) -> None:
-        if pragmas is None:
-            pragmas = []
-        self._pragmas = pragmas
+
+        self._pragma_dict = {
+            "job_config": [],
+            "time_and_priority": [],
+            "io_and_directory": [],
+            "notifications": [],
+            "dependencies_and_arrays": [],
+            "core_node_and_task_allocation": [],
+            "cpu_topology_and_binding": [],
+            "memory": [],
+            "gpus": [],
+            "generic_resources_and_licenses": [],
+            "node_constraints_and_selection": [],
+            "exclusivity_and_sharing": [],
+            "execution_behavior_and_signals": [],
+            "advanced_hardware_misc": [],
+            "plugins": [],
+        }
 
         pragma_params = {
             "account": account,
@@ -204,6 +219,10 @@ class SlurmScript:
             "nvmps": nvmps,
         }
 
+        if pragmas is not None:
+            for pragma in pragmas:
+                self.add_pragma(pragma=pragma)
+
         for name, param in pragma_params.items():
             if param is not None:
                 pragma = PragmaFactory.create_pragma(name, param)
@@ -242,12 +261,13 @@ class SlurmScript:
 
     def add_pragma(self, pragma: Pragma) -> None:
         assert isinstance(pragma, Pragma)
+        pragma_type: PragmaTypes = pragma.pragma_type
         # Check if pragma with same dest already exists and replace it
-        for i, existing_pragma in enumerate(self._pragmas):
+        for i, existing_pragma in enumerate(self._pragma_dict[pragma_type]):
             if existing_pragma.dest == pragma.dest:
-                self._pragmas[i] = pragma
+                self._pragma_dict[pragma_type][i] = pragma
                 return
-        self._pragmas.append(pragma)
+        self._pragma_dict[pragma_type].append(pragma)
 
     def add_param(self, key: str, value: Any) -> None:
         assert not isinstance(key, Pragma), "Use add_pragma() to add Pragma instances"
@@ -280,8 +300,22 @@ class SlurmScript:
         # Add sbatch pragmas
         line_separator = "#" * (line_length + 2) + "\n"
         script_str += add_line(line_separator)
-        for pragma in self.pragmas:
-            script_str += f"{pragma}"
+
+        # Loop over pragmas (ordered by pragma_id)
+        itype = 0
+        for pragma_type in self._pragma_dict:
+            pragmas = self._pragma_dict[pragma_type]
+            if len(pragmas) > 0:
+                if itype > 0:
+                    script_str += add_line("#", "", line_length=line_length)
+                script_str += add_line(
+                    f"# Pragmas for {pragma_type.replace('_', ' ').title()}",
+                    comment="",
+                    line_length=line_length,
+                )
+                for pragma in sorted(pragmas, key=lambda p: p.pragma_id):
+                    script_str += f"{pragma}"
+                itype += 1
         script_str += add_line(line_separator)
 
         # Load modules
@@ -339,12 +373,11 @@ class SlurmScript:
         script = SlurmScript()
         # for pragma in data.get("pragmas", []):
         #     print(f"Creating pragma from dict: {pragma}")
-        script._pragmas = [
-            PragmaFactory.create_pragma(
-                key=list(pragma.keys())[0], value=list(pragma.values())[0]
+        for pragma_dict in data.get("pragmas", []):
+            pragma = PragmaFactory.create_pragma(
+                key=list(pragma_dict.keys())[0], value=list(pragma_dict.values())[0]
             )
-            for pragma in data.get("pragmas", [])
-        ]
+            script.add_pragma(pragma=pragma)
         script._modules = data.get("modules", [])
         script._custom_commands = data.get("custom_commands", [])
         return script
@@ -443,7 +476,10 @@ class SlurmScript:
 
     @property
     def pragmas(self) -> List[Pragma]:
-        return self._pragmas
+        pragma_list = []
+        for pragma_type in self._pragma_dict:
+            pragma_list.extend(self._pragma_dict[pragma_type])
+        return pragma_list
 
     @property
     def modules(self) -> List[str]:

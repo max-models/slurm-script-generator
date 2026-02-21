@@ -18,5 +18,7 @@ def test_export_import():
         slurm_script.to_json(tmp.name)
         tmp.seek(0)
         imported = SlurmScript.from_json(tmp.name)
+        print(imported)
+        print(slurm_script)
         assert imported.pragmas[0] == slurm_script.pragmas[0]
         assert imported == slurm_script
