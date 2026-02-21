@@ -1,6 +1,7 @@
-import os
-from typing import List, Any
 import json
+import os
+from typing import Any, List
+
 from slurm_script_generator.pragmas import Pragma, PragmaFactory
 from slurm_script_generator.utils import add_line
 
@@ -374,7 +375,7 @@ class SlurmScript:
     def to_json(self, path: str) -> str:
         with open(path, "w") as f:
             json.dump(self.to_dict(), f, indent=4)
-    
+
     @staticmethod
     def from_json(path: str) -> "SlurmScript":
         with open(path, "r") as f:
