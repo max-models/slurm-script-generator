@@ -342,6 +342,39 @@ class SlurmScript:
         script._custom_commands = data.get("custom_commands", [])
         return script
 
+    @staticmethod
+    def from_script(script: str) -> "SlurmScript":
+        lines = script.splitlines()
+        pragmas = []
+        modules = []
+        custom_commands = []
+        for line in lines:
+            line = line.strip()
+
+            if line.startswith("#SBATCH"):
+                pragma_line = line[len("#SBATCH"):].strip()
+                key, value = pragma_line.split("=", 1)
+                key = key.strip().lstrip("-").replace("-", "_")
+                value = value.strip()
+                # Extract comment if present
+                if "#" in value:
+                    value, comment = value.split("#", 1)
+                    value = value.strip()
+                    comment = comment.strip()
+                else:
+                    comment = None
+                print(f"Parsing pragma: key='{key}', value='{value}'")
+                pragmas.append(PragmaFactory.create_pragma(key, value))
+            elif line.startswith("#") or line == "":
+                continue
+            elif line.startswith("module load"):
+                modules.extend(line[len("module load"):].strip().split())
+            elif line.startswith("module purge") or line.startswith("module list"):
+                continue
+            else:
+                custom_commands.append(line)
+        return SlurmScript(pragmas=pragmas, modules=modules, custom_commands=custom_commands)
+
     def to_json(self, path: str) -> None:
         with open(path, "w") as f:
             json.dump(self.to_dict(), f, indent=4)
