@@ -12,6 +12,7 @@ class SlurmScript:
     def __init__(
         self,
         account: str | None = None,
+        array: str | None = None,
         begin: str | None = None,
         bell: str | None = None,
         burst_buffer: str | None = None,
@@ -106,7 +107,7 @@ class SlurmScript:
         custom_commands: list | None = None,
         inlined_script: str | None = None,
         inlined_scripts: list | None = None,
-        line_length: int = 40,
+        line_length: int = 54,
     ) -> None:
         if pragmas is None:
             pragmas = []
@@ -114,6 +115,7 @@ class SlurmScript:
 
         pragma_params = {
             "account": account,
+            "array": array,
             "begin": begin,
             "bell": bell,
             "burst_buffer": burst_buffer,
@@ -255,7 +257,7 @@ class SlurmScript:
             raise ValueError(f"Unknown parameter key: {key}")
 
     def generate_script(
-        self, line_length: int = 40, include_header: bool = False
+        self, line_length: int = 54, include_header: bool = False
     ) -> str:
         script_str = "#!/bin/bash\n"
 
@@ -343,18 +345,32 @@ class SlurmScript:
         return script
 
     @staticmethod
-    def from_script(script: str) -> "SlurmScript":
+    def from_script(script: str, verbose: bool = False) -> "SlurmScript":
         lines = script.splitlines()
         pragmas = []
         modules = []
         custom_commands = []
         for line in lines:
+            if verbose:
+                print(f"Processing line: '{line}'")
             line = line.strip()
 
             if line.startswith("#SBATCH"):
-                pragma_line = line[len("#SBATCH"):].strip()
-                key, value = pragma_line.split("=", 1)
-                key = key.strip().lstrip("-").replace("-", "_")
+                if verbose:
+                    print(f"Found SBATCH pragma line: '{line}'")
+                pragma_line = line[len("#SBATCH") :].strip()
+                if verbose:
+                    print(f"Extracted pragma line: '{pragma_line}'")
+
+                # Split on = or whitespace
+                if "=" in pragma_line:
+                    key, value = pragma_line.split("=", 1)
+                else:
+                    key, value = pragma_line.split(None, 1)
+                if verbose:
+                    print(f"Extracted key='{key}', value='{value}'")
+                flag = key.strip().split()[0]
+                # key = key.strip().lstrip("-").replace("-", "_")
                 value = value.strip()
                 # Extract comment if present
                 if "#" in value:
@@ -363,17 +379,20 @@ class SlurmScript:
                     comment = comment.strip()
                 else:
                     comment = None
-                print(f"Parsing pragma: key='{key}', value='{value}'")
-                pragmas.append(PragmaFactory.create_pragma(key, value))
+                if verbose:
+                    print(f"Parsing pragma: {flag = }, {value = }")
+                pragmas.append(PragmaFactory.flag_to_pragma(flag, value))
             elif line.startswith("#") or line == "":
                 continue
             elif line.startswith("module load"):
-                modules.extend(line[len("module load"):].strip().split())
+                modules.extend(line[len("module load") :].strip().split())
             elif line.startswith("module purge") or line.startswith("module list"):
                 continue
             else:
                 custom_commands.append(line)
-        return SlurmScript(pragmas=pragmas, modules=modules, custom_commands=custom_commands)
+        return SlurmScript(
+            pragmas=pragmas, modules=modules, custom_commands=custom_commands
+        )
 
     def to_json(self, path: str) -> None:
         with open(path, "w") as f:
