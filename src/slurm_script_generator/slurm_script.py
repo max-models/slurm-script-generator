@@ -9,8 +9,7 @@ from slurm_script_generator.utils import add_line
 
 
 class SlurmScript:
-    """
-    Class representing a Slurm batch script with pragmas, modules, and custom commands.
+    """Class representing a Slurm batch script with pragmas, modules, and custom commands.
 
     Parameters
     ----------
@@ -307,6 +306,10 @@ class SlurmScript:
         line_length: int = 54,
     ) -> None:
 
+        # Set default values for non-pragma parameters
+        self._modules = []
+        self._custom_commands = []
+        self._line_length = line_length
         self._pragma_dict = {
             "job_config": [],
             "time_and_priority": [],
@@ -325,6 +328,7 @@ class SlurmScript:
             "plugins": [],
         }
 
+        # Pragma dict for creating pragmas from individual parameters
         pragma_params = {
             "account": account,
             "array": array,
@@ -416,41 +420,116 @@ class SlurmScript:
             "nvmps": nvmps,
         }
 
-        if pragmas is not None:
-            for pragma in pragmas:
-                self.add_pragma(pragma=pragma)
+        # Add pragmas from list
+        self.add_pragmas(pragmas=pragmas)
 
+        # Add pragmas from individual parameters
         for name, param in pragma_params.items():
             if param is not None:
                 pragma = PragmaFactory.create_pragma(name, param)
                 self.add_pragma(pragma=pragma)
 
-        if modules is None:
-            self._modules = []
-        else:
-            self._modules = modules
+        # Handle modules
+        self.add_modules(modules=modules)
 
         # Handle custom commands
-        if custom_commands is None:
-            custom_commands: list = []
-        assert isinstance(custom_commands, list)
-        if custom_command is not None:
-            custom_commands.append(custom_command)
-        self._custom_commands = custom_commands
+        self.add_custom_command(command=custom_command)
+        self.add_custom_commands(commands=custom_commands)
 
         # Handle inlined scripts
-        if inlined_scripts is None:
-            inlined_scripts = []
-        assert isinstance(inlined_scripts, list)
-        if inlined_script is not None:
-            inlined_scripts.append(inlined_script)
+        self.add_inlined_script(path=inlined_script)
+        self.add_inlined_scripts(paths=inlined_scripts)
 
-        for inlined_script in inlined_scripts:
-            self.add_inlined_script(inlined_script)
+    def add_custom_command(self, command: str) -> None:
+        """Add a single custom command to the script.
 
-        self._line_length = line_length
+        Parameters
+        ----------
+        command : str
+            The custom command to add.
 
+
+        Returns
+        -------
+
+        """
+        if command is None:
+            return
+        assert isinstance(command, str)
+        self._custom_commands.append(command)
+
+    def add_custom_commands(self, commands: List[str] | None) -> None:
+        """Add multiple custom commands to the script.
+
+        Parameters
+        ----------
+        commands : list of str, optional
+            List of custom commands to add.
+
+        Returns
+        -------
+
+        """
+        if commands is None:
+            return
+        assert isinstance(commands, list)
+        for command in commands:
+            self.add_custom_command(command=command)
+
+    # Modules
+    def add_module(self, module: str) -> None:
+        """Add a single module to the script.
+
+        Parameters
+        ----------
+        module : str
+            The module to add.
+
+        Returns
+        -------
+
+        """
+        if module is None:
+            return
+        assert isinstance(module, str)
+        if module not in self._modules:
+            self._modules.append(module)
+
+    def add_modules(self, modules: List[str] | None) -> None:
+        """Add multiple modules to the script.
+
+        Parameters
+        ----------
+        modules : list of str, optional
+            List of modules to add.
+
+
+        Returns
+        -------
+
+        """
+        if modules is None:
+            return
+        assert isinstance(modules, list)
+        for module in modules:
+            self.add_module(module)
+
+    # Inlined scripts
     def add_inlined_script(self, path: str) -> None:
+        """Add lines from an inlined script file to the custom commands.
+
+        Parameters
+        ----------
+        path : str
+            Path to the script file to inline.
+
+
+        Returns
+        -------
+
+        """
+        if path is None:
+            return
         assert isinstance(path, str)
         assert os.path.isfile(
             path
@@ -459,7 +538,37 @@ class SlurmScript:
             for line in f.readlines():
                 self._custom_commands.append(line.strip())
 
+    def add_inlined_scripts(self, paths: List[str] | None) -> None:
+        """Add lines from multiple inlined script files to the custom commands.
+
+        Parameters
+        ----------
+        paths : list of str, optional
+            List of script file paths to inline.
+
+        Returns
+        -------
+
+        """
+        if paths is None:
+            return
+        assert isinstance(paths, list)
+        for path in paths:
+            self.add_inlined_script(path)
+
+    # Pragmas
     def add_pragma(self, pragma: Pragma) -> None:
+        """Add a Pragma object to the script, replacing any existing pragma with the same destination.
+
+        Parameters
+        ----------
+        pragma : Pragma
+            The Pragma object to add.
+
+        Returns
+        -------
+
+        """
         assert isinstance(pragma, Pragma)
         pragma_type: PragmaTypes = pragma.pragma_type
         # Check if pragma with same dest already exists and replace it
@@ -469,7 +578,39 @@ class SlurmScript:
                 return
         self._pragma_dict[pragma_type].append(pragma)
 
+    def add_pragmas(self, pragmas: List[Pragma] | None) -> None:
+        """Add multiple Pragma objects to the script.
+
+        Parameters
+        ----------
+        pragmas : list of Pragma, optional
+            List of Pragma objects to add.
+
+
+        Returns
+        -------
+
+        """
+        if pragmas is None:
+            return
+        assert isinstance(pragmas, list)
+        for pragma in pragmas:
+            self.add_pragma(pragma=pragma)
+
     def add_param(self, key: str, value: Any) -> None:
+        """Add a non-pragma parameter to the script.
+
+        Parameters
+        ----------
+        key : str
+            The parameter key.
+        value : Any
+            The parameter value.
+
+        Returns
+        -------
+
+        """
         assert not isinstance(key, Pragma), "Use add_pragma() to add Pragma instances"
 
         if key == "line_length":
@@ -481,14 +622,26 @@ class SlurmScript:
         elif key == "inline_script":
             self.add_inlined_script(value)
         elif key == "inlined_scripts":
-            for inlined_script in value:
-                self.add_inlined_script(inlined_script)
+            self.add_inlined_scripts(value)
         else:
             raise ValueError(f"Unknown parameter key: {key}")
 
     def generate_script(
         self, line_length: int = 54, include_header: bool = False
     ) -> str:
+        """
+
+        Parameters
+        ----------
+        line_length :
+            int:  (Default value = 54)
+        include_header :
+            bool:  (Default value = False)
+
+        Returns
+        -------
+
+        """
         script_str = "#!/bin/bash\n"
 
         # Add header
@@ -551,10 +704,16 @@ class SlurmScript:
         return script_str
 
     def to_dict(self) -> dict[str, Any]:
-        """
-        Convert the SlurmScript instance to a dictionary representation.
-        Returns:
-            dict[str, Any]: Dictionary with keys 'pragmas', 'modules', and 'custom_commands'.
+        """Convert the SlurmScript instance to a dictionary representation.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        dict[str, Any]
+            Dictionary with keys 'pragmas', 'modules', and 'custom_commands'.
+
         """
         return {
             "pragmas": {pragma.arg_varname: pragma.value for pragma in self.pragmas},
@@ -563,11 +722,18 @@ class SlurmScript:
         }
 
     def save(self, path: str, include_header: bool = True) -> None:
-        """
-        Save the generated SLURM script to a file.
-        Args:
-            path (str): Path to save the script file.
-            include_header (bool): Whether to include the script header.
+        """Save the generated SLURM script to a file.
+
+        Parameters
+        ----------
+        path : str
+            Path to save the script file.
+        include_header : bool
+            Whether to include the script header.
+
+        Returns
+        -------
+
         """
         with open(path, "w") as f:
             f.write(
@@ -578,12 +744,21 @@ class SlurmScript:
             )
 
     def submit_job(self, path: str) -> None:
-        """
-        Submit the SLURM script as a job using sbatch.
-        Args:
-            path (str): Path to the script file to submit.
-        Raises:
-            RuntimeError: If sbatch fails to submit the job.
+        """Submit the SLURM script as a job using sbatch.
+
+        Parameters
+        ----------
+        path : str
+            Path to the script file to submit.
+
+        Returns
+        -------
+
+        Raises
+        ------
+        RuntimeError
+            If sbatch fails to submit the job.
+
         """
         self.save(path)
         result = subprocess.run(["sbatch", path], capture_output=True, text=True)
@@ -593,12 +768,18 @@ class SlurmScript:
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "SlurmScript":
-        """
-        Create a SlurmScript instance from a dictionary.
-        Args:
-            data (dict[str, Any]): Dictionary with keys 'pragmas', 'modules', and 'custom_commands'.
-        Returns:
-            SlurmScript: The constructed SlurmScript object.
+        """Create a SlurmScript instance from a dictionary.
+
+        Parameters
+        ----------
+        data : dict[str, Any]
+            Dictionary containing the SlurmScript data.
+
+        Returns
+        -------
+        SlurmScript
+            The constructed SlurmScript object.
+
         """
         script = SlurmScript()
         # for pragma in data.get("pragmas", []):
@@ -612,13 +793,20 @@ class SlurmScript:
 
     @staticmethod
     def read_script(path: str, verbose: bool = False) -> "SlurmScript":
-        """
-        Read a SLURM script from a file and parse it into a SlurmScript instance.
-        Args:
-            path (str): Path to the script file.
-            verbose (bool): If True, print parsing details.
-        Returns:
-            SlurmScript: The parsed SlurmScript object.
+        """Read a SLURM script from a file and parse it into a SlurmScript instance.
+
+        Parameters
+        ----------
+        path : str
+            Path to the script file.
+        verbose : bool
+            Whether to enable verbose output. (Default value = False)
+
+        Returns
+        -------
+        SlurmScript
+            The parsed SlurmScript object.
+
         """
         with open(path, "r") as f:
             script_str = f.read()
@@ -626,13 +814,20 @@ class SlurmScript:
 
     @staticmethod
     def from_script(script: str, verbose: bool = False) -> "SlurmScript":
-        """
-        Parse a SLURM script string and create a SlurmScript instance.
-        Args:
-            script (str): SLURM script content.
-            verbose (bool): If True, print parsing details.
-        Returns:
-            SlurmScript: The constructed SlurmScript object.
+        """Parse a SLURM script string and create a SlurmScript instance.
+
+        Parameters
+        ----------
+        script : str
+            SLURM script content.
+        verbose: bool :
+             (Default value = False)
+
+        Returns
+        -------
+        SlurmScript
+            The constructed SlurmScript object.
+
         """
         lines = script.splitlines()
         pragmas = []
@@ -683,22 +878,35 @@ class SlurmScript:
         )
 
     def to_json(self, path: str) -> None:
-        """
-        Save the SlurmScript instance as a JSON file.
-        Args:
-            path (str): Path to save the JSON file.
+        """Save the SlurmScript instance as a JSON file.
+
+        Parameters
+        ----------
+        path : str
+            Path to save the JSON file.
+
+
+        Returns
+        -------
+
         """
         with open(path, "w") as f:
             json.dump(self.to_dict(), f, indent=4)
 
     @staticmethod
     def from_json(path: str) -> "SlurmScript":
-        """
-        Load a SlurmScript instance from a JSON file.
-        Args:
-            path (str): Path to the JSON file.
-        Returns:
-            SlurmScript: The constructed SlurmScript object.
+        """Load a SlurmScript instance from a JSON file.
+
+        Parameters
+        ----------
+        path : str
+            Path to the JSON file to load.
+
+        Returns
+        -------
+        SlurmScript
+            The constructed SlurmScript object.
+
         """
         with open(path, "r") as f:
             data = json.load(f)
@@ -717,28 +925,40 @@ class SlurmScript:
         return self.to_dict() == value.to_dict()
 
     def to_string(self, include_header: bool = True) -> str:
-        """
-        Generate the SLURM script as a string.
-        Args:
-            include_header (bool): Whether to include the script header.
-        Returns:
-            str: The generated script string.
+        """Generate the SLURM script as a string.
+
+        Parameters
+        ----------
+        include_header : bool
+            Whether to include the header in the generated script. (Default value = True)
+
+        Returns
+        -------
+        str
+            The generated script string.
+
         """
         return self.generate_script(include_header=include_header)
 
     def __str__(self) -> str:
         """
         Return the string representation of the SLurmScript instance.
-        Returns:
-            str: The generated script string with header.
+
+        Returns
+        -------
+        str
+            The generated script string with header.
         """
         return self.to_string(include_header=True)
 
     def __repr__(self) -> str:
         """
         Return the official string representation of the SlurmScript instance.
-        Returns:
-            str: The formatted representation of the SlurmScript object.
+
+        Returns
+        -------
+        str
+            The formatted representation of the SlurmScript object.
         """
         script_repr = "SlurmScript(\n"
         for pragma in self.pragmas:
@@ -752,19 +972,34 @@ class SlurmScript:
 
     @property
     def line_length(self) -> int:
-        """
-        Get the maximum line length for the script.
-        Returns:
-            int: The line length value.
+        """Get the maximum line length for the script, used for formatting the output.
+        This value is used to determine how many characters fit on a line
+        when generating the script string, and is also used for formatting
+        the header and section separators.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        int
+            The line length value.
+
         """
         return self._line_length
 
     @property
     def pragmas(self) -> List[Pragma]:
-        """
-        Get the list of Pragma objects in the script.
-        Returns:
-            List[Pragma]: List of all Pragma instances.
+        """Get the list of Pragma objects in the script.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        List[Pragma]
+            List of all Pragma instances.
+
         """
         pragma_list = []
         for pragma_type in self._pragma_dict:
@@ -773,19 +1008,31 @@ class SlurmScript:
 
     @property
     def modules(self) -> List[str]:
-        """
-        Get the list of modules to load in the script.
-        Returns:
-            List[str]: List of module names.
+        """Get the list of modules to load in the script.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        List[str]
+            List of module names.
+
         """
         return self._modules
 
     @property
     def custom_commands(self) -> List[str]:
-        """
-        Get the list of custom commands to run in the script.
-        Returns:
-            List[str]: List of custom command strings.
+        """Get the list of custom commands to run in the script.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        List[str]
+            List of custom command strings.
+
         """
         return self._custom_commands
 

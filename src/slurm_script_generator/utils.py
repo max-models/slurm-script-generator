@@ -1,6 +1,5 @@
 def add_line(line, comment=None, line_length=54):
-    """
-    Add a line to the script with an optional comment, aligned to the right.
+    """Add a line to the script with an optional comment, aligned to the right.
 
     Parameters
     ----------
@@ -13,8 +12,7 @@ def add_line(line, comment=None, line_length=54):
 
     Returns
     -------
-    str
-        The line with the optional comment added.
+
     """
     if comment is not None:
         if len(line) > line_length:
