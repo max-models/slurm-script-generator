@@ -25,6 +25,7 @@ class Pragma:
     """Base class representing a SLURM #SBATCH pragma."""
 
     arg_varname: str
+    pragma_id: int
     pragma_type: PragmaTypes
     flags: List[str] = []
     dest: str = ""
@@ -37,7 +38,6 @@ class Pragma:
     choices: List[str] | None = None
     action: str | None = None
     default: str | None = None
-    pragma_id: int = 0
 
     def __init__(self, value: str):
         # Convert value to the correct type if 'type' attribute is set
@@ -69,6 +69,7 @@ class Pragma:
 
 # --- 1. Job Identification & Basic Info (job_config) ---
 class Job_name(Pragma):
+    pragma_id = 0
     pragma_type = "job_config"
     arg_varname = "job_name"
     flags = ["-J", "--job-name"]
@@ -81,7 +82,7 @@ class Job_name(Pragma):
 
 class Account(Pragma):
     """This class represents the SLURM #SBATCH --account pragma."""
-
+    pragma_id = 1
     pragma_type = "job_config"
     arg_varname = "account"
     flags = ["-A", "--account"]
@@ -93,6 +94,7 @@ class Account(Pragma):
 
 
 class Partition(Pragma):
+    pragma_id = 2
     pragma_type = "job_config"
     arg_varname = "partition"
     flags = ["-p", "--partition"]
@@ -103,6 +105,7 @@ class Partition(Pragma):
 
 
 class Qos(Pragma):
+    pragma_id = 3
     pragma_type = "job_config"
     arg_varname = "qos"
     flags = ["-q", "--qos"]
@@ -113,6 +116,7 @@ class Qos(Pragma):
 
 
 class Clusters(Pragma):
+    pragma_id = 4
     pragma_type = "job_config"
     arg_varname = "clusters"
     flags = ["-M", "--clusters"]
@@ -123,6 +127,7 @@ class Clusters(Pragma):
 
 
 class Reservation(Pragma):
+    pragma_id = 5
     pragma_type = "job_config"
     arg_varname = "reservation"
     flags = ["--reservation"]
@@ -133,6 +138,7 @@ class Reservation(Pragma):
 
 
 class Wckey(Pragma):
+    pragma_id = 6
     pragma_type = "job_config"
     arg_varname = "wckey"
     flags = ["--wckey"]
@@ -143,6 +149,7 @@ class Wckey(Pragma):
 
 
 class Mcs_label(Pragma):
+    pragma_id = 7
     pragma_type = "job_config"
     arg_varname = "mcs_label"
     flags = ["--mcs-label"]
@@ -153,6 +160,7 @@ class Mcs_label(Pragma):
 
 
 class Comment(Pragma):
+    pragma_id = 8
     pragma_type = "job_config"
     arg_varname = "comment"
     flags = ["--comment"]
@@ -164,6 +172,7 @@ class Comment(Pragma):
 
 # --- 2. Time & Priority (time_and_priority) ---
 class Time(Pragma):
+    pragma_id = 0
     pragma_type = "time_and_priority"
     arg_varname = "time"
     flags = ["-t", "--time"]
@@ -175,6 +184,7 @@ class Time(Pragma):
 
 
 class Time_min(Pragma):
+    pragma_id = 1
     pragma_type = "time_and_priority"
     arg_varname = "time_min"
     flags = ["--time-min"]
@@ -185,6 +195,7 @@ class Time_min(Pragma):
 
 
 class Begin(Pragma):
+    pragma_id = 2
     pragma_type = "time_and_priority"
     arg_varname = "begin"
     flags = ["-b", "--begin"]
@@ -195,6 +206,7 @@ class Begin(Pragma):
 
 
 class Deadline(Pragma):
+    pragma_id = 3
     pragma_type = "time_and_priority"
     arg_varname = "deadline"
     flags = ["--deadline"]
@@ -205,6 +217,7 @@ class Deadline(Pragma):
 
 
 class Priority(Pragma):
+    pragma_id = 4
     pragma_type = "time_and_priority"
     arg_varname = "priority"
     flags = ["--priority"]
@@ -215,6 +228,7 @@ class Priority(Pragma):
 
 
 class Nice(Pragma):
+    pragma_id = 5
     pragma_type = "time_and_priority"
     arg_varname = "nice"
     flags = ["--nice"]
@@ -227,6 +241,7 @@ class Nice(Pragma):
 
 # --- 3. Standard IO & Directory (io_and_directory) ---
 class Chdir(Pragma):
+    pragma_id = 0
     pragma_type = "io_and_directory"
     arg_varname = "chdir"
     flags = ["-D", "--chdir"]
@@ -237,6 +252,7 @@ class Chdir(Pragma):
 
 
 class Stdout(Pragma):
+    pragma_id = 1
     pragma_type = "io_and_directory"
     arg_varname = "stdout"
     flags = ["--stdout", "-o"]
@@ -248,6 +264,7 @@ class Stdout(Pragma):
 
 
 class Stderr(Pragma):
+    pragma_id = 2
     pragma_type = "io_and_directory"
     arg_varname = "stderr"
     flags = ["--stderr", "-e"]
@@ -259,6 +276,7 @@ class Stderr(Pragma):
 
 
 class Disable_stdout_job_summary(Pragma):
+    pragma_id = 3
     pragma_type = "io_and_directory"
     arg_varname = "disable_stdout_job_summary"
     flags = ["--disable-stdout-job-summary"]
@@ -269,6 +287,7 @@ class Disable_stdout_job_summary(Pragma):
 
 
 class Get_user_env(Pragma):
+    pragma_id = 4
     pragma_type = "io_and_directory"
     arg_varname = "get_user_env"
     flags = ["--get-user-env"]
@@ -279,6 +298,7 @@ class Get_user_env(Pragma):
 
 
 class Quiet(Pragma):
+    pragma_id = 5
     pragma_type = "io_and_directory"
     arg_varname = "quiet"
     flags = ["-Q", "--quiet"]
@@ -290,6 +310,7 @@ class Quiet(Pragma):
 
 # --- 4. Notifications (notifications) ---
 class Mail_user(Pragma):
+    pragma_id = 0
     pragma_type = "notifications"
     arg_varname = "mail_user"
     flags = ["--mail-user"]
@@ -301,6 +322,7 @@ class Mail_user(Pragma):
 
 
 class Mail_type(Pragma):
+    pragma_id = 1
     pragma_type = "notifications"
     arg_varname = "mail_type"
     flags = ["--mail-type"]
@@ -313,6 +335,7 @@ class Mail_type(Pragma):
 
 
 class Bell(Pragma):
+    pragma_id = 2
     pragma_type = "notifications"
     arg_varname = "bell"
     flags = ["--bell"]
@@ -324,6 +347,7 @@ class Bell(Pragma):
 
 # --- 5. Dependencies & Job Arrays (dependencies_and_arrays) ---
 class Dependency(Pragma):
+    pragma_id = 0
     pragma_type = "dependencies_and_arrays"
     arg_varname = "dependency"
     flags = ["-d", "--dependency"]
@@ -334,6 +358,7 @@ class Dependency(Pragma):
 
 
 class Array(Pragma):
+    pragma_id = 1
     pragma_type = "dependencies_and_arrays"
     arg_varname = "array"
     flags = ["--array"]
@@ -345,6 +370,7 @@ class Array(Pragma):
 
 # --- 6. Core Node & Task Allocation (core_node_and_task_allocation) ---
 class Nodes(Pragma):
+    pragma_id = 0
     pragma_type = "core_node_and_task_allocation"
     arg_varname = "nodes"
     flags = ["-N", "--nodes"]
@@ -356,6 +382,7 @@ class Nodes(Pragma):
 
 
 class Ntasks(Pragma):
+    pragma_id = 1
     pragma_type = "core_node_and_task_allocation"
     arg_varname = "ntasks"
     flags = ["-n", "--ntasks"]
@@ -367,6 +394,7 @@ class Ntasks(Pragma):
 
 
 class Ntasks_per_node(Pragma):
+    pragma_id = 2
     pragma_type = "core_node_and_task_allocation"
     arg_varname = "ntasks_per_node"
     flags = ["--ntasks-per-node"]
@@ -378,6 +406,7 @@ class Ntasks_per_node(Pragma):
 
 
 class Cpus_per_task(Pragma):
+    pragma_id = 3
     pragma_type = "core_node_and_task_allocation"
     arg_varname = "cpus_per_task"
     flags = ["-c", "--cpus-per-task"]
@@ -389,6 +418,7 @@ class Cpus_per_task(Pragma):
 
 
 class Mincpus(Pragma):
+    pragma_id = 4
     pragma_type = "core_node_and_task_allocation"
     arg_varname = "mincpus"
     flags = ["--mincpus"]
@@ -399,6 +429,7 @@ class Mincpus(Pragma):
 
 
 class Distribution(Pragma):
+    pragma_id = 5
     pragma_type = "core_node_and_task_allocation"
     arg_varname = "distribution"
     flags = ["-m", "--distribution"]
@@ -410,6 +441,7 @@ class Distribution(Pragma):
 
 
 class Spread_job(Pragma):
+    pragma_id = 6
     pragma_type = "core_node_and_task_allocation"
     arg_varname = "spread_job"
     flags = ["--spread-job"]
@@ -420,6 +452,7 @@ class Spread_job(Pragma):
 
 
 class Use_min_nodes(Pragma):
+    pragma_id = 7
     pragma_type = "core_node_and_task_allocation"
     arg_varname = "use_min_nodes"
     flags = ["--use-min-nodes"]
@@ -431,6 +464,7 @@ class Use_min_nodes(Pragma):
 
 # --- 7. CPU Topology & Binding (cpu_topology_and_binding) ---
 class Sockets_per_node(Pragma):
+    pragma_id = 0
     pragma_type = "cpu_topology_and_binding"
     arg_varname = "sockets_per_node"
     flags = ["--sockets-per-node"]
@@ -441,6 +475,7 @@ class Sockets_per_node(Pragma):
 
 
 class Cores_per_socket(Pragma):
+    pragma_id = 1
     pragma_type = "cpu_topology_and_binding"
     arg_varname = "cores_per_socket"
     flags = ["--cores-per-socket"]
@@ -452,6 +487,7 @@ class Cores_per_socket(Pragma):
 
 
 class Threads_per_core(Pragma):
+    pragma_id = 2
     pragma_type = "cpu_topology_and_binding"
     arg_varname = "threads_per_core"
     flags = ["--threads-per-core"]
@@ -463,6 +499,7 @@ class Threads_per_core(Pragma):
 
 
 class Ntasks_per_core(Pragma):
+    pragma_id = 3
     pragma_type = "cpu_topology_and_binding"
     arg_varname = "ntasks_per_core"
     flags = ["--ntasks-per-core"]
@@ -474,6 +511,7 @@ class Ntasks_per_core(Pragma):
 
 
 class Ntasks_per_socket(Pragma):
+    pragma_id = 4
     pragma_type = "cpu_topology_and_binding"
     arg_varname = "ntasks_per_socket"
     flags = ["--ntasks-per-socket"]
@@ -485,6 +523,7 @@ class Ntasks_per_socket(Pragma):
 
 
 class Extra_node_info(Pragma):
+    pragma_id = 5
     pragma_type = "cpu_topology_and_binding"
     arg_varname = "extra_node_info"
     flags = ["-B", "--extra-node-info"]
@@ -495,6 +534,7 @@ class Extra_node_info(Pragma):
 
 
 class Hint(Pragma):
+    pragma_id = 6
     pragma_type = "cpu_topology_and_binding"
     arg_varname = "hint"
     flags = ["--hint"]
@@ -506,6 +546,7 @@ class Hint(Pragma):
 
 # --- 8. Memory (memory) ---
 class Mem(Pragma):
+    pragma_id = 0
     pragma_type = "memory"
     arg_varname = "mem"
     flags = ["--mem"]
@@ -517,6 +558,7 @@ class Mem(Pragma):
 
 
 class Mem_per_cpu(Pragma):
+    pragma_id = 1
     pragma_type = "memory"
     arg_varname = "mem_per_cpu"
     flags = ["--mem-per-cpu"]
@@ -527,6 +569,7 @@ class Mem_per_cpu(Pragma):
 
 
 class Mem_bind(Pragma):
+    pragma_id = 2
     pragma_type = "memory"
     arg_varname = "mem_bind"
     flags = ["--mem-bind"]
@@ -537,6 +580,7 @@ class Mem_bind(Pragma):
 
 
 class Oom_kill_step(Pragma):
+    pragma_id = 3
     pragma_type = "memory"
     arg_varname = "oom_kill_step"
     flags = ["--oom-kill-step"]
@@ -550,6 +594,7 @@ class Oom_kill_step(Pragma):
 
 # --- 9. GPUs (gpus) ---
 class Gpus(Pragma):
+    pragma_id = 0
     pragma_type = "gpus"
     arg_varname = "gpus"
     flags = ["-G", "--gpus"]
@@ -561,6 +606,7 @@ class Gpus(Pragma):
 
 
 class Gpus_per_node(Pragma):
+    pragma_id = 1
     pragma_type = "gpus"
     arg_varname = "gpus_per_node"
     flags = ["--gpus-per-node"]
@@ -571,6 +617,7 @@ class Gpus_per_node(Pragma):
 
 
 class Gpus_per_task(Pragma):
+    pragma_id = 2
     pragma_type = "gpus"
     arg_varname = "gpus_per_task"
     flags = ["--gpus-per-task"]
@@ -581,6 +628,7 @@ class Gpus_per_task(Pragma):
 
 
 class Gpus_per_socket(Pragma):
+    pragma_id = 3
     pragma_type = "gpus"
     arg_varname = "gpus_per_socket"
     flags = ["--gpus-per-socket"]
@@ -591,6 +639,7 @@ class Gpus_per_socket(Pragma):
 
 
 class Cpus_per_gpu(Pragma):
+    pragma_id = 4
     pragma_type = "gpus"
     arg_varname = "cpus_per_gpu"
     flags = ["--cpus-per-gpu"]
@@ -602,6 +651,7 @@ class Cpus_per_gpu(Pragma):
 
 
 class Mem_per_gpu(Pragma):
+    pragma_id = 5
     pragma_type = "gpus"
     arg_varname = "mem_per_gpu"
     flags = ["--mem-per-gpu"]
@@ -612,6 +662,7 @@ class Mem_per_gpu(Pragma):
 
 
 class Gpu_bind(Pragma):
+    pragma_id = 6
     pragma_type = "gpus"
     arg_varname = "gpu_bind"
     flags = ["--gpu-bind"]
@@ -622,6 +673,7 @@ class Gpu_bind(Pragma):
 
 
 class Gpu_freq(Pragma):
+    pragma_id = 7
     pragma_type = "gpus"
     arg_varname = "gpu_freq"
     flags = ["--gpu-freq"]
@@ -632,6 +684,7 @@ class Gpu_freq(Pragma):
 
 
 class Nvmps(Pragma):
+    pragma_id = 8
     pragma_type = "gpus"
     arg_varname = "nvmps"
     flags = ["--nvmps"]
@@ -643,6 +696,7 @@ class Nvmps(Pragma):
 
 # --- 10. Generic Resources & Licenses (generic_resources_and_licenses) ---
 class Gres(Pragma):
+    pragma_id = 0
     pragma_type = "generic_resources_and_licenses"
     arg_varname = "gres"
     flags = ["--gres"]
@@ -653,6 +707,7 @@ class Gres(Pragma):
 
 
 class Gres_flags(Pragma):
+    pragma_id = 1
     pragma_type = "generic_resources_and_licenses"
     arg_varname = "gres_flags"
     flags = ["--gres-flags"]
@@ -663,6 +718,7 @@ class Gres_flags(Pragma):
 
 
 class Tres_bind(Pragma):
+    pragma_id = 2
     pragma_type = "generic_resources_and_licenses"
     arg_varname = "tres_bind"
     flags = ["--tres-bind"]
@@ -673,6 +729,7 @@ class Tres_bind(Pragma):
 
 
 class Tres_per_task(Pragma):
+    pragma_id = 3
     pragma_type = "generic_resources_and_licenses"
     arg_varname = "tres_per_task"
     flags = ["--tres-per-task"]
@@ -683,6 +740,7 @@ class Tres_per_task(Pragma):
 
 
 class Licenses(Pragma):
+    pragma_id = 4
     pragma_type = "generic_resources_and_licenses"
     arg_varname = "licenses"
     flags = ["-L", "--licenses"]
@@ -694,6 +752,7 @@ class Licenses(Pragma):
 
 # --- 11. Node Constraints & Selection (node_constraints_and_selection) ---
 class Constraint(Pragma):
+    pragma_id = 0
     pragma_type = "node_constraints_and_selection"
     arg_varname = "constraint"
     flags = ["-C", "--constraint"]
@@ -704,6 +763,7 @@ class Constraint(Pragma):
 
 
 class Cluster_constraint(Pragma):
+    pragma_id = 1
     pragma_type = "node_constraints_and_selection"
     arg_varname = "cluster_constraint"
     flags = ["--cluster-constraint"]
@@ -714,6 +774,7 @@ class Cluster_constraint(Pragma):
 
 
 class Contiguous(Pragma):
+    pragma_id = 2
     pragma_type = "node_constraints_and_selection"
     arg_varname = "contiguous"
     flags = ["--contiguous"]
@@ -724,6 +785,7 @@ class Contiguous(Pragma):
 
 
 class Nodelist(Pragma):
+    pragma_id = 3
     pragma_type = "node_constraints_and_selection"
     arg_varname = "nodelist"
     flags = ["-w", "--nodelist"]
@@ -735,6 +797,7 @@ class Nodelist(Pragma):
 
 
 class Nodefile(Pragma):
+    pragma_id = 4
     pragma_type = "node_constraints_and_selection"
     arg_varname = "nodefile"
     flags = ["-F", "--nodefile"]
@@ -745,6 +808,7 @@ class Nodefile(Pragma):
 
 
 class Exclude(Pragma):
+    pragma_id = 5
     pragma_type = "node_constraints_and_selection"
     arg_varname = "exclude"
     flags = ["-x", "--exclude"]
@@ -757,6 +821,7 @@ class Exclude(Pragma):
 
 # --- 12. Exclusivity & Sharing (exclusivity_and_sharing) ---
 class Exclusive_user(Pragma):
+    pragma_id = 0
     pragma_type = "exclusivity_and_sharing"
     arg_varname = "exclusive_user"
     flags = ["--exclusive-user"]
@@ -767,6 +832,7 @@ class Exclusive_user(Pragma):
 
 
 class Exclusive_mcs(Pragma):
+    pragma_id = 1
     pragma_type = "exclusivity_and_sharing"
     arg_varname = "exclusive_mcs"
     flags = ["--exclusive-mcs"]
@@ -777,6 +843,7 @@ class Exclusive_mcs(Pragma):
 
 
 class Oversubscribe(Pragma):
+    pragma_id = 2
     pragma_type = "exclusivity_and_sharing"
     arg_varname = "oversubscribe"
     flags = ["-s", "--oversubscribe"]
@@ -787,6 +854,7 @@ class Oversubscribe(Pragma):
 
 
 class Overcommit(Pragma):
+    pragma_id = 3
     pragma_type = "exclusivity_and_sharing"
     arg_varname = "overcommit"
     flags = ["-O", "--overcommit"]
@@ -798,6 +866,7 @@ class Overcommit(Pragma):
 
 # --- 13. Execution Behavior & Signals (execution_behavior_and_signals) ---
 class Hold(Pragma):
+    pragma_id = 0
     pragma_type = "execution_behavior_and_signals"
     arg_varname = "hold"
     flags = ["-H", "--hold"]
@@ -808,6 +877,7 @@ class Hold(Pragma):
 
 
 class Immediate(Pragma):
+    pragma_id = 1
     pragma_type = "execution_behavior_and_signals"
     arg_varname = "immediate"
     flags = ["-I", "--immediate"]
@@ -820,6 +890,7 @@ class Immediate(Pragma):
 
 
 class Reboot(Pragma):
+    pragma_id = 2
     pragma_type = "execution_behavior_and_signals"
     arg_varname = "reboot"
     flags = ["--reboot"]
@@ -830,6 +901,7 @@ class Reboot(Pragma):
 
 
 class Delay_boot(Pragma):
+    pragma_id = 3
     pragma_type = "execution_behavior_and_signals"
     arg_varname = "delay_boot"
     flags = ["--delay-boot"]
@@ -840,6 +912,7 @@ class Delay_boot(Pragma):
 
 
 class No_kill(Pragma):
+    pragma_id = 4
     pragma_type = "execution_behavior_and_signals"
     arg_varname = "no_kill"
     flags = ["-k", "--no-kill"]
@@ -850,6 +923,7 @@ class No_kill(Pragma):
 
 
 class Kill_command(Pragma):
+    pragma_id = 5
     pragma_type = "execution_behavior_and_signals"
     arg_varname = "kill_command"
     flags = ["-K", "--kill-command"]
@@ -862,6 +936,7 @@ class Kill_command(Pragma):
 
 
 class Signal(Pragma):
+    pragma_id = 6
     pragma_type = "execution_behavior_and_signals"
     arg_varname = "signal"
     flags = ["--signal"]
@@ -873,6 +948,7 @@ class Signal(Pragma):
 
 # --- 14. Advanced / Hardware / Misc (advanced_hardware_misc) ---
 class Core_spec(Pragma):
+    pragma_id = 0
     pragma_type = "advanced_hardware_misc"
     arg_varname = "core_spec"
     flags = ["-S", "--core-spec"]
@@ -883,6 +959,7 @@ class Core_spec(Pragma):
 
 
 class Thread_spec(Pragma):
+    pragma_id = 1
     pragma_type = "advanced_hardware_misc"
     arg_varname = "thread_spec"
     flags = ["--thread-spec"]
@@ -893,6 +970,7 @@ class Thread_spec(Pragma):
 
 
 class Cpu_freq(Pragma):
+    pragma_id = 2
     pragma_type = "advanced_hardware_misc"
     arg_varname = "cpu_freq"
     flags = ["--cpu-freq"]
@@ -903,6 +981,7 @@ class Cpu_freq(Pragma):
 
 
 class Tmp(Pragma):
+    pragma_id = 3
     pragma_type = "advanced_hardware_misc"
     arg_varname = "tmp"
     flags = ["--tmp"]
@@ -913,6 +992,7 @@ class Tmp(Pragma):
 
 
 class Resv_ports(Pragma):
+    pragma_id = 4
     pragma_type = "advanced_hardware_misc"
     arg_varname = "resv_ports"
     flags = ["--resv-ports"]
@@ -923,6 +1003,7 @@ class Resv_ports(Pragma):
 
 
 class Switches(Pragma):
+    pragma_id = 5
     pragma_type = "advanced_hardware_misc"
     arg_varname = "switches"
     flags = ["--switches"]
@@ -933,6 +1014,7 @@ class Switches(Pragma):
 
 
 class Power(Pragma):
+    pragma_id = 6
     pragma_type = "advanced_hardware_misc"
     arg_varname = "power"
     flags = ["--power"]
@@ -943,6 +1025,7 @@ class Power(Pragma):
 
 
 class Profile(Pragma):
+    pragma_id = 7
     pragma_type = "advanced_hardware_misc"
     arg_varname = "profile"
     flags = ["--profile"]
@@ -954,6 +1037,7 @@ class Profile(Pragma):
 
 # --- 15. Plugins (Burst Buffer & Containers) ---
 class Burst_buffer(Pragma):
+    pragma_id = 0
     pragma_type = "plugins"
     arg_varname = "burst_buffer"
     flags = ["--bb"]
@@ -964,6 +1048,7 @@ class Burst_buffer(Pragma):
 
 
 class Bb_file(Pragma):
+    pragma_id = 1
     pragma_type = "plugins"
     arg_varname = "bb_file"
     flags = ["--bbf"]
@@ -974,6 +1059,7 @@ class Bb_file(Pragma):
 
 
 class Container(Pragma):
+    pragma_id = 2
     pragma_type = "plugins"
     arg_varname = "container"
     flags = ["--container"]
@@ -984,6 +1070,7 @@ class Container(Pragma):
 
 
 class Container_id(Pragma):
+    pragma_id = 3
     pragma_type = "plugins"
     arg_varname = "container_id"
     flags = ["--container-id"]
