@@ -109,9 +109,6 @@ class SlurmScript:
         inlined_scripts: list | None = None,
         line_length: int = 54,
     ) -> None:
-        if pragmas is None:
-            pragmas = []
-        self._pragmas = pragmas
 
         self._pragma_dict = {
             "job_config": [],
@@ -221,6 +218,10 @@ class SlurmScript:
             "disable_stdout_job_summary": disable_stdout_job_summary,
             "nvmps": nvmps,
         }
+
+        if pragmas is not None:
+            for pragma in pragmas:
+                self.add_pragma(pragma=pragma)
 
         for name, param in pragma_params.items():
             if param is not None:
@@ -373,12 +374,11 @@ class SlurmScript:
         script = SlurmScript()
         # for pragma in data.get("pragmas", []):
         #     print(f"Creating pragma from dict: {pragma}")
-        script._pragmas = [
-            PragmaFactory.create_pragma(
-                key=list(pragma.keys())[0], value=list(pragma.values())[0]
+        for pragma_dict in data.get("pragmas", []):
+            pragma = PragmaFactory.create_pragma(
+                key=list(pragma_dict.keys())[0], value=list(pragma_dict.values())[0]
             )
-            for pragma in data.get("pragmas", [])
-        ]
+            script.add_pragma(pragma=pragma)
         script._modules = data.get("modules", [])
         script._custom_commands = data.get("custom_commands", [])
         return script
@@ -477,7 +477,10 @@ class SlurmScript:
 
     @property
     def pragmas(self) -> List[Pragma]:
-        return self._pragmas
+        pragma_list = []
+        for pragma_type in self._pragma_dict:
+            pragma_list.extend(self._pragma_dict[pragma_type])
+        return pragma_list
 
     @property
     def modules(self) -> List[str]:
