@@ -895,6 +895,10 @@ class PragmaFactory:
     }
 
     @staticmethod
+    def is_valid_pragma_key(key: str) -> bool:
+        return key in PragmaFactory.pragmas
+
+    @staticmethod
     def create_pragma(key: str, value: str) -> Pragma:
         if key not in PragmaFactory.pragmas:
             raise ValueError(f"Unknown pragma key: {key}")
