@@ -18,7 +18,7 @@ class Pragma:
     choices: List[str] | None = None
     action: str | None = None
     default: str | None = None
-    pragma_id: int = 0
+    # pragma_id: int = 0
 
     def __init__(self, value: str):
         # Convert value to the correct type if 'type' attribute is set
@@ -997,8 +997,10 @@ pragma_order: List[Type[Pragma]] = [
     Container_id,
 ]
 
+pragma_order_dict = {}
 for i, pragma_cls in enumerate(pragma_order):
-    pragma_cls.pragma_id = i
+    # pragma_cls.pragma_id = i
+    pragma_order_dict[pragma_cls.arg_varname] = i
 
 
 class PragmaFactory:
