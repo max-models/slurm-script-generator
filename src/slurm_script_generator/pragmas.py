@@ -18,6 +18,7 @@ class Pragma:
     choices: List[str] | None = None
     action: str | None = None
     default: str | None = None
+    pragma_id: int = 0
 
     def __init__(self, value: str):
         # Convert value to the correct type if 'type' attribute is set
@@ -871,6 +872,7 @@ class Mem_per_gpu(Pragma):
 
 
 class Disable_stdout_job_summary(Pragma):
+    pragma_id = 0
     arg_varname = "disable_stdout_job_summary"
     flags = ["--disable-stdout-job-summary"]
     dest = "--disable_stdout_job_summary"
@@ -880,12 +882,108 @@ class Disable_stdout_job_summary(Pragma):
 
 
 class Nvmps(Pragma):
+    pragma_id = 0
     arg_varname = "nvmps"
     flags = ["--nvmps"]
     dest = "--nvmps"
     help = "launching NVIDIA MPS for job"
     action = "store_true"
     type = str
+
+
+pragma_order: List[Pragma] = [
+    Account,
+    Begin,
+    Array,
+    Bell,
+    Burst_buffer,
+    Bb_file,
+    Cpus_per_task,
+    Comment,
+    Container,
+    Container_id,
+    Cpu_freq,
+    Delay_boot,
+    Dependency,
+    Deadline,
+    Chdir,
+    Get_user_env,
+    Gres,
+    Gres_flags,
+    Hold,
+    Immediate,
+    Job_name,
+    No_kill,
+    Kill_command,
+    Licenses,
+    Clusters,
+    Distribution,
+    Mail_type,
+    Mail_user,
+    Mcs_label,
+    Ntasks,
+    Nice,
+    Nodes,
+    Ntasks_per_node,
+    Oom_kill_step,
+    Overcommit,
+    Power,
+    Priority,
+    Profile,
+    Partition,
+    Qos,
+    Quiet,
+    Reboot,
+    Oversubscribe,
+    Signal,
+    Spread_job,
+    Stderr,
+    Stdout,
+    Switches,
+    Core_spec,
+    Thread_spec,
+    Time,
+    Time_min,
+    Tres_bind,
+    Tres_per_task,
+    Use_min_nodes,
+    Wckey,
+    Cluster_constraint,
+    Contiguous,
+    Constraint,
+    Nodefile,
+    Mem,
+    Mincpus,
+    Reservation,
+    Tmp,
+    Nodelist,
+    Exclude,
+    Exclusive_user,
+    Exclusive_mcs,
+    Mem_per_cpu,
+    Resv_ports,
+    Sockets_per_node,
+    Cores_per_socket,
+    Threads_per_core,
+    Extra_node_info,
+    Ntasks_per_core,
+    Ntasks_per_socket,
+    Hint,
+    Mem_bind,
+    Cpus_per_gpu,
+    Gpus,
+    Gpu_bind,
+    Gpu_freq,
+    Gpus_per_node,
+    Gpus_per_socket,
+    Gpus_per_task,
+    Mem_per_gpu,
+    Disable_stdout_job_summary,
+    Nvmps,
+]
+
+for i, pragma_cls in enumerate(pragma_order):
+    pragma_cls.pragma_id = i
 
 
 class PragmaFactory:
@@ -926,3 +1024,6 @@ class PragmaFactory:
 if __name__ == "__main__":
     acc = Account("max")
     print(acc.to_dict())
+
+    # for pragma in PragmaFactory.pragmas.values():
+    #     print(f"{pragma.__name__},")
