@@ -302,21 +302,20 @@ class SlurmScript:
         script_str += add_line(line_separator)
 
         # Loop over pragmas (ordered by pragma_id)
-        for pragma in sorted(self.pragmas, key=lambda p: p.pragma_id):
-            script_str += f"{pragma}"
+        itype = 0
         for pragma_type in self._pragma_dict:
             pragmas = self._pragma_dict[pragma_type]
             if len(pragmas) > 0:
-                # for pragma in pragmas:
-                #     script_str += f"{pragma}"
-                script_str += add_line("#", "", line_length=line_length)
+                if itype > 0:
+                    script_str += add_line("#", "", line_length=line_length)
                 script_str += add_line(
                     f"# Pragmas for {pragma_type.replace('_', ' ').title()}",
                     comment="",
                     line_length=line_length,
                 )
-                for pragma in pragmas:
+                for pragma in sorted(pragmas, key=lambda p: p.pragma_id):
                     script_str += f"{pragma}"
+                itype += 1
         script_str += add_line(line_separator)
 
         # Load modules
