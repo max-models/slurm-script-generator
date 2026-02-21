@@ -48,9 +48,13 @@ optional-dependencies.docs = [
   "sphinx-design",
 ]
 
+[project.urls]
+homepage = "https://max-models.github.io/slurm-script-generator"
+documentation = "https://max-models.github.io/slurm-script-generator"
+repository = "https://github.com/max-models/slurm-script-generator"
 
-urls."Source" = "https://github.com/max-models/slurm-script-generator"
-scripts.generate-slurm-script = "slurm_script_generator.main:main"
+[project.scripts]
+generate-slurm-script = "slurm_script_generator.main:main"
 
 [tool.setuptools.packages.find]
 where = [ "src" ]

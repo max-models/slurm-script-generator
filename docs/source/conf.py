@@ -22,8 +22,8 @@ if tutorials_source.exists():
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "python-template"
-copyright = "2025, Max"
+project = "slurm-script-generator"
+copyright = "2026, Max"
 author = "Max"
 
 # -- General configuration ---------------------------------------------------
