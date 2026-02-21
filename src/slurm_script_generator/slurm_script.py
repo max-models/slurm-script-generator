@@ -604,9 +604,7 @@ class SlurmScript:
         # for pragma in data.get("pragmas", []):
         #     print(f"Creating pragma from dict: {pragma}")
         for key, value in data.get("pragmas", {}).items():
-            pragma = PragmaFactory.create_pragma(
-                key=key, value=value
-            )
+            pragma = PragmaFactory.create_pragma(key=key, value=value)
             script.add_pragma(pragma=pragma)
         script._modules = data.get("modules", [])
         script._custom_commands = data.get("custom_commands", [])
