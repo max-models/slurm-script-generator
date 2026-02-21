@@ -87,17 +87,11 @@ cat setup.json
 ```
 
     {
-        "pragmas": [
-            {
-                "account": "my_account"
-            },
-            {
-                "nodes": 2
-            },
-            {
-                "ntasks_per_node": 16
-            }
-        ],
+        "pragmas": {
+            "account": "my_account",
+            "nodes": 2,
+            "ntasks_per_node": 16
+        },
         "modules": [],
         "custom_commands": []
     }
@@ -230,17 +224,11 @@ cat setup.json
 ```
 
     {
-        "pragmas": [
-            {
-                "job_name": "TEST_JOB"
-            },
-            {
-                "nodes": 2
-            },
-            {
-                "ntasks_per_node": 8
-            }
-        ],
+        "pragmas": {
+            "job_name": "TEST_JOB",
+            "nodes": 2,
+            "ntasks_per_node": 8
+        },
         "modules": [],
         "custom_commands": []
     }
