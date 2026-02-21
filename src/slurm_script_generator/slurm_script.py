@@ -352,6 +352,10 @@ class SlurmScript:
             "vars": self.vars,
         }
 
+    def save(self, path: str) -> None:
+        with open(path, "w") as f:
+            f.write(self.generate_script(line_length=self.line_length))
+
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "SlurmScript":
         script = SlurmScript()
@@ -389,6 +393,10 @@ class SlurmScript:
 
     def __str__(self) -> str:
         return self.generate_script()
+
+    @property
+    def line_length(self) -> int:
+        return self._line_length
 
     @property
     def pragmas(self) -> List[Pragma]:
