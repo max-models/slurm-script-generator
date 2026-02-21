@@ -3,7 +3,7 @@
 
 .. automodule:: slurm_script_generator
 
-   
+
 .. rubric:: Modules
 
 .. autosummary::
@@ -12,6 +12,5 @@
 
    main
    pragmas
-   script
    slurm_script
    utils

@@ -92,5 +92,6 @@ You can also save the script to file:
    :maxdepth: 1
    :caption: Documentation
 
+   cli.md
    tutorials
    api/index

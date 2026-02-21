@@ -3,12 +3,13 @@ slurm\_script\_generator.pragmas
 
 .. automodule:: slurm_script_generator.pragmas
 
-   
+
    .. rubric:: Classes
 
    .. autosummary::
-   
+
       Account
+      Array
       Bb_file
       Begin
       Bell
@@ -31,7 +32,6 @@ slurm\_script\_generator.pragmas
       Dependency
       Disable_stdout_job_summary
       Distribution
-      E
       Exclude
       Exclusive_mcs
       Exclusive_user
@@ -69,13 +69,13 @@ slurm\_script\_generator.pragmas
       Ntasks_per_node
       Ntasks_per_socket
       Nvmps
-      O
       Oom_kill_step
       Overcommit
       Oversubscribe
       Partition
       Power
       Pragma
+      PragmaFactory
       Priority
       Profile
       Qos
@@ -86,6 +86,8 @@ slurm\_script\_generator.pragmas
       Signal
       Sockets_per_node
       Spread_job
+      Stderr
+      Stdout
       Switches
       Thread_spec
       Threads_per_core
@@ -96,4 +98,3 @@ slurm\_script\_generator.pragmas
       Tres_per_task
       Use_min_nodes
       Wckey
-   
