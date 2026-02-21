@@ -372,7 +372,7 @@ class SlurmScript:
         script._vars = data.get("vars", [])
         return script
 
-    def to_json(self, path: str) -> str:
+    def to_json(self, path: str) -> None:
         with open(path, "w") as f:
             json.dump(self.to_dict(), f, indent=4)
 
@@ -440,4 +440,4 @@ if __name__ == "__main__":
     print(slurm_dict)
 
     script2 = SlurmScript.from_dict(slurm_dict)
-    print(script2.to_json())
+    script2.to_json("script2.json")
