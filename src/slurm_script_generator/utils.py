@@ -4,6 +4,8 @@ def add_line(line, comment=None, line_length=54):
             comment = f" # {comment}\n"
         else:
             comment = f" {' ' * (line_length - len(line))}# {comment}\n"
+        # Remove spaces before newline
+        comment = comment.replace(" \n", "\n")
     else:
         comment = ""
     return line + comment
