@@ -1,6 +1,12 @@
 # slurm-script-generator
 
 
+Check out the
+[documentation](https://max-models.github.io/slurm-script-generator) for
+more details and examples!
+
+## Installation
+
 ``` bash
 pip install slurm-script-generator
 ```

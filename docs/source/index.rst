@@ -21,11 +21,19 @@ This will produce:
 
 .. code-block:: bash
 
-   #!/bin/bash
-   ##########################################
-   #SBATCH --nodes=1                        # number of nodes on which to run
-   #SBATCH --ntasks-per-node=16             # number of tasks to invoke on each node
-   ##########################################
+   !/bin/bash
+   ########################################################
+   #            This script was generated using           #
+   #             slurm-script-generator v0.3.0            #
+   # https://github.com/max-models/slurm-script-generator #
+   #      `pip install slurm-script-generator==0.3.0`     #
+   ########################################################
+
+   ########################################################
+   # Pragmas for Core Node And Task Allocation            #
+   #SBATCH --nodes=1                                      # number of nodes on which to run
+   #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
+   ########################################################
 
 To save the script to file ``my_script.sh`` use ``--output``:
 
@@ -34,18 +42,19 @@ To save the script to file ``my_script.sh`` use ``--output``:
    generate-slurm-script --nodes 1 --ntasks-per-node 16 --output my_script.sh
 
 You can also generate scripts in Python programmatically:
- 
+
 .. code-block:: python
 
-   from slurm_script_generator.pragmas import Nodes, Ntasks_per_node
    from slurm_script_generator.slurm_script import SlurmScript
 
    slurm_script = SlurmScript(
-      custom_command="srun ./bin > run.out",
+      nodes=2,
+      ntasks_per_core=16,
+      custom_commands=[
+         "# Run simulation",
+         "srun ./bin > run.out",
+      ],
    )
-
-   slurm_script.add_pragma(Nodes(value=2))
-   slurm_script.add_pragma(Ntasks_per_node(value=16))
 
 Print the generated script to console:
 
@@ -58,10 +67,21 @@ This will produce:
 .. code-block:: bash
 
    #!/bin/bash
-   ##########################################
-   #SBATCH --nodes=2                        # number of nodes on which to run
-   #SBATCH --ntasks-per-node=16             # number of tasks to invoke on each node
-   ##########################################
+   ########################################################
+   #            This script was generated using           #
+   #             slurm-script-generator v0.3.0            #
+   # https://github.com/max-models/slurm-script-generator #
+   #      `pip install slurm-script-generator==0.3.0`     #
+   ########################################################
+
+   ########################################################
+   # Pragmas for Core Node And Task Allocation            #
+   #SBATCH --nodes=2                                      # number of nodes on which to run
+   #                                                      #
+   # Pragmas for Cpu Topology And Binding                 #
+   #SBATCH --ntasks-per-core=16                           # number of tasks to invoke on each core
+   ########################################################
+   # Run simulation
    srun ./bin > run.out
 
 You can also save the script to file:
