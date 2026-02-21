@@ -1,7 +1,7 @@
 import os
 from typing import List
 
-from slurm_script_generator.pragmas import Pragma, pragmas_lowercase
+from slurm_script_generator.pragmas import Pragma, PragmaFactory
 from slurm_script_generator.utils import add_line
 
 
@@ -205,7 +205,7 @@ class SlurmScript:
 
         for name, param in pragma_params.items():
             if param is not None:
-                pragma = pragmas_lowercase[name](value=param)
+                pragma = PragmaFactory.create_pragma(name, param)
                 self.add_pragma(pragma=pragma)
         self._printself = printself
         if modules is None:

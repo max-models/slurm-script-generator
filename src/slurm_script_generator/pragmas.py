@@ -863,21 +863,6 @@ class Nvmps(Pragma):
     type = str
 
 
-pragma_dict = {}
-pragmas_lowercase = {}
-for _, pragma_cls in list(globals().items()):
-    if (
-        isinstance(pragma_cls, type)
-        and issubclass(pragma_cls, Pragma)
-        and pragma_cls is not Pragma
-    ):
-        pragma_dict[pragma_cls.dest] = pragma_cls
-        assert pragma_cls.arg_varname == pragma_cls.__name__.lower()
-        pragmas_lowercase[pragma_cls.arg_varname] = pragma_cls
-        # print(f"{pragma_cls.__name__.lower()}: str | None = None,")
-        # print(f"\"{pragma_cls.__name__.lower()}\": {pragma_cls.__name__.lower()},")
-
-
 class PragmaFactory:
 
     pragmas = {
