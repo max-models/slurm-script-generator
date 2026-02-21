@@ -8,6 +8,7 @@ from slurm_script_generator.utils import add_line
 
 class Pragma:
     """Base class representing a SLURM #SBATCH pragma."""
+
     arg_varname: str
     flags: List[str] = []
     dest: str = ""
@@ -37,6 +38,7 @@ class Account(Pragma):
     args:
         value (str): The name of the account to charge for the job.
     """
+
     arg_varname = "account"
     flags = ["-A", "--account"]
     dest = "--account"
@@ -870,9 +872,30 @@ for _, pragma_cls in list(globals().items()):
         and pragma_cls is not Pragma
     ):
         pragma_dict[pragma_cls.dest] = pragma_cls
+        assert pragma_cls.arg_varname == pragma_cls.__name__.lower()
         pragmas_lowercase[pragma_cls.arg_varname] = pragma_cls
         # print(f"{pragma_cls.__name__.lower()}: str | None = None,")
         # print(f"\"{pragma_cls.__name__.lower()}\": {pragma_cls.__name__.lower()},")
+
+
+class PragmaFactory:
+
+    pragmas = {
+        pragma_cls.arg_varname: pragma_cls
+        for _, pragma_cls in list(globals().items())
+        if (
+            isinstance(pragma_cls, type)
+            and issubclass(pragma_cls, Pragma)
+            and pragma_cls is not Pragma
+        )
+    }
+
+    @staticmethod
+    def create_pragma(key: str, value: str) -> Pragma:
+        if key not in PragmaFactory.pragmas:
+            raise ValueError(f"Unknown pragma key: {key}")
+        return PragmaFactory.pragmas[key](value)
+
 
 if __name__ == "__main__":
     acc = Account("max")
