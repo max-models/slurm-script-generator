@@ -253,9 +253,6 @@ class SlurmScript:
         ----------
         command : str
             The custom command to add.
-        command :
-            str:
-        command: str :
 
 
         Returns
@@ -274,10 +271,6 @@ class SlurmScript:
         ----------
         commands : list of str, optional
             List of custom commands to add.
-        commands :
-            List[str] | None:
-        commands: List[str] | None :
-
 
         Returns
         -------
@@ -297,10 +290,6 @@ class SlurmScript:
         ----------
         module : str
             The module to add.
-        module :
-            str:
-        module: str :
-
 
         Returns
         -------
@@ -319,9 +308,6 @@ class SlurmScript:
         ----------
         modules : list of str, optional
             List of modules to add.
-        modules :
-            List[str] | None:
-        modules: List[str] | None :
 
 
         Returns
@@ -342,9 +328,6 @@ class SlurmScript:
         ----------
         path : str
             Path to the script file to inline.
-        path :
-            str:
-        path: str :
 
 
         Returns
@@ -368,10 +351,6 @@ class SlurmScript:
         ----------
         paths : list of str, optional
             List of script file paths to inline.
-        paths :
-            List[str] | None:
-        paths: List[str] | None :
-
 
         Returns
         -------
@@ -391,10 +370,6 @@ class SlurmScript:
         ----------
         pragma : Pragma
             The Pragma object to add.
-        pragma :
-            Pragma:
-        pragma: Pragma :
-
 
         Returns
         -------
@@ -416,9 +391,6 @@ class SlurmScript:
         ----------
         pragmas : list of Pragma, optional
             List of Pragma objects to add.
-        pragmas :
-            List[Pragma] | None:
-        pragmas: List[Pragma] | None :
 
 
         Returns
@@ -440,14 +412,6 @@ class SlurmScript:
             The parameter key.
         value : Any
             The parameter value.
-        key :
-            str:
-        value :
-            Any:
-        key: str :
-
-        value: Any :
-
 
         Returns
         -------
@@ -479,10 +443,6 @@ class SlurmScript:
             int:  (Default value = 54)
         include_header :
             bool:  (Default value = False)
-        line_length: int :
-             (Default value = 54)
-        include_header: bool :
-             (Default value = False)
 
         Returns
         -------
@@ -576,14 +536,6 @@ class SlurmScript:
             Path to save the script file.
         include_header : bool
             Whether to include the script header.
-        path :
-            str:
-        include_header :
-            bool:  (Default value = True)
-        path: str :
-
-        include_header: bool :
-             (Default value = True)
 
         Returns
         -------
@@ -602,10 +554,8 @@ class SlurmScript:
 
         Parameters
         ----------
-        path :
-            str:
-        path: str :
-
+        path : str
+            Path to the script file to submit.
 
         Returns
         -------
@@ -628,14 +578,8 @@ class SlurmScript:
 
         Parameters
         ----------
-        data :
-            dict[str:
-        Any :
-            returns: The constructed SlurmScript object.
-        data: dict[str :
-
-        Any] :
-
+        data : dict[str, Any]
+            Dictionary containing the SlurmScript data.
 
         Returns
         -------
@@ -661,14 +605,8 @@ class SlurmScript:
         ----------
         path : str
             Path to the script file.
-        path :
-            str:
-        verbose :
-            bool:  (Default value = False)
-        path: str :
-
-        verbose: bool :
-             (Default value = False)
+        verbose : bool
+            Whether to enable verbose output. (Default value = False)
 
         Returns
         -------
@@ -688,12 +626,6 @@ class SlurmScript:
         ----------
         script : str
             SLURM script content.
-        script :
-            str:
-        verbose :
-            bool:  (Default value = False)
-        script: str :
-
         verbose: bool :
              (Default value = False)
 
@@ -758,9 +690,6 @@ class SlurmScript:
         ----------
         path : str
             Path to save the JSON file.
-        path :
-            str:
-        path: str :
 
 
         Returns
@@ -776,10 +705,8 @@ class SlurmScript:
 
         Parameters
         ----------
-        path :
-            str:
-        path: str :
-
+        path : str
+            Path to the JSON file to load.
 
         Returns
         -------
@@ -808,10 +735,8 @@ class SlurmScript:
 
         Parameters
         ----------
-        include_header :
-            bool:  (Default value = True)
-        include_header: bool :
-             (Default value = True)
+        include_header : bool
+            Whether to include the header in the generated script. (Default value = True)
 
         Returns
         -------
@@ -824,16 +749,22 @@ class SlurmScript:
     def __str__(self) -> str:
         """
         Return the string representation of the SLurmScript instance.
-        Returns:
-            str: The generated script string with header.
+
+        Returns
+        -------
+        str
+            The generated script string with header.
         """
         return self.to_string(include_header=True)
 
     def __repr__(self) -> str:
         """
         Return the official string representation of the SlurmScript instance.
-        Returns:
-            str: The formatted representation of the SlurmScript object.
+
+        Returns
+        -------
+        str
+            The formatted representation of the SlurmScript object.
         """
         script_repr = "SlurmScript(\n"
         for pragma in self.pragmas:
