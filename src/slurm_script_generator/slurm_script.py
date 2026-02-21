@@ -228,9 +228,9 @@ class SlurmScript:
 
         for inlined_script in inlined_scripts:
             assert isinstance(inlined_script, str)
-            assert os.path.isfile(inlined_script), (
-                f"Inlined script '{inlined_script}' does not exist or is not a file."
-            )
+            assert os.path.isfile(
+                inlined_script
+            ), f"Inlined script '{inlined_script}' does not exist or is not a file."
             with open(inlined_script, "r") as f:
                 for line in f.readlines():
                     self._custom_commands.append(line.strip())

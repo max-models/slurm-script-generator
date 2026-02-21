@@ -5,7 +5,7 @@ def test_pragma_factory():
     pragma = PragmaFactory.create_pragma("nodes", 2)
     assert pragma.flags == ["-N", "--nodes"]
     assert pragma.dest == "--nodes"
-    assert pragma.type == int
+    assert pragma.type is int
     assert pragma.value == 2
 
 
@@ -53,8 +53,8 @@ def test_all_pragmas_have_flags_and_dest():
 
 def test_pragma_type_and_value():
     pragma = PragmaFactory.create_pragma("nodes", 4)
-    assert pragma.type == int
+    assert pragma.type is int
     assert isinstance(pragma.value, int)
     pragma = PragmaFactory.create_pragma("account", "max")
-    assert pragma.type == str
+    assert pragma.type is str
     assert isinstance(pragma.value, str)

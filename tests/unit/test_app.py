@@ -6,8 +6,6 @@ from slurm_script_generator.slurm_script import SlurmScript
 
 
 def test_import_app():
-    from slurm_script_generator.main import main
-
     print("slurm_script_generator imported")
 
 
@@ -24,7 +22,6 @@ def test_import_pragmas():
 
 
 def test_options():
-
     args = {"nodes": 1, "ntasks_per_node": 16}
     pragmas = []
     for key, item in args.items():
