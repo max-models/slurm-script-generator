@@ -242,13 +242,64 @@ needed:
 generate-slurm-script --input setup.json --ntasks-per-node 16 --output new_script.sh
 ```
 
+Show the contents of the new script:
+
+``` bash
+cat new_script.sh
+```
+
+    #!/bin/bash
+    ########################################################
+    #            This script was generated using           #
+    #             slurm-script-generator v0.3.0            #
+    # https://github.com/max-models/slurm-script-generator #
+    #      `pip install slurm-script-generator==0.3.0`     #
+    ########################################################
+
+    ########################################################
+    # Pragmas for Job Config                               #
+    #SBATCH --job-name=TEST_JOB                            # name of job
+    #                                                      #
+    # Pragmas for Core Node And Task Allocation            #
+    #SBATCH --nodes=2                                      # number of nodes on which to run
+    #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
+    ########################################################
+
 ### 5. Add modules and custom commands
 
 Add modules and custom commands to the script:
 
 ``` bash
-generate-slurm-script --input setup.json --modules gcc/13 openmpi/5.0 --custom-commands 'echo Starting job' 'mpirun -n 16 ./bin > run.out' --output run_script.sh
+generate-slurm-script --input setup.json --modules gcc/13 openmpi/5.0 --custom-commands 'echo "Starting job"' 'mpirun -n 16 ./bin > run.out' --output run_script.sh
 ```
+
+Show the contents of the new script:
+
+``` bash
+cat run_script.sh
+```
+
+    #!/bin/bash
+    ########################################################
+    #            This script was generated using           #
+    #             slurm-script-generator v0.3.0            #
+    # https://github.com/max-models/slurm-script-generator #
+    #      `pip install slurm-script-generator==0.3.0`     #
+    ########################################################
+
+    ########################################################
+    # Pragmas for Job Config                               #
+    #SBATCH --job-name=TEST_JOB                            # name of job
+    #                                                      #
+    # Pragmas for Core Node And Task Allocation            #
+    #SBATCH --nodes=2                                      # number of nodes on which to run
+    #SBATCH --ntasks-per-node=8                            # number of tasks to invoke on each node
+    ########################################################
+    module purge                                           # Purge modules
+    module load gcc/13 openmpi/5.0                         # modules
+    module list                                            # List loaded modules
+    echo "Starting job"
+    mpirun -n 16 ./bin > run.out
 
 ### 6. Read and modify an existing script
 
@@ -264,7 +315,7 @@ generate-slurm-script --read-script my_script.sh --job-name FINAL_JOB --modules 
 You can chain together several options for complex jobs:
 
 ``` bash
-generate-slurm-script --nodes 4 --ntasks-per-node 32 --job-name BIG_JOB --modules gcc/13 cuda/12 --custom-commands 'echo Preparing environment' 'python run.py' --export-json big_job.json --output big_job.sh
+generate-slurm-script --nodes 4 --ntasks-per-node 32 --job-name BIG_JOB --modules gcc/13 cuda/12 --custom-commands 'echo "Preparing environment"' 'python run.py' --export-json big_job.json --output big_job.sh
 ```
 
 ### 9. Edit JSON and regenerate
