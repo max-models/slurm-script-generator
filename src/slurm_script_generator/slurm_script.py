@@ -1,5 +1,6 @@
 import json
 import os
+import subprocess
 from typing import Any, List
 
 from slurm_script_generator.pragmas import Pragma, PragmaFactory
@@ -297,6 +298,13 @@ class SlurmScript:
     def save(self, path: str) -> None:
         with open(path, "w") as f:
             f.write(self.generate_script(line_length=self.line_length))
+
+    def submit_job(self, path: str) -> None:
+        self.save(path)
+        result = subprocess.run(["sbatch", path], capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(f"sbatch failed: {result.stderr.strip()}")
+        print(result.stdout.strip())
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "SlurmScript":
