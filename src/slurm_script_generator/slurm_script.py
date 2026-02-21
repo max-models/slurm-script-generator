@@ -108,7 +108,6 @@ class SlurmScript:
         inlined_scripts: list | None = None,
         line_length: int = 40,
     ) -> None:
-
         if pragmas is None:
             pragmas = []
         self._pragmas = pragmas
@@ -258,15 +257,14 @@ class SlurmScript:
     def generate_script(
         self, line_length: int = 40, include_header: bool = False
     ) -> str:
-
         script_str = "#!/bin/bash\n"
 
         # Add header
         SLURM_SCRIPT_HEADER = f"""########################################################
 #            This script was generated using           #
-#             slurm-script-generator v{version('slurm-script-generator')}            #
+#             slurm-script-generator v{version("slurm-script-generator")}            #
 # https://github.com/max-models/slurm-script-generator #
-#      `pip install slurm-script-generator=={version('slurm-script-generator')}`     #
+#      `pip install slurm-script-generator=={version("slurm-script-generator")}`     #
 ########################################################\n
 """
         if include_header:
@@ -364,6 +362,17 @@ class SlurmScript:
 
     def __str__(self) -> str:
         return self.to_string(include_header=True)
+
+    def __repr__(self) -> str:
+        script_repr = "SlurmScript(\n"
+        for pragma in self.pragmas:
+            script_repr += f"    {pragma.arg_varname}={repr(pragma.value)},\n"
+        if len(self.modules) > 0:
+            script_repr += f"    modules={repr(self.modules)},\n"
+        if len(self.custom_commands) > 0:
+            script_repr += f"    custom_commands={repr(self.custom_commands)},\n"
+        script_repr += ")"
+        return script_repr
 
     @property
     def line_length(self) -> int:

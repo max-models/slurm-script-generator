@@ -1,7 +1,4 @@
-from abc import abstractmethod
-from argparse import ArgumentParser
-from dataclasses import dataclass, field
-from typing import Any, Callable, List, Optional, Type
+from typing import Any, Callable, List, Type
 
 from slurm_script_generator.utils import add_line
 
@@ -883,7 +880,6 @@ class Nvmps(Pragma):
 
 
 class PragmaFactory:
-
     pragmas = {
         pragma_cls.arg_varname: pragma_cls
         for _, pragma_cls in list(globals().items())

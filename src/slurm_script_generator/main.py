@@ -1,13 +1,10 @@
 import argparse
-import json
 
 import slurm_script_generator.pragmas as pragmas
 from slurm_script_generator.slurm_script import SlurmScript
-from slurm_script_generator.utils import add_line
 
 
 def add_misc_options(parser: argparse.ArgumentParser) -> None:
-
     parser.add_argument(
         "--line-length",
         dest="line_length",
