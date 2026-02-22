@@ -615,10 +615,14 @@ class SlurmScript:
 
         if key == "line_length":
             self._line_length = value
+        elif key == "module":
+            self.add_module(module=value)
         elif key == "modules":
-            self._modules = value
+            self.add_modules(modules=value)
+        elif key == "custom_command":
+            self.add_custom_command(command=value)
         elif key == "custom_commands":
-            self._custom_commands = value
+            self.add_custom_commands(commands=value)
         elif key == "inline_script":
             self.add_inlined_script(value)
         elif key == "inlined_scripts":
