@@ -6,6 +6,8 @@ execute:
   output: true
 ---
 
+slurm-script-generator is a pure python tool for generating SLURM script in the command line, or via a [Python API](https://max-models.github.io/slurm-script-generator/tutorials/00_basics.html), or via a [web application](https://max-models.github.io/slurm-script-generator/webapp.html).
+
 Check out the [documentation](https://max-models.github.io/slurm-script-generator) for more details and examples!
 
 ## Installation

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>SLURM script generator</title>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+</head>
+<body>
+  <header>
+    <h1><span class="logo">&#60;&#47;&#62;</span> SLURM Script Generator</h1>
+  </header>
+  <main>
+    <section id="output-section">
+      <button id="run-btn">Run Example</button>
+      <div id="output-box">
+        <pre id="output"></pre>
+      </div>
+    </section>
+  </main>
+
+  <style>
+    :root {
+      --primary: #4f8cff;
+      --primary-dark: #2d3a4a;
+      --accent: #e0e7ff;
+      --bg: #f6f8fb;
+      --box-bg: #fff;
+      --box-shadow: 0 4px 32px rgba(79,140,255,0.10);
+      --border: #dbeafe;
+      --border-hover: #4f8cff;
+      --text-main: #1a2233;
+      --text-muted: #6b7280;
+      --logo-bg: linear-gradient(90deg, #4f8cff 0%, #38bdf8 100%);
+    }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      color: var(--text-main);
+    }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    header {
+      width: 100vw;
+      background: var(--box-bg);
+      box-shadow: 0 2px 8px rgba(79,140,255,0.04);
+      padding: 1.5rem 0 1rem 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    h1 {
+      font-size: 2.1rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+      letter-spacing: 1px;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.7em;
+    }
+    .logo {
+      font-size: 2.1rem;
+      font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace;
+      color: var(--primary);
+      background: var(--logo-bg);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-fill-color: transparent;
+      margin-right: 0.2em;
+      letter-spacing: -2px;
+      font-weight: 900;
+      filter: drop-shadow(0 2px 4px rgba(79,140,255,0.10));
+    }
+    main {
+      flex: 1;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    #output-section {
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 1.5rem;
+    }
+    #output-box {
+      background: linear-gradient(120deg, #fafdff 60%, #e0e7ff 100%);
+      border-radius: 18px;
+      border: 2.5px solid var(--border);
+      margin-top: 0;
+      padding: 2.2rem 2.7rem;
+      min-width: 340px;
+      max-width: 95vw;
+      min-height: 2.5em;
+      transition: box-shadow 0.2s, border-color 0.2s, background 0.2s;
+      font-size: 1.13em;
+      position: relative;
+      overflow-x: auto;
+    }
+    #output-box::before {
+      content: "Output";
+      position: absolute;
+      top: 0.7rem;
+      left: 1.5rem;
+      font-size: 0.95em;
+      color: var(--primary);
+      opacity: 0.7;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    #output-box:hover {
+      border-color: var(--primary);
+      background: linear-gradient(120deg, #fafdff 40%, #dbeafe 100%);
+    }
+
+    #run-btn {
+      margin-bottom: 1.2rem;
+      padding: 0.7em 2.2em;
+      font-size: 1.1em;
+      font-family: inherit;
+      border-radius: 8px;
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(79,140,255,0.08);
+      transition: background 0.18s, box-shadow 0.18s, transform 0.12s;
+    }
+    #run-btn:hover {
+      background: #2563eb;
+      box-shadow: 0 4px 16px rgba(79,140,255,0.13);
+      transform: translateY(-2px) scale(1.03);
+    }
+    }
+    #output {
+      margin: 0;
+      font-size: 1.15em;
+      color: #1a2233;
+      background: none;
+      border: none;
+      font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.6;
+      padding-top: 0.7em;
+    }
+    @media (max-width: 600px) {
+      #output-box {
+        padding: 1rem 0.5rem;
+        min-width: 0;
+      }
+      h1 {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
+  <script>
+    const output = document.getElementById("output");
+
+    async function main() {
+      output.textContent = "# Loading Pyodide...\n";
+
+      try {
+        const pyodide = await loadPyodide();
+
+        output.textContent += "# Loading micropip...\n";
+        await pyodide.loadPackage("micropip");
+
+        output.textContent += "# Installing wheel...\n";
+        await pyodide.runPythonAsync(`
+import micropip
+await micropip.install(
+    "http://localhost:8890/dist/slurm_script_generator-0.3.2-py3-none-any.whl"
+)
+        `);
+
+        output.textContent += "# Running Python...\n";
+
+        const result = await pyodide.runPythonAsync(`
+from io import StringIO
+import sys
+
+buf = StringIO()
+sys.stdout = buf
+
+from slurm_script_generator.slurm_script import SlurmScript
+
+slurm_script = SlurmScript(
+    nodes=2,
+    ntasks_per_core=16,
+    custom_commands=[
+        "# Run simulation",
+        "srun ./bin > run.out",
+    ],
+)
+
+print(slurm_script)
+
+buf.getvalue()
+        `);
+
+        output.textContent += result;
+
+      } catch (err) {
+        output.textContent += "\\nERROR:\\n" + err;
+      }
+    }
+      let pyodide = null;
+      let pyodideReady = false;
+      async function setupPyodide() {
+        output.textContent = "# Loading Pyodide...\n";
+        pyodide = await loadPyodide();
+        output.textContent += "# Loading micropip...\n";
+        await pyodide.loadPackage("micropip");
+        output.textContent += "# Installing wheel...\n";
+        await pyodide.runPythonAsync(`
+  import micropip
+  await micropip.install(
+      "http://localhost:8890/dist/slurm_script_generator-0.3.2-py3-none-any.whl"
+  )
+        `);
+        pyodideReady = true;
+        output.textContent = "# Ready! Click Run Example.\n";
+      }
+
+      setupPyodide();
+
+      document.getElementById("run-btn").onclick = async function() {
+        if (!pyodideReady) {
+          output.textContent = "Pyodide is still loading...";
+          return;
+        }
+        output.textContent = "# Running Python...\n";
+        try {
+          const result = await pyodide.runPythonAsync(`
+  from io import StringIO
+  import sys
+
+  buf = StringIO()
+  sys.stdout = buf
+
+  from slurm_script_generator.slurm_script import SlurmScript
+
+  slurm_script = SlurmScript(
+      nodes=2,
+      ntasks_per_core=16,
+      custom_commands=[
+          "# Run simulation",
+          "srun ./bin > run.out",
+      ],
+  )
+
+  print(slurm_script)
+
+  buf.getvalue()
+          `);
+          output.textContent += result;
+        } catch (err) {
+          output.textContent = "ERROR:\n" + err;
+        }
+      };
+      setupPyodide();
+    main();
+  </script>
+</body>
+</html>
