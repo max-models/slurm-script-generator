@@ -170,35 +170,52 @@
     }
   </style>
   <script>
-    const output = document.getElementById("output");
+  const output = document.getElementById("output");
+  let pyodide = null;
+  let pyodideReady = false;
 
-    async function main() {
+  // 1. Setup function to run once on page load
+  async function setup() {
+    try {
       output.textContent = "# Loading Pyodide...\n";
+      pyodide = await loadPyodide();
 
-      try {
-        const pyodide = await loadPyodide();
+      output.textContent += "# Loading micropip...\n";
+      await pyodide.loadPackage("micropip");
 
-        output.textContent += "# Loading micropip...\n";
-        await pyodide.loadPackage("micropip");
-
-        output.textContent += "# Installing wheel...\n";
-        await pyodide.runPythonAsync(`
+      output.textContent += "# Installing wheel...\n";
+      // Note: Ensure this URL is accessible from your browser
+      await pyodide.runPythonAsync(`
 import micropip
-await micropip.install(
-    "http://localhost:8890/dist/slurm_script_generator-0.3.2-py3-none-any.whl"
-)
-        `);
+await micropip.install("http://localhost:8890/dist/slurm_script_generator-0.3.2-py3-none-any.whl")
+      `);
 
-        output.textContent += "# Running Python...\n";
+      pyodideReady = true;
+      output.textContent = "# Ready! Click Run Example.\n";
+    } catch (err) {
+      output.textContent = "Initialization Error:\n" + err;
+    }
+  }
 
-        const result = await pyodide.runPythonAsync(`
+  // 2. Button click handler
+  document.getElementById("run-btn").onclick = async function() {
+    if (!pyodideReady) {
+      output.textContent = "Pyodide is still loading, please wait...";
+      return;
+    }
+
+    output.textContent = "# Running SLURM Generator...\n";
+    
+    try {
+      // We use a Python context to capture stdout
+      const result = await pyodide.runPythonAsync(`
 from io import StringIO
 import sys
+from slurm_script_generator.slurm_script import SlurmScript
 
+# Redirect stdout to capture print() calls
 buf = StringIO()
 sys.stdout = buf
-
-from slurm_script_generator.slurm_script import SlurmScript
 
 slurm_script = SlurmScript(
     nodes=2,
@@ -210,72 +227,17 @@ slurm_script = SlurmScript(
 )
 
 print(slurm_script)
-
 buf.getvalue()
-        `);
-
-        output.textContent += result;
-
-      } catch (err) {
-        output.textContent += "\\nERROR:\\n" + err;
-      }
+      `);
+      
+      output.textContent = result;
+    } catch (err) {
+      output.textContent = "Execution ERROR:\n" + err;
     }
-      let pyodide = null;
-      let pyodideReady = false;
-      async function setupPyodide() {
-        output.textContent = "# Loading Pyodide...\n";
-        pyodide = await loadPyodide();
-        output.textContent += "# Loading micropip...\n";
-        await pyodide.loadPackage("micropip");
-        output.textContent += "# Installing wheel...\n";
-        await pyodide.runPythonAsync(`
-  import micropip
-  await micropip.install(
-      "http://localhost:8890/dist/slurm_script_generator-0.3.2-py3-none-any.whl"
-  )
-        `);
-        pyodideReady = true;
-        output.textContent = "# Ready! Click Run Example.\n";
-      }
+  };
 
-      setupPyodide();
-
-      document.getElementById("run-btn").onclick = async function() {
-        if (!pyodideReady) {
-          output.textContent = "Pyodide is still loading...";
-          return;
-        }
-        output.textContent = "# Running Python...\n";
-        try {
-          const result = await pyodide.runPythonAsync(`
-  from io import StringIO
-  import sys
-
-  buf = StringIO()
-  sys.stdout = buf
-
-  from slurm_script_generator.slurm_script import SlurmScript
-
-  slurm_script = SlurmScript(
-      nodes=2,
-      ntasks_per_core=16,
-      custom_commands=[
-          "# Run simulation",
-          "srun ./bin > run.out",
-      ],
-  )
-
-  print(slurm_script)
-
-  buf.getvalue()
-          `);
-          output.textContent += result;
-        } catch (err) {
-          output.textContent = "ERROR:\n" + err;
-        }
-      };
-      setupPyodide();
-    main();
-  </script>
+  // 3. Start the initialization
+  setup();
+</script>
 </body>
 </html>
