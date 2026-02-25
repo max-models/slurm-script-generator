@@ -1,6 +1,6 @@
-# 
+#
 
-```
+````
 
 # How to run the Pyodide demo page
 
@@ -9,8 +9,9 @@
    ```sh
    python -m pip install build
    python -m build
-   ```
-   This creates a .whl file in the dist/ directory.
+````
+
+This creates a .whl file in the dist/ directory.
 
 2. Start a local server with CORS enabled (so the browser can fetch the wheel):
 
@@ -23,6 +24,9 @@
 4. You should see the output from the hardcoded Python code (e.g., 'hello world').
 
 5. If you change your Python code or wheel, rebuild the wheel and hard-refresh the browser (Ctrl+Shift+R).
-python -m pip install build
-python -m build
+   python -m pip install build
+   python -m build
+
+```
+
 ```

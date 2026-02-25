@@ -1,13 +1,12 @@
 # slurm-script-generator
 
-
 Check out the
 [documentation](https://max-models.github.io/slurm-script-generator) for
 more details and examples!
 
 ## Installation
 
-``` bash
+```bash
 pip install slurm-script-generator
 ```
 
@@ -15,7 +14,7 @@ pip install slurm-script-generator
 
 Generate a slurm script to `slurm_script.sh` with
 
-``` bash
+```bash
 generate-slurm-script --nodes 1 --ntasks-per-node 16
 ```
 
@@ -35,13 +34,13 @@ generate-slurm-script --nodes 1 --ntasks-per-node 16
 
 To save the script to file `my_script.sh` use `--output`:
 
-``` bash
+```bash
 generate-slurm-script --nodes 1 --ntasks-per-node 16 --output my_script.sh
 ```
 
 Remove the header comment with `--no-header`:
 
-``` bash
+```bash
 generate-slurm-script --nodes 1 --ntasks-per-node 16 --no-header
 ```
 
@@ -54,7 +53,7 @@ generate-slurm-script --nodes 1 --ntasks-per-node 16 --no-header
 
 You can also generate scripts in Python programmatically:
 
-``` python
+```python
 from slurm_script_generator.slurm_script import SlurmScript
 
 slurm_script = SlurmScript(
@@ -90,7 +89,7 @@ print(slurm_script)
 You can also generate a string representation of the script with
 `generate_script`:
 
-``` python
+```python
 script = slurm_script.generate_script()
 ```
 
@@ -101,7 +100,7 @@ notebooks](https://max-models.github.io/slurm-script-generator/tutorials.html).
 
 To export the settings to a json file you can use `--export-json`:
 
-``` bash
+```bash
 generate-slurm-script --nodes 2 --export-json setup.json --no-header
 ```
 
@@ -113,7 +112,7 @@ generate-slurm-script --nodes 2 --export-json setup.json --no-header
 
 This json file can used as a basis for creating new scripts
 
-``` bash
+```bash
 generate-slurm-script --input setup.json --ntasks-per-node 16 --no-header
 ```
 
@@ -128,7 +127,7 @@ generate-slurm-script --input setup.json --ntasks-per-node 16 --no-header
 
 Add modules with
 
-``` bash
+```bash
 generate-slurm-script --input setup.json --ntasks-per-node 16 --modules gcc/13 openmpi/5.0 --no-header
 ```
 
@@ -150,7 +149,7 @@ You can also read pragmas and commands from an existing script with
 Let’s say you have a script `slurm_script.sh` with the following
 content:
 
-``` bash
+```bash
 cat slurm_script.sh
 ```
 
@@ -166,7 +165,7 @@ You can read the script and add extra pragmas (for example, changing the
 job name with `--job-name NEW_JOB_NAME`) or commands to generate a new
 script with
 
-``` bash
+```bash
 generate-slurm-script --read-script slurm_script.sh --job-name NEW_JOB_NAME --no-header
 ```
 
@@ -185,7 +184,7 @@ generate-slurm-script --read-script slurm_script.sh --job-name NEW_JOB_NAME --no
 
 All optional arguments can be shown with
 
-``` bash
+```bash
 generate-slurm-script -h
 ```
 

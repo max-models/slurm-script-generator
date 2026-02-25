@@ -1,11 +1,10 @@
 # Command Line Interface
 
-
 ## Generate scripts
 
 Generate a slurm script to `slurm_script.sh` with
 
-``` bash
+```bash
 generate-slurm-script --nodes 1 --ntasks-per-node 16
 ```
 
@@ -25,13 +24,13 @@ generate-slurm-script --nodes 1 --ntasks-per-node 16
 
 To save the script to file `my_script.sh` use `--output`:
 
-``` bash
+```bash
 generate-slurm-script --nodes 1 --ntasks-per-node 16 --output my_script.sh
 ```
 
 Show the contents of the generated script:
 
-``` bash
+```bash
 cat slurm_script.sh
 ```
 
@@ -51,7 +50,7 @@ cat slurm_script.sh
 
 Remove the header comment with `--no-header`:
 
-``` bash
+```bash
 generate-slurm-script --nodes 1 --ntasks-per-node 16 --no-header
 ```
 
@@ -66,7 +65,7 @@ generate-slurm-script --nodes 1 --ntasks-per-node 16 --no-header
 
 To export the settings to a json file you can use `--export-json`:
 
-``` bash
+```bash
 generate-slurm-script --nodes 2 --ntasks-per-node 16 --account my_account --export-json setup.json --no-header
 ```
 
@@ -82,7 +81,7 @@ generate-slurm-script --nodes 2 --ntasks-per-node 16 --account my_account --expo
 
 Check the contents of the exported json file:
 
-``` bash
+```bash
 cat setup.json
 ```
 
@@ -98,7 +97,7 @@ cat setup.json
 
 This json file can used as a basis for creating new scripts
 
-``` bash
+```bash
 generate-slurm-script --input setup.json --ntasks-per-node 16 --no-header
 ```
 
@@ -116,7 +115,7 @@ generate-slurm-script --input setup.json --ntasks-per-node 16 --no-header
 
 Add modules with
 
-``` bash
+```bash
 generate-slurm-script --input setup.json --ntasks-per-node 16 --modules gcc/13 openmpi/5.0 --no-header
 ```
 
@@ -141,7 +140,7 @@ You can also read pragmas and commands from an existing script with
 Let’s say you have a script `slurm_script.sh` with the following
 content:
 
-``` bash
+```bash
 cat slurm_script.sh
 ```
 
@@ -163,7 +162,7 @@ You can read the script and add extra pragmas (for example, changing the
 job name with `--job-name NEW_JOB_NAME`) or commands to generate a new
 script with
 
-``` bash
+```bash
 generate-slurm-script --read-script slurm_script.sh --job-name NEW_JOB_NAME --no-header
 ```
 
@@ -186,7 +185,7 @@ and reuse SLURM scripts and settings.
 
 Generate a SLURM script and save it to a file:
 
-``` bash
+```bash
 generate-slurm-script --nodes 2 --ntasks-per-node 8 --job-name TEST_JOB --output my_script.sh
 ```
 
@@ -194,7 +193,7 @@ generate-slurm-script --nodes 2 --ntasks-per-node 8 --job-name TEST_JOB --output
 
 Export the script settings to a JSON file for later reuse:
 
-``` bash
+```bash
 generate-slurm-script --nodes 2 --ntasks-per-node 8 --job-name TEST_JOB --export-json setup.json
 ```
 
@@ -219,7 +218,7 @@ generate-slurm-script --nodes 2 --ntasks-per-node 8 --job-name TEST_JOB --export
 
 Print the contents of the exported JSON file:
 
-``` bash
+```bash
 cat setup.json
 ```
 
@@ -238,13 +237,13 @@ cat setup.json
 Create a new script using the exported settings, modifying parameters as
 needed:
 
-``` bash
+```bash
 generate-slurm-script --input setup.json --ntasks-per-node 16 --output new_script.sh
 ```
 
 Show the contents of the new script:
 
-``` bash
+```bash
 cat new_script.sh
 ```
 
@@ -269,13 +268,13 @@ cat new_script.sh
 
 Add modules and custom commands to the script:
 
-``` bash
+```bash
 generate-slurm-script --input setup.json --modules gcc/13 openmpi/5.0 --custom-commands 'echo "Starting job"' 'mpirun -n 16 ./bin > run.out' --output run_script.sh
 ```
 
 Show the contents of the new script:
 
-``` bash
+```bash
 cat run_script.sh
 ```
 
@@ -306,7 +305,7 @@ cat run_script.sh
 Read pragmas and commands from an existing script, then override or add
 new options:
 
-``` bash
+```bash
 generate-slurm-script --read-script my_script.sh --job-name FINAL_JOB --modules python/3.10 --output final_script.sh
 ```
 
@@ -314,7 +313,7 @@ generate-slurm-script --read-script my_script.sh --job-name FINAL_JOB --modules 
 
 You can chain together several options for complex jobs:
 
-``` bash
+```bash
 generate-slurm-script --nodes 4 --ntasks-per-node 32 --job-name BIG_JOB --modules gcc/13 cuda/12 --custom-commands 'echo "Preparing environment"' 'python run.py' --export-json big_job.json --output big_job.sh
 ```
 
@@ -323,7 +322,7 @@ generate-slurm-script --nodes 4 --ntasks-per-node 32 --job-name BIG_JOB --module
 Manually edit the exported JSON file (e.g., change job name or modules),
 then regenerate a script:
 
-``` bash
+```bash
 # Edit big_job.json in your editor, then:
 generate-slurm-script --input big_job.json --output edited_job.sh
 ```
@@ -333,7 +332,7 @@ generate-slurm-script --input big_job.json --output edited_job.sh
 You can also add inline scripts to be included in the generated SLURM
 script. First, create some example scripts:
 
-``` bash
+```bash
 # Create setup_env.sh
 cat <<'EOF' > setup_env.sh
 #!/bin/bash
@@ -344,7 +343,7 @@ echo "Environment setup complete."
 EOF
 ```
 
-``` bash
+```bash
 # Create run_simulation.sh
 cat <<'EOF' > run_simulation.sh
 #!/bin/bash
@@ -356,13 +355,13 @@ EOF
 
 Add inline scripts to the end of your SLURM script:
 
-``` bash
+```bash
 generate-slurm-script --nodes 2 --ntasks-per-node 8 --inline-scripts setup_env.sh run_simulation.sh --output inline_script.sh
 ```
 
 Show the contents of the inline scripts:
 
-``` bash
+```bash
 cat setup_env.sh
 cat run_simulation.sh
 ```
@@ -381,7 +380,7 @@ cat run_simulation.sh
 
 Print the generated script directly to the terminal (without saving):
 
-``` bash
+```bash
 generate-slurm-script --nodes 1 --ntasks-per-node 4 --no-header
 ```
 
@@ -396,7 +395,7 @@ generate-slurm-script --nodes 1 --ntasks-per-node 4 --no-header
 
 Suppress header and informational output for scripting or automation:
 
-``` bash
+```bash
 generate-slurm-script --nodes 1 --ntasks-per-node 4 --no-header > minimal_script.sh
 ```
 
@@ -404,6 +403,6 @@ generate-slurm-script --nodes 1 --ntasks-per-node 4 --no-header > minimal_script
 
 Read an existing script, modify pragmas, and export the new settings:
 
-``` bash
+```bash
 generate-slurm-script --read-script slurm_script.sh --job-name UPDATED_JOB --modules python/3.10 --export-json updated_setup.json --output updated_script.sh
 ```
