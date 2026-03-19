@@ -432,7 +432,17 @@ def _fmt_job_table(jobs: List[SQueueJob]) -> str:
     """Format a list of jobs as an aligned table string."""
     if not jobs:
         return "  (no jobs)"
-    headers = ["JobID", "User", "Job Name", "State", "Partition", "Nodes", "CPUs", "Used", "Limit"]
+    headers = [
+        "JobID",
+        "User",
+        "Job Name",
+        "State",
+        "Partition",
+        "Nodes",
+        "CPUs",
+        "Used",
+        "Limit",
+    ]
     rows = [
         [
             str(j.job_id),
@@ -448,8 +458,7 @@ def _fmt_job_table(jobs: List[SQueueJob]) -> str:
         for j in jobs
     ]
     widths = [
-        max(len(headers[i]), max(len(r[i]) for r in rows))
-        for i in range(len(headers))
+        max(len(headers[i]), max(len(r[i]) for r in rows)) for i in range(len(headers))
     ]
 
     def fmt(vals: list) -> str:
@@ -486,7 +495,8 @@ def main() -> None:
         description="Inspect and wait on the SLURM job queue.",
     )
     parser.add_argument(
-        "--user", "-u",
+        "--user",
+        "-u",
         metavar="USER",
         default=None,
         help="Restrict all squeue calls to this user.",
@@ -495,33 +505,81 @@ def main() -> None:
 
     # ---- show ---------------------------------------------------------------
     p_show = sub.add_parser("show", help="Print per-user queue summary (default).")
-    p_show.add_argument("--user", "-u", metavar="USER", default=None,
-                        help="Filter to this user.")
+    p_show.add_argument(
+        "--user", "-u", metavar="USER", default=None, help="Filter to this user."
+    )
 
     # ---- list ---------------------------------------------------------------
     p_list = sub.add_parser("list", help="List individual jobs.")
     p_list.add_argument("--user", "-u", metavar="USER", default=None)
-    p_list.add_argument("--job-name", "-n", metavar="PATTERN", default=None,
-                        help="Filter by job name (glob patterns supported, e.g. 'train_*').")
-    p_list.add_argument("--job-id", "-j", metavar="ID", type=int, default=None,
-                        help="Filter to a specific job ID.")
-    p_list.add_argument("--state", "-s", metavar="STATE", default=None,
-                        help="Filter by state code, e.g. R, PD, CG.")
+    p_list.add_argument(
+        "--job-name",
+        "-n",
+        metavar="PATTERN",
+        default=None,
+        help="Filter by job name (glob patterns supported, e.g. 'train_*').",
+    )
+    p_list.add_argument(
+        "--job-id",
+        "-j",
+        metavar="ID",
+        type=int,
+        default=None,
+        help="Filter to a specific job ID.",
+    )
+    p_list.add_argument(
+        "--state",
+        "-s",
+        metavar="STATE",
+        default=None,
+        help="Filter by state code, e.g. R, PD, CG.",
+    )
 
     # ---- wait ---------------------------------------------------------------
-    p_wait = sub.add_parser("wait", help="Wait until matching jobs leave the active queue.")
-    p_wait.add_argument("--job-name", "-n", metavar="PATTERN", default=None,
-                        help="Job name or glob pattern to wait for (e.g. 'train_*').")
-    p_wait.add_argument("--job-id", "-j", metavar="ID", type=int, default=None,
-                        help="Wait for a specific job ID.")
-    p_wait.add_argument("--user", "-u", metavar="USER", default=None,
-                        help="Wait for all jobs belonging to this user.")
-    p_wait.add_argument("--poll-interval", "-i", metavar="SECONDS", type=float, default=30.0,
-                        help="Seconds between queue polls (default: 30).")
-    p_wait.add_argument("--timeout", "-t", metavar="SECONDS", type=float, default=None,
-                        help="Raise an error if jobs are still running after this many seconds.")
-    p_wait.add_argument("--quiet", "-q", action="store_true",
-                        help="Suppress progress messages.")
+    p_wait = sub.add_parser(
+        "wait", help="Wait until matching jobs leave the active queue."
+    )
+    p_wait.add_argument(
+        "--job-name",
+        "-n",
+        metavar="PATTERN",
+        default=None,
+        help="Job name or glob pattern to wait for (e.g. 'train_*').",
+    )
+    p_wait.add_argument(
+        "--job-id",
+        "-j",
+        metavar="ID",
+        type=int,
+        default=None,
+        help="Wait for a specific job ID.",
+    )
+    p_wait.add_argument(
+        "--user",
+        "-u",
+        metavar="USER",
+        default=None,
+        help="Wait for all jobs belonging to this user.",
+    )
+    p_wait.add_argument(
+        "--poll-interval",
+        "-i",
+        metavar="SECONDS",
+        type=float,
+        default=30.0,
+        help="Seconds between queue polls (default: 30).",
+    )
+    p_wait.add_argument(
+        "--timeout",
+        "-t",
+        metavar="SECONDS",
+        type=float,
+        default=None,
+        help="Raise an error if jobs are still running after this many seconds.",
+    )
+    p_wait.add_argument(
+        "--quiet", "-q", action="store_true", help="Suppress progress messages."
+    )
 
     args = parser.parse_args()
 

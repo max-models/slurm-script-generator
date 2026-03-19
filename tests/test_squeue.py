@@ -2,7 +2,6 @@
 
 import time
 from unittest.mock import MagicMock, call, patch
-from slurm_script_generator.squeue import _fmt_job_table, main
 
 import pytest
 
@@ -12,6 +11,8 @@ from slurm_script_generator.squeue import (
     ACTIVE_STATES,
     SQueue,
     SQueueJob,
+    _fmt_job_table,
+    main,
 )
 
 # ---------------------------------------------------------------------------
@@ -534,7 +535,9 @@ def test_cli_wait_by_job_name():
 
     out = StringIO()
     with patch("subprocess.run", return_value=_mock_run(stdout="")):
-        with patch("sys.argv", ["slurm-queue", "wait", "--job-name", "train_*", "--quiet"]):
+        with patch(
+            "sys.argv", ["slurm-queue", "wait", "--job-name", "train_*", "--quiet"]
+        ):
             with patch("sys.stdout", out):
                 main()  # should return immediately (no matching active jobs)
 
@@ -547,8 +550,20 @@ def test_cli_wait_timeout_exits_nonzero():
     err = StringIO()
 
     with patch("subprocess.run", return_value=_mock_run(stdout=active)):
-        with patch("sys.argv", ["slurm-queue", "wait", "--job-name", "slow_job",
-                                "--timeout", "0.001", "--poll-interval", "0.001", "--quiet"]):
+        with patch(
+            "sys.argv",
+            [
+                "slurm-queue",
+                "wait",
+                "--job-name",
+                "slow_job",
+                "--timeout",
+                "0.001",
+                "--poll-interval",
+                "0.001",
+                "--quiet",
+            ],
+        ):
             with patch("sys.stderr", err):
                 with patch("time.sleep"):
                     with patch("time.monotonic", side_effect=[0, 0, 9999]):
