@@ -292,6 +292,78 @@ def test_default_user_passed_to_squeue():
 
 
 # ---------------------------------------------------------------------------
+# SQueueJob.wait_until_done
+# ---------------------------------------------------------------------------
+
+def test_job_wait_until_done_delegates_to_squeue():
+    """SQueueJob.wait_until_done should poll by job_id until gone."""
+    active = _make_line(1001, "alice", "myjob", "R")
+
+    call_count = 0
+
+    def side_effect(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        # First SQueue() in wait_until_done; second refresh (job gone)
+        return _mock_run(stdout=active if call_count == 1 else "")
+
+    job = SQueueJob(1001, "alice", "myjob", "R", "gpu", 1, 4, "0:01", "1:00", "None", 100)
+    with patch("subprocess.run", side_effect=side_effect):
+        with patch("time.sleep"):
+            job.wait_until_done(verbose=False)
+
+    assert call_count == 2  # one initial fetch, one refresh after sleep
+
+
+# ---------------------------------------------------------------------------
+# __str__
+# ---------------------------------------------------------------------------
+
+def test_str_empty():
+    with patch("subprocess.run", return_value=_mock_run(stdout="")):
+        q = SQueue()
+    assert str(q) == "SLURM Queue  ·  empty"
+
+
+def test_str_contains_users(queue):
+    s = str(queue)
+    assert "alice" in s
+    assert "bob" in s
+    assert "carol" in s
+
+
+def test_str_contains_totals(queue):
+    s = str(queue)
+    assert "TOTAL" in s
+    # 5 total jobs, 3 running, 1 pending
+    assert "5" in s
+    assert "3" in s
+    assert "1" in s
+
+
+def test_str_sorted_by_running_nodes():
+    """User with most running nodes should appear first."""
+    # alice: 2 running jobs, 8 nodes each = 16 nodes
+    # bob: 1 running job, 2 nodes
+    output = "\n".join([
+        _make_line(1, "alice", "job_a", "R", nodes=8, cpus=32),
+        _make_line(2, "alice", "job_b", "R", nodes=8, cpus=32),
+        _make_line(3, "bob",   "job_c", "R", nodes=2, cpus=8),
+    ])
+    with patch("subprocess.run", return_value=_mock_run(stdout=output)):
+        q = SQueue()
+    s = str(q)
+    assert s.index("alice") < s.index("bob")
+
+
+def test_str_header_line(queue):
+    s = str(queue)
+    assert "SLURM Queue" in s
+    assert "running" in s
+    assert "pending" in s
+
+
+# ---------------------------------------------------------------------------
 # Repr / dunder
 # ---------------------------------------------------------------------------
 

@@ -73,6 +73,30 @@ class SQueueJob:
     def state_name(self) -> str:
         return JOB_STATES.get(self.state, self.state)
 
+    def wait_until_done(
+        self,
+        poll_interval: float = 30.0,
+        timeout: Optional[float] = None,
+        verbose: bool = True,
+    ) -> None:
+        """Block until this specific job leaves the active queue.
+
+        Parameters
+        ----------
+        poll_interval : float
+            Seconds between queue polls. Defaults to 30.
+        timeout : float, optional
+            Maximum seconds to wait before raising ``TimeoutError``.
+        verbose : bool
+            Print progress messages. Defaults to True.
+        """
+        SQueue().wait_until_done(
+            job_id=self.job_id,
+            poll_interval=poll_interval,
+            timeout=timeout,
+            verbose=verbose,
+        )
+
     def __repr__(self) -> str:
         return (
             f"SQueueJob(job_id={self.job_id}, user={self.user!r}, "
@@ -330,6 +354,71 @@ class SQueue:
 
     def __iter__(self):
         return iter(self._jobs)
+
+    def __str__(self) -> str:
+        if not self._jobs:
+            return "SLURM Queue  ·  empty"
+
+        total_running = sum(1 for j in self._jobs if j.is_running)
+        total_pending = sum(1 for j in self._jobs if j.is_pending)
+        total_nodes = sum(j.num_nodes for j in self._jobs if j.is_running)
+        total_cpus = sum(j.num_cpus for j in self._jobs if j.is_running)
+
+        # Build per-user stats
+        rows = []
+        for user, jobs in self.jobs_by_user().items():
+            running = [j for j in jobs if j.is_running]
+            pending = [j for j in jobs if j.is_pending]
+            nodes = sum(j.num_nodes for j in running)
+            cpus = sum(j.num_cpus for j in running)
+            rows.append((user, len(jobs), len(running), len(pending), nodes, cpus))
+
+        # Heaviest users (by running nodes, then running jobs) first
+        rows.sort(key=lambda r: (-r[4], -r[2], -r[1]))
+
+        headers = ["User", "Jobs", "Running", "Pending", "Nodes (R)", "CPUs (R)"]
+        totals = [
+            "TOTAL",
+            str(len(self._jobs)),
+            str(total_running),
+            str(total_pending),
+            str(total_nodes),
+            str(total_cpus),
+        ]
+
+        # Column widths: user left-aligned, rest right-aligned
+        str_rows = [
+            [r[0], str(r[1]), str(r[2]), str(r[3]), str(r[4]), str(r[5])]
+            for r in rows
+        ]
+        widths = [
+            max(len(headers[i]), len(totals[i]), max((len(r[i]) for r in str_rows), default=0))
+            for i in range(len(headers))
+        ]
+
+        def fmt_row(vals: list, bold_first: bool = False) -> str:
+            cells = [vals[0].ljust(widths[0])]
+            for i in range(1, len(vals)):
+                cells.append(vals[i].rjust(widths[i]))
+            return "  " + "   ".join(cells)
+
+        table_width = sum(widths) + 3 * (len(widths) - 1) + 2
+        title = f"SLURM Queue  ·  {len(self._jobs)} jobs total  ·  {total_running} running  ·  {total_pending} pending"
+        width = max(table_width, len(title))
+        bar_heavy = "═" * width
+        bar_light = "─" * width
+
+        lines = [
+            title,
+            bar_heavy,
+            fmt_row(headers),
+            bar_light,
+            *[fmt_row(r) for r in str_rows],
+            bar_light,
+            fmt_row(totals),
+            bar_heavy,
+        ]
+        return "\n".join(lines)
 
     def __repr__(self) -> str:
         s = self.summary()
