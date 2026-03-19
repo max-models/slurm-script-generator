@@ -1,15 +1,16 @@
 """Tests for the SQueue class (uses mocked squeue output)."""
+
 import time
 from unittest.mock import MagicMock, call, patch
 
 import pytest
 
 from slurm_script_generator.squeue import (
+    _FORMAT_STR,
+    _SEPARATOR,
     ACTIVE_STATES,
     SQueue,
     SQueueJob,
-    _FORMAT_STR,
-    _SEPARATOR,
 )
 
 # ---------------------------------------------------------------------------
@@ -19,21 +20,45 @@ from slurm_script_generator.squeue import (
 SEP = _SEPARATOR
 
 
-def _make_line(job_id, user, name, state, partition="gpu", nodes=1, cpus=4,
-               time_used="0:01:00", time_limit="1:00:00", reason="None", priority=1000):
-    return SEP.join([
-        str(job_id), user, name, state, partition,
-        str(nodes), str(cpus), time_used, time_limit, reason, str(priority),
-    ])
+def _make_line(
+    job_id,
+    user,
+    name,
+    state,
+    partition="gpu",
+    nodes=1,
+    cpus=4,
+    time_used="0:01:00",
+    time_limit="1:00:00",
+    reason="None",
+    priority=1000,
+):
+    return SEP.join(
+        [
+            str(job_id),
+            user,
+            name,
+            state,
+            partition,
+            str(nodes),
+            str(cpus),
+            time_used,
+            time_limit,
+            reason,
+            str(priority),
+        ]
+    )
 
 
-SAMPLE_OUTPUT = "\n".join([
-    _make_line(1001, "alice", "train_resnet",  "R"),
-    _make_line(1002, "alice", "train_bert",    "R"),
-    _make_line(1003, "bob",   "preprocess",    "PD"),
-    _make_line(1004, "carol", "eval_run",      "R"),
-    _make_line(1005, "bob",   "postprocess",   "CG"),
-])
+SAMPLE_OUTPUT = "\n".join(
+    [
+        _make_line(1001, "alice", "train_resnet", "R"),
+        _make_line(1002, "alice", "train_bert", "R"),
+        _make_line(1003, "bob", "preprocess", "PD"),
+        _make_line(1004, "carol", "eval_run", "R"),
+        _make_line(1005, "bob", "postprocess", "CG"),
+    ]
+)
 
 
 def _mock_run(stdout=SAMPLE_OUTPUT, returncode=0, stderr=""):
@@ -48,6 +73,7 @@ def _mock_run(stdout=SAMPLE_OUTPUT, returncode=0, stderr=""):
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def queue():
     with patch("subprocess.run", return_value=_mock_run()) as _:
@@ -57,6 +83,7 @@ def queue():
 # ---------------------------------------------------------------------------
 # Basic parsing
 # ---------------------------------------------------------------------------
+
 
 def test_job_count(queue):
     assert len(queue) == 5
@@ -89,6 +116,7 @@ def test_completing_job_is_active(queue):
 # ---------------------------------------------------------------------------
 # Filtering
 # ---------------------------------------------------------------------------
+
 
 def test_filter_by_user(queue):
     jobs = queue.jobs(user="alice")
@@ -138,6 +166,7 @@ def test_pending_jobs(queue):
 # Statistics
 # ---------------------------------------------------------------------------
 
+
 def test_users(queue):
     assert queue.users() == ["alice", "bob", "carol"]
 
@@ -170,12 +199,15 @@ def test_summary(queue):
 # Refresh
 # ---------------------------------------------------------------------------
 
+
 def test_refresh_updates_jobs():
     first_output = _make_line(1001, "alice", "job_a", "R")
-    second_output = "\n".join([
-        _make_line(1001, "alice", "job_a", "R"),
-        _make_line(1002, "bob", "job_b", "PD"),
-    ])
+    second_output = "\n".join(
+        [
+            _make_line(1001, "alice", "job_a", "R"),
+            _make_line(1002, "bob", "job_b", "PD"),
+        ]
+    )
     with patch("subprocess.run") as mock_run:
         mock_run.return_value = _mock_run(stdout=first_output)
         q = SQueue()
@@ -195,6 +227,7 @@ def test_refresh_raises_on_squeue_error():
 # ---------------------------------------------------------------------------
 # wait_until_done
 # ---------------------------------------------------------------------------
+
 
 def test_wait_until_done_already_finished():
     """Jobs are gone on the first poll — should return immediately."""
@@ -261,10 +294,12 @@ def test_wait_until_done_by_job_id():
 
 
 def test_wait_until_done_by_user():
-    active = "\n".join([
-        _make_line(1001, "alice", "job1", "R"),
-        _make_line(1002, "alice", "job2", "PD"),
-    ])
+    active = "\n".join(
+        [
+            _make_line(1001, "alice", "job1", "R"),
+            _make_line(1002, "alice", "job2", "PD"),
+        ]
+    )
 
     call_count = 0
 
@@ -283,6 +318,7 @@ def test_wait_until_done_by_user():
 # Default user filter passed to squeue
 # ---------------------------------------------------------------------------
 
+
 def test_default_user_passed_to_squeue():
     with patch("subprocess.run", return_value=_mock_run(stdout="")) as mock_run:
         SQueue(user="alice")
@@ -294,6 +330,7 @@ def test_default_user_passed_to_squeue():
 # ---------------------------------------------------------------------------
 # SQueueJob.wait_until_done
 # ---------------------------------------------------------------------------
+
 
 def test_job_wait_until_done_delegates_to_squeue():
     """SQueueJob.wait_until_done should poll by job_id until gone."""
@@ -307,7 +344,9 @@ def test_job_wait_until_done_delegates_to_squeue():
         # First SQueue() in wait_until_done; second refresh (job gone)
         return _mock_run(stdout=active if call_count == 1 else "")
 
-    job = SQueueJob(1001, "alice", "myjob", "R", "gpu", 1, 4, "0:01", "1:00", "None", 100)
+    job = SQueueJob(
+        1001, "alice", "myjob", "R", "gpu", 1, 4, "0:01", "1:00", "None", 100
+    )
     with patch("subprocess.run", side_effect=side_effect):
         with patch("time.sleep"):
             job.wait_until_done(verbose=False)
@@ -318,6 +357,7 @@ def test_job_wait_until_done_delegates_to_squeue():
 # ---------------------------------------------------------------------------
 # __str__
 # ---------------------------------------------------------------------------
+
 
 def test_str_empty():
     with patch("subprocess.run", return_value=_mock_run(stdout="")):
@@ -345,11 +385,13 @@ def test_str_sorted_by_running_nodes():
     """User with most running nodes should appear first."""
     # alice: 2 running jobs, 8 nodes each = 16 nodes
     # bob: 1 running job, 2 nodes
-    output = "\n".join([
-        _make_line(1, "alice", "job_a", "R", nodes=8, cpus=32),
-        _make_line(2, "alice", "job_b", "R", nodes=8, cpus=32),
-        _make_line(3, "bob",   "job_c", "R", nodes=2, cpus=8),
-    ])
+    output = "\n".join(
+        [
+            _make_line(1, "alice", "job_a", "R", nodes=8, cpus=32),
+            _make_line(2, "alice", "job_b", "R", nodes=8, cpus=32),
+            _make_line(3, "bob", "job_c", "R", nodes=2, cpus=8),
+        ]
+    )
     with patch("subprocess.run", return_value=_mock_run(stdout=output)):
         q = SQueue()
     s = str(q)
@@ -366,6 +408,7 @@ def test_str_header_line(queue):
 # ---------------------------------------------------------------------------
 # Repr / dunder
 # ---------------------------------------------------------------------------
+
 
 def test_repr(queue):
     r = repr(queue)

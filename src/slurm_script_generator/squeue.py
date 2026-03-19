@@ -271,15 +271,14 @@ class SQueue:
             If *timeout* is exceeded before all jobs finish.
         """
         if job_name is None and job_id is None and user is None:
-            raise ValueError(
-                "Specify at least one of: job_name, job_id, user"
-            )
+            raise ValueError("Specify at least one of: job_name, job_id, user")
 
         start = time.monotonic()
         while True:
             self.refresh()
             active = [
-                j for j in self.jobs(job_name=job_name, job_id=job_id, user=user)
+                j
+                for j in self.jobs(job_name=job_name, job_id=job_id, user=user)
                 if j.is_active
             ]
             if not active:
@@ -340,9 +339,7 @@ class SQueue:
             "running": len(by_state.get("R", [])),
             "pending": len(by_state.get("PD", [])),
             "users": {u: len(jobs) for u, jobs in sorted(by_user.items())},
-            "by_state": {
-                s: len(jobs) for s, jobs in sorted(by_state.items())
-            },
+            "by_state": {s: len(jobs) for s, jobs in sorted(by_state.items())},
         }
 
     # ------------------------------------------------------------------
@@ -388,11 +385,14 @@ class SQueue:
 
         # Column widths: user left-aligned, rest right-aligned
         str_rows = [
-            [r[0], str(r[1]), str(r[2]), str(r[3]), str(r[4]), str(r[5])]
-            for r in rows
+            [r[0], str(r[1]), str(r[2]), str(r[3]), str(r[4]), str(r[5])] for r in rows
         ]
         widths = [
-            max(len(headers[i]), len(totals[i]), max((len(r[i]) for r in str_rows), default=0))
+            max(
+                len(headers[i]),
+                len(totals[i]),
+                max((len(r[i]) for r in str_rows), default=0),
+            )
             for i in range(len(headers))
         ]
 

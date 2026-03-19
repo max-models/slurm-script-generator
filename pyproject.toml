@@ -58,3 +58,6 @@ generate-slurm-script = "slurm_script_generator.main:main"
 
 [tool.setuptools.packages.find]
 where = [ "src" ]
+
+[tool.isort]
+profile = "black"
