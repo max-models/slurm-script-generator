@@ -426,3 +426,148 @@ class SQueue:
             f"SQueue(total={s['total_jobs']}, running={s['running']}, "
             f"pending={s['pending']}, users={list(s['users'].keys())})"
         )
+
+
+def _fmt_job_table(jobs: List[SQueueJob]) -> str:
+    """Format a list of jobs as an aligned table string."""
+    if not jobs:
+        return "  (no jobs)"
+    headers = ["JobID", "User", "Job Name", "State", "Partition", "Nodes", "CPUs", "Used", "Limit"]
+    rows = [
+        [
+            str(j.job_id),
+            j.user,
+            j.name,
+            j.state_name,
+            j.partition,
+            str(j.num_nodes),
+            str(j.num_cpus),
+            j.time_used,
+            j.time_limit,
+        ]
+        for j in jobs
+    ]
+    widths = [
+        max(len(headers[i]), max(len(r[i]) for r in rows))
+        for i in range(len(headers))
+    ]
+
+    def fmt(vals: list) -> str:
+        # JobID, Nodes, CPUs right-aligned; rest left-aligned
+        right = {0, 5, 6}
+        cells = [
+            vals[i].rjust(widths[i]) if i in right else vals[i].ljust(widths[i])
+            for i in range(len(vals))
+        ]
+        return "  " + "   ".join(cells)
+
+    bar = "─" * (sum(widths) + 3 * (len(widths) - 1) + 2)
+    lines = [fmt(headers), bar, *[fmt(r) for r in rows]]
+    return "\n".join(lines)
+
+
+def main() -> None:
+    """Entry point for the ``slurm-queue`` command-line tool.
+
+    Sub-commands
+    ------------
+    show  (default)
+        Print a per-user queue summary table.
+    list
+        Print individual jobs, optionally filtered.
+    wait
+        Block until matching jobs leave the active queue.
+    """
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(
+        prog="slurm-queue",
+        description="Inspect and wait on the SLURM job queue.",
+    )
+    parser.add_argument(
+        "--user", "-u",
+        metavar="USER",
+        default=None,
+        help="Restrict all squeue calls to this user.",
+    )
+    sub = parser.add_subparsers(dest="cmd")
+
+    # ---- show ---------------------------------------------------------------
+    p_show = sub.add_parser("show", help="Print per-user queue summary (default).")
+    p_show.add_argument("--user", "-u", metavar="USER", default=None,
+                        help="Filter to this user.")
+
+    # ---- list ---------------------------------------------------------------
+    p_list = sub.add_parser("list", help="List individual jobs.")
+    p_list.add_argument("--user", "-u", metavar="USER", default=None)
+    p_list.add_argument("--job-name", "-n", metavar="PATTERN", default=None,
+                        help="Filter by job name (glob patterns supported, e.g. 'train_*').")
+    p_list.add_argument("--job-id", "-j", metavar="ID", type=int, default=None,
+                        help="Filter to a specific job ID.")
+    p_list.add_argument("--state", "-s", metavar="STATE", default=None,
+                        help="Filter by state code, e.g. R, PD, CG.")
+
+    # ---- wait ---------------------------------------------------------------
+    p_wait = sub.add_parser("wait", help="Wait until matching jobs leave the active queue.")
+    p_wait.add_argument("--job-name", "-n", metavar="PATTERN", default=None,
+                        help="Job name or glob pattern to wait for (e.g. 'train_*').")
+    p_wait.add_argument("--job-id", "-j", metavar="ID", type=int, default=None,
+                        help="Wait for a specific job ID.")
+    p_wait.add_argument("--user", "-u", metavar="USER", default=None,
+                        help="Wait for all jobs belonging to this user.")
+    p_wait.add_argument("--poll-interval", "-i", metavar="SECONDS", type=float, default=30.0,
+                        help="Seconds between queue polls (default: 30).")
+    p_wait.add_argument("--timeout", "-t", metavar="SECONDS", type=float, default=None,
+                        help="Raise an error if jobs are still running after this many seconds.")
+    p_wait.add_argument("--quiet", "-q", action="store_true",
+                        help="Suppress progress messages.")
+
+    args = parser.parse_args()
+
+    # Default sub-command: show
+    if args.cmd is None or args.cmd == "show":
+        user = getattr(args, "user", None)
+        try:
+            q = SQueue(user=user)
+            print(q)
+        except RuntimeError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    elif args.cmd == "list":
+        try:
+            q = SQueue(user=args.user)
+            jobs = q.jobs(
+                job_name=args.job_name,
+                job_id=args.job_id,
+                state=args.state,
+            )
+            print(_fmt_job_table(jobs))
+        except RuntimeError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    elif args.cmd == "wait":
+        if args.job_name is None and args.job_id is None and args.user is None:
+            p_wait.error("Specify at least one of: --job-name, --job-id, --user")
+        try:
+            q = SQueue()
+            q.wait_until_done(
+                job_name=args.job_name,
+                job_id=args.job_id,
+                user=args.user,
+                poll_interval=args.poll_interval,
+                timeout=args.timeout,
+                verbose=not args.quiet,
+            )
+        except TimeoutError as e:
+            print(f"Timeout: {e}", file=sys.stderr)
+            sys.exit(1)
+        except RuntimeError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

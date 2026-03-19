@@ -2,6 +2,7 @@
 
 import time
 from unittest.mock import MagicMock, call, patch
+from slurm_script_generator.squeue import _fmt_job_table, main
 
 import pytest
 
@@ -428,3 +429,130 @@ def test_state_name():
 
     job2 = SQueueJob(2, "u", "n", "PD", "p", 1, 4, "0:00", "1:00", "Resources", 50)
     assert job2.state_name == "Pending"
+
+
+# ---------------------------------------------------------------------------
+# _fmt_job_table
+# ---------------------------------------------------------------------------
+
+
+def test_fmt_job_table_empty():
+    assert _fmt_job_table([]) == "  (no jobs)"
+
+
+def test_fmt_job_table_contains_fields(queue):
+    table = _fmt_job_table(list(queue))
+    assert "alice" in table
+    assert "train_resnet" in table
+    assert "Running" in table
+    assert "JobID" in table
+
+
+def test_fmt_job_table_columns(queue):
+    table = _fmt_job_table(list(queue))
+    # All expected header columns present
+    for col in ["JobID", "User", "Job Name", "State", "Partition", "Nodes", "CPUs"]:
+        assert col in table
+
+
+# ---------------------------------------------------------------------------
+# CLI — main()
+# ---------------------------------------------------------------------------
+
+
+def _run_main(argv, mock_stdout=SAMPLE_OUTPUT):
+    """Run main() with patched subprocess and sys.argv, return printed output."""
+    import sys
+    from io import StringIO
+
+    out = StringIO()
+    with patch("subprocess.run", return_value=_mock_run(stdout=mock_stdout)):
+        with patch("sys.argv", ["slurm-queue"] + argv):
+            with patch("sys.stdout", out):
+                try:
+                    main()
+                except SystemExit:
+                    pass
+    return out.getvalue()
+
+
+def test_cli_default_shows_summary():
+    output = _run_main([])
+    assert "SLURM Queue" in output
+    assert "alice" in output
+
+
+def test_cli_show_subcommand():
+    output = _run_main(["show"])
+    assert "SLURM Queue" in output
+
+
+def test_cli_show_user_filter():
+    output = _run_main(["show", "--user", "alice"])
+    # Only alice's jobs fetched — the --user flag is passed to squeue
+    assert "SLURM Queue" in output
+
+
+def test_cli_list_all():
+    output = _run_main(["list"])
+    assert "JobID" in output
+    assert "alice" in output
+    assert "bob" in output
+
+
+def test_cli_list_filter_user():
+    output = _run_main(["list", "--user", "alice"])
+    assert "alice" in output
+
+
+def test_cli_list_filter_job_name():
+    output = _run_main(["list", "--job-name", "train_*"])
+    assert "train_resnet" in output
+    assert "train_bert" in output
+    assert "preprocess" not in output
+
+
+def test_cli_list_filter_state():
+    output = _run_main(["list", "--state", "PD"])
+    assert "Pending" in output
+    assert "Running" not in output
+
+
+def test_cli_wait_requires_filter(capsys):
+    import sys
+
+    with patch("subprocess.run", return_value=_mock_run(stdout="")):
+        with patch("sys.argv", ["slurm-queue", "wait"]):
+            with pytest.raises(SystemExit):
+                main()
+
+
+def test_cli_wait_by_job_name():
+    """wait subcommand exits cleanly when queue is empty."""
+    import sys
+    from io import StringIO
+
+    out = StringIO()
+    with patch("subprocess.run", return_value=_mock_run(stdout="")):
+        with patch("sys.argv", ["slurm-queue", "wait", "--job-name", "train_*", "--quiet"]):
+            with patch("sys.stdout", out):
+                main()  # should return immediately (no matching active jobs)
+
+
+def test_cli_wait_timeout_exits_nonzero():
+    import sys
+    from io import StringIO
+
+    active = _make_line(1001, "alice", "slow_job", "R")
+    err = StringIO()
+
+    with patch("subprocess.run", return_value=_mock_run(stdout=active)):
+        with patch("sys.argv", ["slurm-queue", "wait", "--job-name", "slow_job",
+                                "--timeout", "0.001", "--poll-interval", "0.001", "--quiet"]):
+            with patch("sys.stderr", err):
+                with patch("time.sleep"):
+                    with patch("time.monotonic", side_effect=[0, 0, 9999]):
+                        with pytest.raises(SystemExit) as exc:
+                            main()
+    assert exc.value.code == 1
+    assert "Timeout" in err.getvalue()
