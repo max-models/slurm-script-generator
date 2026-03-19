@@ -43,4 +43,5 @@ Check out the pages below for more detailed documentation on the Command Line In
 
    cli.md
    tutorials
+   slurm_queue.md
    api/index
