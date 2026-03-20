@@ -13,4 +13,5 @@
    main
    pragmas
    slurm_script
+   squeue
    utils
