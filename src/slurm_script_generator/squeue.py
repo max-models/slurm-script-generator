@@ -752,15 +752,23 @@ def _fmt_stats_table(q: SQueue) -> str:
 # ---------------------------------------------------------------------------
 
 _SACCT_FIELDS = [
-    "JobID", "User", "JobName", "State", "Partition",
-    "AllocNodes", "AllocCPUS", "Elapsed", "CPUTimeRAW", "ExitCode",
+    "JobID",
+    "User",
+    "JobName",
+    "State",
+    "Partition",
+    "AllocNodes",
+    "AllocCPUS",
+    "Elapsed",
+    "CPUTimeRAW",
+    "ExitCode",
 ]
 _SACCT_FORMAT = ",".join(_SACCT_FIELDS)
 
 # sacct state -> color bucket (separate from squeue states)
-_SACCT_GREEN  = {"COMPLETED"}
+_SACCT_GREEN = {"COMPLETED"}
 _SACCT_YELLOW = {"TIMEOUT", "PREEMPTED", "CANCELLED"}
-_SACCT_RED    = {"FAILED", "NODE_FAIL", "OUT_OF_MEMORY"}
+_SACCT_RED = {"FAILED", "NODE_FAIL", "OUT_OF_MEMORY"}
 
 
 def _normalize_sacct_state(state: str) -> str:
@@ -805,13 +813,13 @@ class SAcctJob:
     job_id: int
     user: str
     name: str
-    state: str        # normalized, e.g. "COMPLETED", "FAILED", "CANCELLED"
+    state: str  # normalized, e.g. "COMPLETED", "FAILED", "CANCELLED"
     partition: str
     num_nodes: int
     num_cpus: int
-    elapsed: str      # wall-clock time as HH:MM:SS
-    cpu_time_raw: int # CPU-seconds = AllocCPUS * elapsed_seconds
-    exit_code: str    # e.g. "0:0" or "1:0"
+    elapsed: str  # wall-clock time as HH:MM:SS
+    cpu_time_raw: int  # CPU-seconds = AllocCPUS * elapsed_seconds
+    exit_code: str  # e.g. "0:0" or "1:0"
 
     @property
     def cpu_hours(self) -> float:
@@ -1019,8 +1027,12 @@ def _fmt_history_summary(acct: SAcct) -> str:
     total_timeout = sum(1 for j in acct if j.is_timeout)
     total_cancelled = sum(1 for j in acct if j.is_cancelled)
     totals_plain = [
-        "TOTAL", str(len(acct)), str(total_done), str(total_failed),
-        str(total_timeout), str(total_cancelled),
+        "TOTAL",
+        str(len(acct)),
+        str(total_done),
+        str(total_failed),
+        str(total_timeout),
+        str(total_cancelled),
         _fmt_cpu_hours(sum(j.cpu_hours for j in acct)),
     ]
     str_rows = [
@@ -1028,8 +1040,11 @@ def _fmt_history_summary(acct: SAcct) -> str:
         for r in rows
     ]
     widths = [
-        max(len(headers[i]), len(totals_plain[i]),
-            max((len(r[i]) for r in str_rows), default=0))
+        max(
+            len(headers[i]),
+            len(totals_plain[i]),
+            max((len(r[i]) for r in str_rows), default=0),
+        )
         for i in range(len(headers))
     ]
 
@@ -1042,9 +1057,15 @@ def _fmt_history_summary(acct: SAcct) -> str:
     def fmt_row(r: list) -> str:
         cells = [_pad(r[0], r[0], widths[0], "l")]
         cells.append(_pad(r[1], r[1], widths[1], "r"))
-        cells.append(_pad(r[2], _c(r[2], _GREEN) if r[2] != "0" else r[2], widths[2], "r"))
-        cells.append(_pad(r[3], _c(r[3], _RED) if r[3] != "0" else r[3], widths[3], "r"))
-        cells.append(_pad(r[4], _c(r[4], _YELLOW) if r[4] != "0" else r[4], widths[4], "r"))
+        cells.append(
+            _pad(r[2], _c(r[2], _GREEN) if r[2] != "0" else r[2], widths[2], "r")
+        )
+        cells.append(
+            _pad(r[3], _c(r[3], _RED) if r[3] != "0" else r[3], widths[3], "r")
+        )
+        cells.append(
+            _pad(r[4], _c(r[4], _YELLOW) if r[4] != "0" else r[4], widths[4], "r")
+        )
         cells.append(_pad(r[5], r[5], widths[5], "r"))
         cells.append(_pad(r[6], r[6], widths[6], "r"))
         return "  " + "   ".join(cells)
@@ -1063,7 +1084,9 @@ def _fmt_history_summary(acct: SAcct) -> str:
         return "  " + "   ".join(cells)
 
     bar = _c("\u2500" * (sum(widths) + 3 * (len(widths) - 1) + 2), _DIM)
-    return "\n".join([fmt_header(), bar, *[fmt_row(r) for r in str_rows], bar, fmt_totals(), bar])
+    return "\n".join(
+        [fmt_header(), bar, *[fmt_row(r) for r in str_rows], bar, fmt_totals(), bar]
+    )
 
 
 def _fmt_history_detail(acct: SAcct) -> str:
@@ -1078,7 +1101,10 @@ def _fmt_history_detail(acct: SAcct) -> str:
     # --- By State ------------------------------------------------------------
     by_state = acct.jobs_by_state()
     s_rows = sorted(
-        [(s, len(jobs), sum(j.cpu_hours for j in jobs)) for s, jobs in by_state.items()],
+        [
+            (s, len(jobs), sum(j.cpu_hours for j in jobs))
+            for s, jobs in by_state.items()
+        ],
         key=lambda r: -r[1],
     )
     s_tot_plain = ["TOTAL", str(total), "100%", _fmt_cpu_hours(total_cpu)]
@@ -1088,8 +1114,11 @@ def _fmt_history_detail(acct: SAcct) -> str:
     ]
     s_headers = ["State", "Jobs", "%", "CPU-hours"]
     s_widths = [
-        max(len(s_headers[i]), len(s_tot_plain[i]),
-            max((len(r[i]) for r in s_str_rows), default=0))
+        max(
+            len(s_headers[i]),
+            len(s_tot_plain[i]),
+            max((len(r[i]) for r in s_str_rows), default=0),
+        )
         for i in range(len(s_headers))
     ]
 
@@ -1135,7 +1164,10 @@ def _fmt_history_detail(acct: SAcct) -> str:
     by_part = acct.jobs_by_partition()
     if len(by_part) > 1 or list(by_part.keys()) != [""]:
         p_rows = sorted(
-            [(p, len(jobs), sum(j.cpu_hours for j in jobs)) for p, jobs in by_part.items()],
+            [
+                (p, len(jobs), sum(j.cpu_hours for j in jobs))
+                for p, jobs in by_part.items()
+            ],
             key=lambda r: -r[2],
         )
         p_str_rows = [[r[0], str(r[1]), _fmt_cpu_hours(r[2])] for r in p_rows]
@@ -1148,7 +1180,9 @@ def _fmt_history_detail(acct: SAcct) -> str:
         def fmt_p_header() -> str:
             cells = [_pad(p_headers[0], _c(p_headers[0], _BOLD), p_widths[0], "l")]
             for i in range(1, len(p_headers)):
-                cells.append(_pad(p_headers[i], _c(p_headers[i], _BOLD), p_widths[i], "r"))
+                cells.append(
+                    _pad(p_headers[i], _c(p_headers[i], _BOLD), p_widths[i], "r")
+                )
             return "  " + "   ".join(cells)
 
         def fmt_p_row(r: list) -> str:
@@ -1290,15 +1324,25 @@ def main() -> None:
         "history", help="Show job submission history from accounting records (sacct)."
     )
     p_hist.add_argument(
-        "--user", "-u", metavar="USER", default=None,
+        "--user",
+        "-u",
+        metavar="USER",
+        default=None,
         help="Show detailed per-state breakdown for this user; omit for all-users summary.",
     )
     p_hist.add_argument(
-        "--days", "-d", metavar="N", type=int, default=7,
+        "--days",
+        "-d",
+        metavar="N",
+        type=int,
+        default=7,
         help="Number of days to look back (default: 7).",
     )
     p_hist.add_argument(
-        "--partition", "-p", metavar="PARTITION", default=None,
+        "--partition",
+        "-p",
+        metavar="PARTITION",
+        default=None,
         help="Filter to this partition.",
     )
 

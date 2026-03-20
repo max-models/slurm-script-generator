@@ -692,21 +692,39 @@ def _make_sacct_line(
     cpu_time_raw=14400,
     exit_code="0:0",
 ):
-    return _SACCT_SEP.join([
-        str(job_id), user, name, state, partition,
-        str(nodes), str(cpus), elapsed, str(cpu_time_raw), exit_code,
-    ])
+    return _SACCT_SEP.join(
+        [
+            str(job_id),
+            user,
+            name,
+            state,
+            partition,
+            str(nodes),
+            str(cpus),
+            elapsed,
+            str(cpu_time_raw),
+            exit_code,
+        ]
+    )
 
 
-SACCT_OUTPUT = "\n".join([
-    _make_sacct_line(2001, "alice", "train_job", "COMPLETED", cpu_time_raw=14400),
-    _make_sacct_line(2002, "alice", "eval_job", "FAILED", exit_code="1:0", cpu_time_raw=3600),
-    _make_sacct_line(2003, "bob", "preprocess", "COMPLETED", partition="cpu", cpu_time_raw=7200),
-    _make_sacct_line(2004, "alice", "long_job", "TIMEOUT", cpu_time_raw=86400),
-    _make_sacct_line(2005, "carol", "quick_job", "CANCELLED", cpu_time_raw=600),
-    # job step — should be skipped
-    _make_sacct_line("2001.batch", "alice", "batch", "COMPLETED", cpu_time_raw=14400),
-])
+SACCT_OUTPUT = "\n".join(
+    [
+        _make_sacct_line(2001, "alice", "train_job", "COMPLETED", cpu_time_raw=14400),
+        _make_sacct_line(
+            2002, "alice", "eval_job", "FAILED", exit_code="1:0", cpu_time_raw=3600
+        ),
+        _make_sacct_line(
+            2003, "bob", "preprocess", "COMPLETED", partition="cpu", cpu_time_raw=7200
+        ),
+        _make_sacct_line(2004, "alice", "long_job", "TIMEOUT", cpu_time_raw=86400),
+        _make_sacct_line(2005, "carol", "quick_job", "CANCELLED", cpu_time_raw=600),
+        # job step — should be skipped
+        _make_sacct_line(
+            "2001.batch", "alice", "batch", "COMPLETED", cpu_time_raw=14400
+        ),
+    ]
+)
 
 
 def _mock_sacct(stdout=SACCT_OUTPUT, returncode=0, stderr=""):
@@ -736,9 +754,12 @@ def test_sacct_job_fields(acct):
 
 
 def test_sacct_normalize_cancelled():
-    with patch("subprocess.run", return_value=_mock_sacct(
-        stdout=_make_sacct_line(9999, "dave", "myjob", "CANCELLED by 1234")
-    )):
+    with patch(
+        "subprocess.run",
+        return_value=_mock_sacct(
+            stdout=_make_sacct_line(9999, "dave", "myjob", "CANCELLED by 1234")
+        ),
+    ):
         a = SAcct()
     assert a.jobs()[0].state == "CANCELLED"
 
@@ -871,6 +892,7 @@ def test_fmt_history_detail_empty():
 def _run_main_sacct(argv, mock_stdout=SACCT_OUTPUT):
     """Run main() with patched sacct subprocess."""
     from io import StringIO
+
     out = StringIO()
     with patch("subprocess.run", return_value=_mock_sacct(stdout=mock_stdout)):
         with patch("sys.argv", ["slurm-queue"] + argv):
