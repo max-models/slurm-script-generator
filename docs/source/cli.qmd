@@ -139,7 +139,7 @@ generate-slurm-script \
     --job-name long_run \
     --nodes 4 --ntasks-per-node 16 \
     --mail-user user@example.com \
-    --mail-type END,FAIL \
+    --mail-type END \
     --no-header
 ```
 
