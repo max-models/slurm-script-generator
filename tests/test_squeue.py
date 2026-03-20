@@ -9,8 +9,12 @@ from slurm_script_generator.squeue import (
     _FORMAT_STR,
     _SEPARATOR,
     ACTIVE_STATES,
+    SAcct,
+    SAcctJob,
     SQueue,
     SQueueJob,
+    _fmt_history_detail,
+    _fmt_history_summary,
     _fmt_job_table,
     _fmt_stats_table,
     main,
@@ -667,6 +671,245 @@ def test_cli_list_partition():
 def test_cli_show_partition():
     output = _run_main(["show", "--partition", "gpu"])
     assert "SLURM Queue" in output
+
+
+# ---------------------------------------------------------------------------
+# SAcct / history
+# ---------------------------------------------------------------------------
+
+_SACCT_SEP = "|"
+
+
+def _make_sacct_line(
+    job_id,
+    user,
+    name,
+    state,
+    partition="gpu",
+    nodes=1,
+    cpus=4,
+    elapsed="01:00:00",
+    cpu_time_raw=14400,
+    exit_code="0:0",
+):
+    return _SACCT_SEP.join([
+        str(job_id), user, name, state, partition,
+        str(nodes), str(cpus), elapsed, str(cpu_time_raw), exit_code,
+    ])
+
+
+SACCT_OUTPUT = "\n".join([
+    _make_sacct_line(2001, "alice", "train_job", "COMPLETED", cpu_time_raw=14400),
+    _make_sacct_line(2002, "alice", "eval_job", "FAILED", exit_code="1:0", cpu_time_raw=3600),
+    _make_sacct_line(2003, "bob", "preprocess", "COMPLETED", partition="cpu", cpu_time_raw=7200),
+    _make_sacct_line(2004, "alice", "long_job", "TIMEOUT", cpu_time_raw=86400),
+    _make_sacct_line(2005, "carol", "quick_job", "CANCELLED", cpu_time_raw=600),
+    # job step — should be skipped
+    _make_sacct_line("2001.batch", "alice", "batch", "COMPLETED", cpu_time_raw=14400),
+])
+
+
+def _mock_sacct(stdout=SACCT_OUTPUT, returncode=0, stderr=""):
+    mock = MagicMock()
+    mock.returncode = returncode
+    mock.stdout = stdout
+    mock.stderr = stderr
+    return mock
+
+
+@pytest.fixture
+def acct():
+    with patch("subprocess.run", return_value=_mock_sacct()):
+        return SAcct()
+
+
+def test_sacct_job_count(acct):
+    assert len(acct) == 5  # job step skipped
+
+
+def test_sacct_job_fields(acct):
+    job = acct.jobs(user="alice")[0]
+    assert job.job_id == 2001
+    assert job.user == "alice"
+    assert job.state == "COMPLETED"
+    assert job.cpu_hours == pytest.approx(4.0)
+
+
+def test_sacct_normalize_cancelled():
+    with patch("subprocess.run", return_value=_mock_sacct(
+        stdout=_make_sacct_line(9999, "dave", "myjob", "CANCELLED by 1234")
+    )):
+        a = SAcct()
+    assert a.jobs()[0].state == "CANCELLED"
+
+
+def test_sacct_filter_user(acct):
+    jobs = acct.jobs(user="alice")
+    assert len(jobs) == 3
+    assert all(j.user == "alice" for j in jobs)
+
+
+def test_sacct_filter_state(acct):
+    assert len(acct.jobs(state="COMPLETED")) == 2
+    assert len(acct.jobs(state="FAILED")) == 1
+    assert len(acct.jobs(state="TIMEOUT")) == 1
+
+
+def test_sacct_filter_partition(acct):
+    assert len(acct.jobs(partition="cpu")) == 1
+    assert len(acct.jobs(partition="gpu")) == 4
+
+
+def test_sacct_jobs_by_user(acct):
+    by_user = acct.jobs_by_user()
+    assert set(by_user.keys()) == {"alice", "bob", "carol"}
+    assert len(by_user["alice"]) == 3
+
+
+def test_sacct_jobs_by_state(acct):
+    by_state = acct.jobs_by_state()
+    assert len(by_state["COMPLETED"]) == 2
+    assert len(by_state["FAILED"]) == 1
+    assert len(by_state["TIMEOUT"]) == 1
+
+
+def test_sacct_jobs_by_partition(acct):
+    by_part = acct.jobs_by_partition()
+    assert "gpu" in by_part
+    assert "cpu" in by_part
+
+
+def test_sacct_summary(acct):
+    s = acct.summary()
+    assert s["total"] == 5
+    assert s["completed"] == 2
+    assert s["failed"] == 1
+    assert s["cancelled"] == 1
+    assert s["timeout"] == 1
+    assert s["cpu_hours"] == pytest.approx((14400 + 3600 + 7200 + 86400 + 600) / 3600)
+
+
+def test_sacct_is_properties(acct):
+    jobs = {j.job_id: j for j in acct}
+    assert jobs[2001].is_completed
+    assert jobs[2002].is_failed
+    assert jobs[2004].is_timeout
+    assert jobs[2005].is_cancelled
+
+
+def test_sacct_user_passed_to_sacct():
+    with patch("subprocess.run", return_value=_mock_sacct(stdout="")) as mock_run:
+        SAcct(user="alice")
+        cmd = mock_run.call_args[0][0]
+        assert "--user" in cmd
+        assert "alice" in cmd
+
+
+def test_sacct_partition_passed_to_sacct():
+    with patch("subprocess.run", return_value=_mock_sacct(stdout="")) as mock_run:
+        SAcct(partition="gpu")
+        cmd = mock_run.call_args[0][0]
+        assert "--partition" in cmd
+        assert "gpu" in cmd
+
+
+def test_sacct_raises_on_error():
+    with patch("subprocess.run", return_value=_mock_sacct(returncode=1, stderr="err")):
+        with pytest.raises(RuntimeError, match="sacct failed"):
+            SAcct()
+
+
+def test_fmt_history_summary_contains_users(acct):
+    s = _fmt_history_summary(acct)
+    assert "alice" in s
+    assert "bob" in s
+    assert "carol" in s
+
+
+def test_fmt_history_summary_headers(acct):
+    s = _fmt_history_summary(acct)
+    for col in ["User", "Jobs", "Done", "Failed", "Timeout", "Cancelled", "CPU-hours"]:
+        assert col in s
+
+
+def test_fmt_history_summary_totals(acct):
+    s = _fmt_history_summary(acct)
+    assert "TOTAL" in s
+
+
+def test_fmt_history_summary_empty():
+    with patch("subprocess.run", return_value=_mock_sacct(stdout="")):
+        a = SAcct()
+    assert "no jobs found" in _fmt_history_summary(a)
+
+
+def test_fmt_history_detail_by_state(acct):
+    d = _fmt_history_detail(acct)
+    assert "By State" in d
+    assert "COMPLETED" in d
+
+
+def test_fmt_history_detail_by_partition(acct):
+    # has both gpu and cpu partitions
+    d = _fmt_history_detail(acct)
+    assert "By Partition" in d
+    assert "gpu" in d
+    assert "cpu" in d
+
+
+def test_fmt_history_detail_empty():
+    with patch("subprocess.run", return_value=_mock_sacct(stdout="")):
+        a = SAcct()
+    assert "no jobs found" in _fmt_history_detail(a)
+
+
+# ---------------------------------------------------------------------------
+# CLI — history subcommand
+# ---------------------------------------------------------------------------
+
+
+def _run_main_sacct(argv, mock_stdout=SACCT_OUTPUT):
+    """Run main() with patched sacct subprocess."""
+    from io import StringIO
+    out = StringIO()
+    with patch("subprocess.run", return_value=_mock_sacct(stdout=mock_stdout)):
+        with patch("sys.argv", ["slurm-queue"] + argv):
+            with patch("sys.stdout", out):
+                try:
+                    main()
+                except SystemExit:
+                    pass
+    return out.getvalue()
+
+
+def test_cli_history_default():
+    output = _run_main_sacct(["history"])
+    assert "Job History" in output
+    assert "alice" in output
+    assert "CPU-hours" in output
+
+
+def test_cli_history_user():
+    output = _run_main_sacct(["history", "--user", "alice"])
+    assert "Job History" in output
+    assert "By State" in output
+    assert "COMPLETED" in output
+
+
+def test_cli_history_days():
+    output = _run_main_sacct(["history", "--days", "30"])
+    assert "30 days" in output
+
+
+def test_cli_history_one_day():
+    output = _run_main_sacct(["history", "--days", "1"])
+    assert "1 day" in output
+    assert "1 days" not in output
+
+
+def test_cli_history_partition():
+    output = _run_main_sacct(["history", "--partition", "gpu"])
+    assert "Job History" in output
 
 
 def test_cli_wait_timeout_exits_nonzero():

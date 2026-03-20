@@ -4,6 +4,7 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 # ---------------------------------------------------------------------------
@@ -746,6 +747,430 @@ def _fmt_stats_table(q: SQueue) -> str:
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------------------
+# SLURM accounting (sacct)
+# ---------------------------------------------------------------------------
+
+_SACCT_FIELDS = [
+    "JobID", "User", "JobName", "State", "Partition",
+    "AllocNodes", "AllocCPUS", "Elapsed", "CPUTimeRAW", "ExitCode",
+]
+_SACCT_FORMAT = ",".join(_SACCT_FIELDS)
+
+# sacct state -> color bucket (separate from squeue states)
+_SACCT_GREEN  = {"COMPLETED"}
+_SACCT_YELLOW = {"TIMEOUT", "PREEMPTED", "CANCELLED"}
+_SACCT_RED    = {"FAILED", "NODE_FAIL", "OUT_OF_MEMORY"}
+
+
+def _normalize_sacct_state(state: str) -> str:
+    """Normalize sacct state strings — e.g. 'CANCELLED by 1234' -> 'CANCELLED'."""
+    state = state.strip()
+    if state.startswith("CANCELLED"):
+        return "CANCELLED"
+    return state
+
+
+def _fmt_cpu_hours(hours: float) -> str:
+    """Format a CPU-hour value for display."""
+    h = int(hours)
+    if h >= 1_000_000:
+        return f"{h / 1_000_000:.1f}M"
+    if h >= 10_000:
+        s = str(h)
+        # insert thousands separators manually for portability
+        parts = []
+        while len(s) > 3:
+            parts.append(s[-3:])
+            s = s[:-3]
+        parts.append(s)
+        return ",".join(reversed(parts))
+    return str(h)
+
+
+def _color_sacct_state(state: str, text: str) -> str:
+    if state in _SACCT_GREEN:
+        return _c(text, _GREEN)
+    if state in _SACCT_YELLOW:
+        return _c(text, _YELLOW)
+    if state in _SACCT_RED:
+        return _c(text, _RED)
+    return text
+
+
+@dataclass
+class SAcctJob:
+    """A single job record from SLURM accounting (``sacct``)."""
+
+    job_id: int
+    user: str
+    name: str
+    state: str        # normalized, e.g. "COMPLETED", "FAILED", "CANCELLED"
+    partition: str
+    num_nodes: int
+    num_cpus: int
+    elapsed: str      # wall-clock time as HH:MM:SS
+    cpu_time_raw: int # CPU-seconds = AllocCPUS * elapsed_seconds
+    exit_code: str    # e.g. "0:0" or "1:0"
+
+    @property
+    def cpu_hours(self) -> float:
+        return self.cpu_time_raw / 3600.0
+
+    @property
+    def is_completed(self) -> bool:
+        return self.state == "COMPLETED"
+
+    @property
+    def is_failed(self) -> bool:
+        return self.state in {"FAILED", "NODE_FAIL", "OUT_OF_MEMORY"}
+
+    @property
+    def is_cancelled(self) -> bool:
+        return self.state == "CANCELLED"
+
+    @property
+    def is_timeout(self) -> bool:
+        return self.state == "TIMEOUT"
+
+    def __repr__(self) -> str:
+        return (
+            f"SAcctJob(job_id={self.job_id}, user={self.user!r}, "
+            f"name={self.name!r}, state={self.state!r}, elapsed={self.elapsed!r})"
+        )
+
+
+class SAcct:
+    """Interface to SLURM job accounting via ``sacct``.
+
+    Parameters
+    ----------
+    user : str, optional
+        If given, fetch only jobs for this user.
+    days : int
+        Number of days of history to look back (default: 7).
+    partition : str, optional
+        If given, filter to this partition.
+
+    Examples
+    --------
+    >>> a = SAcct(user='alice', days=30)
+    >>> a.summary()
+    {'total': 42, 'completed': 30, 'failed': 5, ...}
+    """
+
+    def __init__(
+        self,
+        user: Optional[str] = None,
+        days: int = 7,
+        partition: Optional[str] = None,
+    ) -> None:
+        self._user = user
+        self._days = days
+        self._partition = partition
+        self._jobs: List[SAcctJob] = []
+        self.refresh()
+
+    def refresh(self) -> "SAcct":
+        """Re-run ``sacct`` and update the cached job list."""
+        start = (datetime.now() - timedelta(days=self._days)).strftime(
+            "%Y-%m-%dT00:00:00"
+        )
+        cmd = [
+            "sacct",
+            f"--format={_SACCT_FORMAT}",
+            "--noheader",
+            "--parsable2",
+            f"--starttime={start}",
+            "--allocations",  # main job entries only, no sub-steps
+        ]
+        if self._user:
+            cmd += ["--user", self._user]
+        if self._partition:
+            cmd += ["--partition", self._partition]
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(f"sacct failed: {result.stderr.strip()}")
+
+        self._jobs = []
+        for line in result.stdout.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split("|")
+            if len(parts) < len(_SACCT_FIELDS):
+                continue
+            job_id_str = parts[0].strip()
+            if not job_id_str or "." in job_id_str:
+                continue  # skip job steps (e.g. 12345.batch)
+            try:
+                self._jobs.append(
+                    SAcctJob(
+                        job_id=_parse_int(job_id_str),
+                        user=parts[1].strip(),
+                        name=parts[2].strip(),
+                        state=_normalize_sacct_state(parts[3]),
+                        partition=parts[4].strip(),
+                        num_nodes=_parse_int(parts[5]),
+                        num_cpus=_parse_int(parts[6]),
+                        elapsed=parts[7].strip(),
+                        cpu_time_raw=_parse_int(parts[8]),
+                        exit_code=parts[9].strip(),
+                    )
+                )
+            except (ValueError, IndexError):
+                continue
+        return self
+
+    def jobs(
+        self,
+        user: Optional[str] = None,
+        state: Optional[str] = None,
+        partition: Optional[str] = None,
+    ) -> List[SAcctJob]:
+        """Return accounting records matching the given criteria."""
+        result = list(self._jobs)
+        if user is not None:
+            result = [j for j in result if j.user == user]
+        if state is not None:
+            result = [j for j in result if j.state == state]
+        if partition is not None:
+            result = [j for j in result if j.partition == partition]
+        return result
+
+    def jobs_by_user(self) -> Dict[str, List[SAcctJob]]:
+        """Return a mapping of username -> list of their historical jobs."""
+        result: Dict[str, List[SAcctJob]] = {}
+        for job in self._jobs:
+            result.setdefault(job.user, []).append(job)
+        return result
+
+    def jobs_by_state(self) -> Dict[str, List[SAcctJob]]:
+        """Return a mapping of state -> list of jobs in that state."""
+        result: Dict[str, List[SAcctJob]] = {}
+        for job in self._jobs:
+            result.setdefault(job.state, []).append(job)
+        return result
+
+    def jobs_by_partition(self) -> Dict[str, List[SAcctJob]]:
+        """Return a mapping of partition -> list of jobs in that partition."""
+        result: Dict[str, List[SAcctJob]] = {}
+        for job in self._jobs:
+            result.setdefault(job.partition, []).append(job)
+        return result
+
+    def summary(self) -> dict:
+        """Return a summary dict of job counts and CPU usage.
+
+        Returns
+        -------
+        dict
+            Keys: ``total``, ``completed``, ``failed``, ``cancelled``,
+            ``timeout``, ``cpu_hours``, ``by_state``, ``users``.
+        """
+        by_state = self.jobs_by_state()
+        by_user = self.jobs_by_user()
+        return {
+            "total": len(self._jobs),
+            "completed": len(by_state.get("COMPLETED", [])),
+            "failed": sum(1 for j in self._jobs if j.is_failed),
+            "cancelled": len(by_state.get("CANCELLED", [])),
+            "timeout": len(by_state.get("TIMEOUT", [])),
+            "cpu_hours": sum(j.cpu_hours for j in self._jobs),
+            "by_state": {s: len(jobs) for s, jobs in sorted(by_state.items())},
+            "users": {u: len(jobs) for u, jobs in sorted(by_user.items())},
+        }
+
+    def __len__(self) -> int:
+        return len(self._jobs)
+
+    def __iter__(self):
+        return iter(self._jobs)
+
+    def __repr__(self) -> str:
+        s = self.summary()
+        return (
+            f"SAcct(total={s['total']}, completed={s['completed']}, "
+            f"failed={s['failed']}, cpu_hours={s['cpu_hours']:.1f})"
+        )
+
+
+def _fmt_history_summary(acct: SAcct) -> str:
+    """Per-user summary table — shown when no specific user is requested."""
+    by_user = acct.jobs_by_user()
+    if not by_user:
+        return "  (no jobs found in the requested time window)"
+
+    headers = ["User", "Jobs", "Done", "Failed", "Timeout", "Cancelled", "CPU-hours"]
+
+    rows = []
+    for user, jobs in by_user.items():
+        done = sum(1 for j in jobs if j.is_completed)
+        failed = sum(1 for j in jobs if j.is_failed)
+        timeout = sum(1 for j in jobs if j.is_timeout)
+        cancelled = sum(1 for j in jobs if j.is_cancelled)
+        cpu_h = _fmt_cpu_hours(sum(j.cpu_hours for j in jobs))
+        rows.append((user, len(jobs), done, failed, timeout, cancelled, cpu_h))
+    rows.sort(key=lambda r: -r[1])  # heaviest users first
+
+    total_done = sum(1 for j in acct if j.is_completed)
+    total_failed = sum(1 for j in acct if j.is_failed)
+    total_timeout = sum(1 for j in acct if j.is_timeout)
+    total_cancelled = sum(1 for j in acct if j.is_cancelled)
+    totals_plain = [
+        "TOTAL", str(len(acct)), str(total_done), str(total_failed),
+        str(total_timeout), str(total_cancelled),
+        _fmt_cpu_hours(sum(j.cpu_hours for j in acct)),
+    ]
+    str_rows = [
+        [r[0], str(r[1]), str(r[2]), str(r[3]), str(r[4]), str(r[5]), r[6]]
+        for r in rows
+    ]
+    widths = [
+        max(len(headers[i]), len(totals_plain[i]),
+            max((len(r[i]) for r in str_rows), default=0))
+        for i in range(len(headers))
+    ]
+
+    def fmt_header() -> str:
+        cells = [_pad(headers[0], _c(headers[0], _BOLD), widths[0], "l")]
+        for i in range(1, len(headers)):
+            cells.append(_pad(headers[i], _c(headers[i], _BOLD), widths[i], "r"))
+        return "  " + "   ".join(cells)
+
+    def fmt_row(r: list) -> str:
+        cells = [_pad(r[0], r[0], widths[0], "l")]
+        cells.append(_pad(r[1], r[1], widths[1], "r"))
+        cells.append(_pad(r[2], _c(r[2], _GREEN) if r[2] != "0" else r[2], widths[2], "r"))
+        cells.append(_pad(r[3], _c(r[3], _RED) if r[3] != "0" else r[3], widths[3], "r"))
+        cells.append(_pad(r[4], _c(r[4], _YELLOW) if r[4] != "0" else r[4], widths[4], "r"))
+        cells.append(_pad(r[5], r[5], widths[5], "r"))
+        cells.append(_pad(r[6], r[6], widths[6], "r"))
+        return "  " + "   ".join(cells)
+
+    def fmt_totals() -> str:
+        p = totals_plain
+        cells = [_pad(p[0], _c(p[0], _BOLD), widths[0], "l")]
+        cells.append(_pad(p[1], _c(p[1], _BOLD), widths[1], "r"))
+        cells.append(_pad(p[2], _c(p[2], _BOLD, _GREEN), widths[2], "r"))
+        f_c = _BOLD + _RED if p[3] != "0" else _BOLD
+        cells.append(_pad(p[3], _c(p[3], f_c), widths[3], "r"))
+        t_c = _BOLD + _YELLOW if p[4] != "0" else _BOLD
+        cells.append(_pad(p[4], _c(p[4], t_c), widths[4], "r"))
+        cells.append(_pad(p[5], _c(p[5], _BOLD), widths[5], "r"))
+        cells.append(_pad(p[6], _c(p[6], _BOLD), widths[6], "r"))
+        return "  " + "   ".join(cells)
+
+    bar = _c("\u2500" * (sum(widths) + 3 * (len(widths) - 1) + 2), _DIM)
+    return "\n".join([fmt_header(), bar, *[fmt_row(r) for r in str_rows], bar, fmt_totals(), bar])
+
+
+def _fmt_history_detail(acct: SAcct) -> str:
+    """Detailed breakdown for a single user — shown when --user is given."""
+    if not len(acct):
+        return "  (no jobs found in the requested time window)"
+
+    total = len(acct)
+    total_cpu = sum(j.cpu_hours for j in acct)
+    lines: List[str] = []
+
+    # --- By State ------------------------------------------------------------
+    by_state = acct.jobs_by_state()
+    s_rows = sorted(
+        [(s, len(jobs), sum(j.cpu_hours for j in jobs)) for s, jobs in by_state.items()],
+        key=lambda r: -r[1],
+    )
+    s_tot_plain = ["TOTAL", str(total), "100%", _fmt_cpu_hours(total_cpu)]
+    s_str_rows = [
+        [r[0], str(r[1]), f"{100 * r[1] // total}%", _fmt_cpu_hours(r[2])]
+        for r in s_rows
+    ]
+    s_headers = ["State", "Jobs", "%", "CPU-hours"]
+    s_widths = [
+        max(len(s_headers[i]), len(s_tot_plain[i]),
+            max((len(r[i]) for r in s_str_rows), default=0))
+        for i in range(len(s_headers))
+    ]
+
+    def fmt_s_header() -> str:
+        cells = [_pad(s_headers[0], _c(s_headers[0], _BOLD), s_widths[0], "l")]
+        for i in range(1, len(s_headers)):
+            cells.append(_pad(s_headers[i], _c(s_headers[i], _BOLD), s_widths[i], "r"))
+        return "  " + "   ".join(cells)
+
+    def fmt_s_row(state: str, r: list) -> str:
+        name_c = _color_sacct_state(state, r[0])
+        count_c = _color_sacct_state(state, r[1])
+        pct_c = _color_sacct_state(state, r[2])
+        cpu_c = _color_sacct_state(state, r[3])
+        cells = [
+            _pad(r[0], name_c, s_widths[0], "l"),
+            _pad(r[1], count_c, s_widths[1], "r"),
+            _pad(r[2], pct_c, s_widths[2], "r"),
+            _pad(r[3], cpu_c, s_widths[3], "r"),
+        ]
+        return "  " + "   ".join(cells)
+
+    def fmt_s_totals() -> str:
+        p = s_tot_plain
+        cells = [_pad(p[0], _c(p[0], _BOLD), s_widths[0], "l")]
+        for i in range(1, len(p)):
+            cells.append(_pad(p[i], _c(p[i], _BOLD), s_widths[i], "r"))
+        return "  " + "   ".join(cells)
+
+    s_bar = _c("\u2500" * (sum(s_widths) + 3 * (len(s_widths) - 1) + 2), _DIM)
+    lines += [
+        _c("By State", _BOLD),
+        s_bar,
+        fmt_s_header(),
+        s_bar,
+        *[fmt_s_row(s_rows[i][0], r) for i, r in enumerate(s_str_rows)],
+        s_bar,
+        fmt_s_totals(),
+        s_bar,
+    ]
+
+    # --- By Partition --------------------------------------------------------
+    by_part = acct.jobs_by_partition()
+    if len(by_part) > 1 or list(by_part.keys()) != [""]:
+        p_rows = sorted(
+            [(p, len(jobs), sum(j.cpu_hours for j in jobs)) for p, jobs in by_part.items()],
+            key=lambda r: -r[2],
+        )
+        p_str_rows = [[r[0], str(r[1]), _fmt_cpu_hours(r[2])] for r in p_rows]
+        p_headers = ["Partition", "Jobs", "CPU-hours"]
+        p_widths = [
+            max(len(p_headers[i]), max((len(r[i]) for r in p_str_rows), default=0))
+            for i in range(len(p_headers))
+        ]
+
+        def fmt_p_header() -> str:
+            cells = [_pad(p_headers[0], _c(p_headers[0], _BOLD), p_widths[0], "l")]
+            for i in range(1, len(p_headers)):
+                cells.append(_pad(p_headers[i], _c(p_headers[i], _BOLD), p_widths[i], "r"))
+            return "  " + "   ".join(cells)
+
+        def fmt_p_row(r: list) -> str:
+            cells = [_pad(r[0], r[0], p_widths[0], "l")]
+            for i in range(1, len(r)):
+                cells.append(_pad(r[i], r[i], p_widths[i], "r"))
+            return "  " + "   ".join(cells)
+
+        p_bar = _c("\u2500" * (sum(p_widths) + 3 * (len(p_widths) - 1) + 2), _DIM)
+        lines += [
+            "",
+            _c("By Partition", _BOLD),
+            p_bar,
+            fmt_p_header(),
+            p_bar,
+            *[fmt_p_row(r) for r in p_str_rows],
+            p_bar,
+        ]
+
+    return "\n".join(lines)
+
+
 # Sort-key functions for the `list --sort` option
 _SORT_KEYS = {
     "id": lambda j: j.job_id,
@@ -860,6 +1285,23 @@ def main() -> None:
         help="Filter to this partition.",
     )
 
+    # ---- history ------------------------------------------------------------
+    p_hist = sub.add_parser(
+        "history", help="Show job submission history from accounting records (sacct)."
+    )
+    p_hist.add_argument(
+        "--user", "-u", metavar="USER", default=None,
+        help="Show detailed per-state breakdown for this user; omit for all-users summary.",
+    )
+    p_hist.add_argument(
+        "--days", "-d", metavar="N", type=int, default=7,
+        help="Number of days to look back (default: 7).",
+    )
+    p_hist.add_argument(
+        "--partition", "-p", metavar="PARTITION", default=None,
+        help="Filter to this partition.",
+    )
+
     # ---- wait ---------------------------------------------------------------
     p_wait = sub.add_parser(
         "wait", help="Wait until matching jobs leave the active queue."
@@ -956,6 +1398,33 @@ def main() -> None:
             print(title)
             print(_c("\u2550" * len(title_plain), _DIM))
             print(_fmt_stats_table(q))
+        except RuntimeError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    elif args.cmd == "history":
+        try:
+            acct = SAcct(user=args.user, days=args.days, partition=args.partition)
+            n = args.days
+            day_s = "day" if n == 1 else "days"
+            part_s = f"  \u00b7  {args.partition}" if args.partition else ""
+            user_s = f"  \u00b7  {args.user}" if args.user else ""
+            title_plain = f"Job History  \u00b7  last {n} {day_s}  \u00b7  {len(acct)} jobs{part_s}{user_s}"
+            title = (
+                _c("Job History", _BOLD, _CYAN)
+                + "  \u00b7  "
+                + _c(f"last {n} {day_s}", _DIM)
+                + "  \u00b7  "
+                + f"{len(acct)} jobs"
+                + (f"  \u00b7  {args.partition}" if args.partition else "")
+                + (f"  \u00b7  " + _c(args.user, _BOLD) if args.user else "")
+            )
+            print(title)
+            print(_c("\u2550" * len(title_plain), _DIM))
+            if args.user:
+                print(_fmt_history_detail(acct))
+            else:
+                print(_fmt_history_summary(acct))
         except RuntimeError as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
