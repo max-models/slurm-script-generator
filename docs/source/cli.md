@@ -1,12 +1,5 @@
----
-engines:
-- path: /opt/quarto/share/extension-subtrees/julia-engine/\_extensions/julia-engine/julia-engine.js
-execute:
-  echo: true
-  output: true
-title: Command Line Interface --- generate-slurm-script
-toc-title: Table of contents
----
+# Command Line Interface — generate-slurm-script
+
 
 `generate-slurm-script` generates a SLURM batch script from command-line
 flags. Every `#SBATCH` pragma SLURM supports has a corresponding flag,
@@ -24,12 +17,10 @@ generate-slurm-script [SBATCH flags] [--modules ...] [--custom-commands ...]
 
 Print a script to stdout:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script --nodes 2 --ntasks-per-node 16 --time 04:00:00
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     #            This script was generated using           #
@@ -46,19 +37,15 @@ generate-slurm-script --nodes 2 --ntasks-per-node 16 --time 04:00:00
     #SBATCH --nodes=2                                      # number of nodes on which to run
     #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
     ########################################################
-:::
-::::
 
 Save to a file with `--output`:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script --nodes 2 --ntasks-per-node 16 --time 04:00:00 \
     --output job.sh
 cat job.sh
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     #            This script was generated using           #
@@ -75,25 +62,19 @@ cat job.sh
     #SBATCH --nodes=2                                      # number of nodes on which to run
     #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
     ########################################################
-:::
-::::
 
 Strip the generator header with `--no-header`:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script --nodes 2 --ntasks-per-node 16 --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Core Node And Task Allocation            #
     #SBATCH --nodes=2                                      # number of nodes on which to run
     #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
     ########################################################
-:::
-::::
 
 ------------------------------------------------------------------------
 
@@ -104,27 +85,51 @@ most commonly used ones are listed below.
 
 ### Job identity
 
-  -----------------------------------------------------------------------------
-  Flag                 Short             `#SBATCH` pragma  Description
-  -------------------- ----------------- ----------------- --------------------
-  `--job-name NAME`    `-J`              `--job-name`      Name shown in
-                                                           `squeue` and used in
-                                                           log filenames with
-                                                           `%x`
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Short</th>
+<th><code>#SBATCH</code> pragma</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--job-name NAME</code></td>
+<td><code>-J</code></td>
+<td><code>--job-name</code></td>
+<td>Name shown in <code>squeue</code> and used in log filenames with
+<code>%x</code></td>
+</tr>
+<tr>
+<td><code>--account NAME</code></td>
+<td><code>-A</code></td>
+<td><code>--account</code></td>
+<td>SLURM account to charge compute time to</td>
+</tr>
+<tr>
+<td><code>--partition NAME</code></td>
+<td><code>-p</code></td>
+<td><code>--partition</code></td>
+<td>Target partition (queue)</td>
+</tr>
+<tr>
+<td><code>--qos NAME</code></td>
+<td><code>-q</code></td>
+<td><code>--qos</code></td>
+<td>Quality-of-service level</td>
+</tr>
+</tbody>
+</table>
 
-  `--account NAME`     `-A`              `--account`       SLURM account to
-                                                           charge compute time
-                                                           to
-
-  `--partition NAME`   `-p`              `--partition`     Target partition
-                                                           (queue)
-
-  `--qos NAME`         `-q`              `--qos`           Quality-of-service
-                                                           level
-  -----------------------------------------------------------------------------
-
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script \
     --job-name my_simulation \
     --account proj_gpu \
@@ -133,7 +138,6 @@ generate-slurm-script \
     --nodes 1 --ntasks-per-node 4 --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Job Config                               #
@@ -146,38 +150,63 @@ generate-slurm-script \
     #SBATCH --nodes=1                                      # number of nodes on which to run
     #SBATCH --ntasks-per-node=4                            # number of tasks to invoke on each node
     ########################################################
-:::
-::::
 
 ### Time and resources
 
-  -----------------------------------------------------------------------
-  Flag                    Short                   Description
-  ----------------------- ----------------------- -----------------------
-  `--time MINUTES`        `-t`                    Wall-clock time limit
-                                                  (`HH:MM:SS` or minutes)
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Short</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--time MINUTES</code></td>
+<td><code>-t</code></td>
+<td>Wall-clock time limit (<code>HH:MM:SS</code> or minutes)</td>
+</tr>
+<tr>
+<td><code>--nodes N</code></td>
+<td><code>-N</code></td>
+<td>Number of nodes</td>
+</tr>
+<tr>
+<td><code>--ntasks N</code></td>
+<td><code>-n</code></td>
+<td>Total MPI tasks (spread across however many nodes fit)</td>
+</tr>
+<tr>
+<td><code>--ntasks-per-node N</code></td>
+<td></td>
+<td>Tasks per node (use with <code>--nodes</code>)</td>
+</tr>
+<tr>
+<td><code>--cpus-per-task N</code></td>
+<td><code>-c</code></td>
+<td>CPU cores per task — set this for OpenMP or multithreaded
+programs</td>
+</tr>
+<tr>
+<td><code>--mem MB</code></td>
+<td></td>
+<td>Memory per node in MB</td>
+</tr>
+<tr>
+<td><code>--mem-per-cpu MB</code></td>
+<td></td>
+<td>Memory per CPU core in MB</td>
+</tr>
+</tbody>
+</table>
 
-  `--nodes N`             `-N`                    Number of nodes
-
-  `--ntasks N`            `-n`                    Total MPI tasks (spread
-                                                  across however many
-                                                  nodes fit)
-
-  `--ntasks-per-node N`                           Tasks per node (use
-                                                  with `--nodes`)
-
-  `--cpus-per-task N`     `-c`                    CPU cores per task ---
-                                                  set this for OpenMP or
-                                                  multithreaded programs
-
-  `--mem MB`                                      Memory per node in MB
-
-  `--mem-per-cpu MB`                              Memory per CPU core in
-                                                  MB
-  -----------------------------------------------------------------------
-
-:::: cell
-``` {.bash .cell-code}
+``` bash
 # Multithreaded job: 1 task, 8 cores, 16 GB RAM
 generate-slurm-script \
     --job-name openmp_run \
@@ -188,7 +217,6 @@ generate-slurm-script \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Job Config                               #
@@ -204,33 +232,50 @@ generate-slurm-script \
     # Pragmas for Memory                                   #
     #SBATCH --mem=16000                                    # minimum amount of real memory
     ########################################################
-:::
-::::
 
 ### GPU resources
 
-  -----------------------------------------------------------------------
-  Flag                                Description
-  ----------------------------------- -----------------------------------
-  `--gpus-per-node N`                 GPUs per node (generic, works on
-                                      most clusters)
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--gpus-per-node N</code></td>
+<td>GPUs per node (generic, works on most clusters)</td>
+</tr>
+<tr>
+<td><code>--gres LIST</code></td>
+<td>Generic resources — e.g. <code>gpu:a100:2</code> for 2 A100s</td>
+</tr>
+<tr>
+<td><code>--constraint LIST</code></td>
+<td>Node feature constraint — e.g. <code>gpu</code> to select GPU
+nodes</td>
+</tr>
+<tr>
+<td><code>--cpus-per-gpu N</code></td>
+<td>CPU cores to allocate per GPU</td>
+</tr>
+<tr>
+<td><code>--mem-per-gpu MEM</code></td>
+<td>Memory per GPU</td>
+</tr>
+<tr>
+<td><code>--nvmps</code></td>
+<td>Enable NVIDIA MPS (for many small MPI tasks sharing GPUs)</td>
+</tr>
+</tbody>
+</table>
 
-  `--gres LIST`                       Generic resources ---
-                                      e.g. `gpu:a100:2` for 2 A100s
-
-  `--constraint LIST`                 Node feature constraint ---
-                                      e.g. `gpu` to select GPU nodes
-
-  `--cpus-per-gpu N`                  CPU cores to allocate per GPU
-
-  `--mem-per-gpu MEM`                 Memory per GPU
-
-  `--nvmps`                           Enable NVIDIA MPS (for many small
-                                      MPI tasks sharing GPUs)
-  -----------------------------------------------------------------------
-
-:::: cell
-``` {.bash .cell-code}
+``` bash
 # Single GPU job
 generate-slurm-script \
     --job-name gpu_train \
@@ -242,7 +287,6 @@ generate-slurm-script \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Job Config                               #
@@ -261,30 +305,46 @@ generate-slurm-script \
     # Pragmas for Generic Resources And Licenses           #
     #SBATCH --gres=gpu:a100:1                              # required generic resources
     ########################################################
-:::
-::::
 
 ### Output and working directory
 
 By default SLURM writes stdout and stderr to `slurm-<jobid>.out`. Use
 these flags to control where output goes:
 
-  -----------------------------------------------------------------------
-  Flag                    Short                   Description
-  ----------------------- ----------------------- -----------------------
-  `--stdout FILE`         `-o`                    Redirect stdout (`%j` =
-                                                  job ID, `%x` = job
-                                                  name)
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Short</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--stdout FILE</code></td>
+<td><code>-o</code></td>
+<td>Redirect stdout (<code>%j</code> = job ID, <code>%x</code> = job
+name)</td>
+</tr>
+<tr>
+<td><code>--stderr FILE</code></td>
+<td><code>-e</code></td>
+<td>Redirect stderr</td>
+</tr>
+<tr>
+<td><code>--chdir PATH</code></td>
+<td><code>-D</code></td>
+<td>Set the working directory before the script runs</td>
+</tr>
+</tbody>
+</table>
 
-  `--stderr FILE`         `-e`                    Redirect stderr
-
-  `--chdir PATH`          `-D`                    Set the working
-                                                  directory before the
-                                                  script runs
-  -----------------------------------------------------------------------
-
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script \
     --job-name my_job \
     --nodes 1 --ntasks-per-node 4 \
@@ -294,7 +354,6 @@ generate-slurm-script \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Job Config                               #
@@ -309,13 +368,10 @@ generate-slurm-script \
     #SBATCH --nodes=1                                      # number of nodes on which to run
     #SBATCH --ntasks-per-node=4                            # number of tasks to invoke on each node
     ########################################################
-:::
-::::
 
 ### Email notifications
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script \
     --job-name long_run \
     --nodes 4 --ntasks-per-node 16 \
@@ -324,7 +380,6 @@ generate-slurm-script \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Job Config                               #
@@ -338,8 +393,6 @@ generate-slurm-script \
     #SBATCH --nodes=4                                      # number of nodes on which to run
     #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
     ########################################################
-:::
-::::
 
 Valid `--mail-type` values: `BEGIN`, `END`, `FAIL`, `REQUEUE`, `ALL`,
 `TIME_LIMIT`, `TIME_LIMIT_90`, `TIME_LIMIT_80`, `TIME_LIMIT_50`, `NONE`.
@@ -351,15 +404,13 @@ Valid `--mail-type` values: `BEGIN`, `END`, `FAIL`, `REQUEUE`, `ALL`,
 Load environment modules with `--modules`. `module purge` and
 `module list` are added automatically:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script \
     --nodes 4 --ntasks-per-node 16 \
     --modules gcc/13 openmpi/5.0 \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Core Node And Task Allocation            #
@@ -369,20 +420,16 @@ generate-slurm-script \
     module purge                                           # Purge modules
     module load gcc/13 openmpi/5.0                         # modules
     module list                                            # List loaded modules
-:::
-::::
 
 Multiple modules are loaded in the order given:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script \
     --nodes 1 --ntasks-per-node 8 \
     --modules gcc/13 cuda/12 cudnn/8 anaconda/3 \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Core Node And Task Allocation            #
@@ -392,8 +439,6 @@ generate-slurm-script \
     module purge                                           # Purge modules
     module load gcc/13 cuda/12 cudnn/8 anaconda/3          # modules
     module list                                            # List loaded modules
-:::
-::::
 
 ------------------------------------------------------------------------
 
@@ -402,8 +447,7 @@ generate-slurm-script \
 Everything after the `#SBATCH` pragmas and module loads is the body of
 your script. Add arbitrary shell commands with `--custom-commands`:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script \
     --job-name mpi_run \
     --nodes 2 --ntasks-per-node 16 \
@@ -415,7 +459,6 @@ generate-slurm-script \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Job Config                               #
@@ -431,21 +474,17 @@ generate-slurm-script \
     echo "Starting on $(hostname) at $(date)"
     srun ./myprog --input data.h5 > results.out
     echo "Done at $(date)"
-:::
-::::
 
-`--custom-command` (singular) adds a single command --- useful when
+`--custom-command` (singular) adds a single command — useful when
 quoting is tricky:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script \
     --nodes 1 --ntasks-per-node 4 \
     --custom-command 'python train.py --epochs 100' \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Core Node And Task Allocation            #
@@ -453,14 +492,11 @@ generate-slurm-script \
     #SBATCH --ntasks-per-node=4                            # number of tasks to invoke on each node
     ########################################################
     python train.py --epochs 100
-:::
-::::
 
 Set environment variables in the script body by including `export`
 statements:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script \
     --nodes 1 --ntasks-per-node 1 \
     --cpus-per-task 8 \
@@ -471,7 +507,6 @@ generate-slurm-script \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Core Node And Task Allocation            #
@@ -484,8 +519,6 @@ generate-slurm-script \
     module list                                            # List loaded modules
     export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
     srun python multithreaded_job.py
-:::
-::::
 
 ------------------------------------------------------------------------
 
@@ -495,8 +528,7 @@ generate-slurm-script \
 into the generated SLURM script. This is handy when you already have
 setup or run scripts you want to reuse:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 # Create a small helper script
 cat > setup_env.sh << 'EOF'
 # Load project-specific environment
@@ -513,7 +545,6 @@ generate-slurm-script \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Core Node And Task Allocation            #
@@ -528,8 +559,6 @@ generate-slurm-script \
     export MYAPP_DATA=/scratch/data
     export MYAPP_RESULTS=/scratch/results
     mkdir -p $MYAPP_RESULTS
-:::
-::::
 
 ------------------------------------------------------------------------
 
@@ -537,8 +566,7 @@ generate-slurm-script \
 
 ### Save the script to a file
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script \
     --job-name baseline \
     --nodes 4 --ntasks-per-node 16 \
@@ -548,7 +576,6 @@ generate-slurm-script \
 cat baseline.sh
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     #            This script was generated using           #
@@ -569,16 +596,13 @@ cat baseline.sh
     #SBATCH --nodes=4                                      # number of nodes on which to run
     #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
     ########################################################
-:::
-::::
 
 ### Export settings as JSON
 
 `--export-json` saves all current settings to a JSON file so you can
-reload and tweak them later --- without repeating every flag:
+reload and tweak them later — without repeating every flag:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script \
     --job-name baseline \
     --nodes 4 --ntasks-per-node 16 \
@@ -590,7 +614,6 @@ generate-slurm-script \
 cat baseline.json
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Job Config                               #
@@ -622,16 +645,13 @@ cat baseline.json
         ],
         "custom_commands": []
     }
-:::
-::::
 
 ### Build new scripts from a JSON base
 
 Override any setting by passing flags alongside `--input`. Anything not
 overridden is inherited from the JSON:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 # Same settings, but scale to 8 nodes and rename the job
 generate-slurm-script \
     --input baseline.json \
@@ -640,7 +660,6 @@ generate-slurm-script \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Job Config                               #
@@ -657,14 +676,11 @@ generate-slurm-script \
     module purge                                           # Purge modules
     module load gcc/13 openmpi/5.0                         # modules
     module list                                            # List loaded modules
-:::
-::::
 
-This is especially useful for parameter studies --- keep a base JSON and
+This is especially useful for parameter studies — keep a base JSON and
 vary one or two things per run:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 # Short test run from the same base
 generate-slurm-script \
     --input baseline.json \
@@ -674,7 +690,6 @@ generate-slurm-script \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Job Config                               #
@@ -691,8 +706,6 @@ generate-slurm-script \
     module purge                                           # Purge modules
     module load gcc/13 openmpi/5.0                         # modules
     module list                                            # List loaded modules
-:::
-::::
 
 ### Read pragmas from an existing script
 
@@ -700,8 +713,7 @@ generate-slurm-script \
 pragmas and commands. Use it to add new options to a script you received
 from a colleague or downloaded from a cluster guide:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 # baseline.sh is the script we saved above; override job-name and add modules
 generate-slurm-script \
     --read-script baseline.sh \
@@ -710,7 +722,6 @@ generate-slurm-script \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Job Config                               #
@@ -727,8 +738,6 @@ generate-slurm-script \
     module purge                                           # Purge modules
     module load python/3.11                                # modules
     module list                                            # List loaded modules
-:::
-::::
 
 ------------------------------------------------------------------------
 
@@ -756,8 +765,7 @@ generate-slurm-script \
 
 A sequential Python script using one CPU and minimal memory:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script \
     --job-name python_serial \
     --ntasks 1 \
@@ -771,7 +779,6 @@ generate-slurm-script \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Job Config                               #
@@ -792,15 +799,12 @@ generate-slurm-script \
     module list                                            # List loaded modules
     export OMP_NUM_THREADS=1
     srun python3 my_script.py
-:::
-::::
 
 ### Multithreaded job (OpenMP / Python multiprocessing)
 
 One task that uses multiple cores on a single shared node:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script \
     --job-name openmp_job \
     --ntasks 1 \
@@ -814,7 +818,6 @@ generate-slurm-script \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Job Config                               #
@@ -835,15 +838,12 @@ generate-slurm-script \
     module list                                            # List loaded modules
     export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
     srun ./openmp_program
-:::
-::::
 
 ### Pure MPI job
 
 Multiple tasks spread across several full nodes:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script \
     --job-name mpi_job \
     --nodes 8 \
@@ -854,7 +854,6 @@ generate-slurm-script \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Job Config                               #
@@ -871,16 +870,13 @@ generate-slurm-script \
     module load gcc/13 openmpi/5.0                         # modules
     module list                                            # List loaded modules
     srun ./mpi_program > output.txt
-:::
-::::
 
 ### Hybrid MPI + OpenMP job
 
-Each MPI task spawns multiple OpenMP threads --- common for modern HPC
+Each MPI task spawns multiple OpenMP threads — common for modern HPC
 codes:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script \
     --job-name hybrid_job \
     --nodes 4 \
@@ -895,7 +891,6 @@ generate-slurm-script \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Job Config                               #
@@ -915,15 +910,12 @@ generate-slurm-script \
     export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
     export OMP_PLACES=cores
     srun ./hybrid_program
-:::
-::::
 
 ### Single-GPU job
 
 One GPU on a shared GPU node, with enough CPUs and RAM to feed it:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script \
     --job-name gpu_train \
     --ntasks 1 \
@@ -938,7 +930,6 @@ generate-slurm-script \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Job Config                               #
@@ -962,15 +953,12 @@ generate-slurm-script \
     module list                                            # List loaded modules
     export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
     srun python3 train.py --config config.yaml
-:::
-::::
 
 ### Multi-GPU job (full node)
 
 Four GPUs on a dedicated GPU node, one MPI task per GPU:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script \
     --job-name multigpu_train \
     --nodes 1 \
@@ -986,7 +974,6 @@ generate-slurm-script \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Job Config                               #
@@ -1011,16 +998,13 @@ generate-slurm-script \
     module list                                            # List loaded modules
     export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
     srun python3 train_ddp.py
-:::
-::::
 
 ### Job array
 
 Submit many similar jobs in one `sbatch` call. Each array element gets a
 unique `$SLURM_ARRAY_TASK_ID`:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 generate-slurm-script \
     --job-name sweep \
     --array 0-9 \
@@ -1035,7 +1019,6 @@ generate-slurm-script \
     --no-header
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     # Pragmas for Job Config                               #
@@ -1059,8 +1042,6 @@ generate-slurm-script \
     module load gcc/13 anaconda/3                          # modules
     module list                                            # List loaded modules
     python run.py --config configs/config_${SLURM_ARRAY_TASK_ID}.yaml
-:::
-::::
 
 `%A` expands to the array job ID, `%a` to the element index.
 
@@ -1093,8 +1074,7 @@ code), `afternotok` (only on failure), `after` (after the job starts).
 
 A typical iterative workflow for developing and scaling up a job:
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 # 1. Start with a quick test on 1 node
 generate-slurm-script \
     --job-name sim_test \
@@ -1109,7 +1089,6 @@ generate-slurm-script \
 cat sim_test.sh
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     #            This script was generated using           #
@@ -1135,11 +1114,8 @@ cat sim_test.sh
     module load gcc/13 openmpi/5.0                         # modules
     module list                                            # List loaded modules
     srun ./myprog --small-input > test.out
-:::
-::::
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 # 2. Scale up for the real run — inherit everything from the JSON,
 #    override only what changes
 generate-slurm-script \
@@ -1153,7 +1129,6 @@ generate-slurm-script \
 cat sim_production.sh
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     #            This script was generated using           #
@@ -1180,11 +1155,8 @@ cat sim_production.sh
     module list                                            # List loaded modules
     srun ./myprog --small-input > test.out
     srun ./myprog --full-input > production.out
-:::
-::::
 
-:::: cell
-``` {.bash .cell-code}
+``` bash
 # 3. A colleague wants the same setup with a different account and partition —
 #    read the production script and override those two fields
 generate-slurm-script \
@@ -1195,7 +1167,6 @@ generate-slurm-script \
 cat colleague_job.sh
 ```
 
-::: {.cell-output .cell-output-stdout}
     #!/bin/bash
     ########################################################
     #            This script was generated using           #
@@ -1222,5 +1193,3 @@ cat colleague_job.sh
     module list                                            # List loaded modules
     srun ./myprog --small-input > test.out
     srun ./myprog --full-input > production.out
-:::
-::::
