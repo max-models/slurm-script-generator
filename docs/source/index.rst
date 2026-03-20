@@ -1,47 +1,69 @@
+slurm-script-generator
+======================
 
-slurm-script-generator Documentation
-====================================
+A Python library and command-line toolkit for generating, managing, and
+monitoring SLURM jobs.
 
+Install with pip:
 
 .. code-block:: bash
 
    pip install slurm-script-generator
 
+---
 
 Quickstart
 ----------
 
-Generate a slurm script to ``slurm_script.sh`` with:
+**Generate a SLURM script from the command line:**
 
 .. code-block:: bash
 
-   generate-slurm-script --nodes 1 --ntasks-per-node 16
+   generate-slurm-script --nodes 2 --ntasks-per-node 16 --job-name my_job --output job.sh
 
-This will produce:
+**Or from Python:**
+
+.. code-block:: python
+
+   from slurm_script_generator.slurm_script import SlurmScript
+
+   script = SlurmScript(
+       job_name="my_job",
+       nodes=2,
+       ntasks_per_node=16,
+       time="04:00:00",
+       custom_commands=["srun ./myprog > output.txt"],
+   )
+   script.save("job.sh")
+
+**Submit and wait for it to finish:**
+
+.. code-block:: python
+
+   import subprocess
+   from slurm_script_generator.squeue import SQueue
+
+   result = subprocess.run(["sbatch", "job.sh"], capture_output=True, text=True, check=True)
+   job_id = int(result.stdout.strip().split()[-1])
+
+   SQueue().wait_until_done(job_id=job_id)
+
+**Inspect the live queue:**
 
 .. code-block:: bash
 
-   !/bin/bash
-   ########################################################
-   #            This script was generated using           #
-   #             slurm-script-generator v0.3.0            #
-   # https://github.com/max-models/slurm-script-generator #
-   #      `pip install slurm-script-generator==0.3.0`     #
-   ########################################################
+   slurm-queue              # per-user summary
+   slurm-queue list         # one row per job
+   slurm-queue stats        # partition and state breakdown
+   slurm-queue history      # job accounting (sacct)
 
-   ########################################################
-   # Pragmas for Core Node And Task Allocation            #
-   #SBATCH --nodes=1                                      # number of nodes on which to run
-   #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
-   ########################################################
-
-Check out the pages below for more detailed documentation on the Command Line Interface, the Python API, and some tutorials to get you started!
+---
 
 .. toctree::
    :maxdepth: 1
    :caption: Documentation
 
    cli.md
-   tutorials
    slurm_queue.md
+   tutorials
    api/index
