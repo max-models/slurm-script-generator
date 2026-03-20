@@ -67,4 +67,5 @@ Quickstart
    slurm_queue.md
    tutorials
    slurm_queue.md
+   tutorials
    api/index
