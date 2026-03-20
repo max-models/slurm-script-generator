@@ -12,6 +12,7 @@ from slurm_script_generator.squeue import (
     SQueue,
     SQueueJob,
     _fmt_job_table,
+    _fmt_stats_table,
     main,
 )
 
@@ -540,6 +541,132 @@ def test_cli_wait_by_job_name():
         ):
             with patch("sys.stdout", out):
                 main()  # should return immediately (no matching active jobs)
+
+
+# ---------------------------------------------------------------------------
+# jobs_by_partition / partition filter
+# ---------------------------------------------------------------------------
+
+
+def test_jobs_by_partition(queue):
+    by_part = queue.jobs_by_partition()
+    assert "gpu" in by_part
+    assert len(by_part["gpu"]) == 5
+
+
+def test_jobs_filter_partition(queue):
+    jobs = queue.jobs(partition="gpu")
+    assert len(jobs) == 5
+    jobs_none = queue.jobs(partition="nonexistent")
+    assert jobs_none == []
+
+
+def test_partition_passed_to_squeue():
+    with patch("subprocess.run", return_value=_mock_run(stdout="")) as mock_run:
+        SQueue(partition="gpu")
+        cmd = mock_run.call_args[0][0]
+        assert "--partition" in cmd
+        assert "gpu" in cmd
+
+
+# ---------------------------------------------------------------------------
+# _fmt_job_table with show_reason
+# ---------------------------------------------------------------------------
+
+
+def test_fmt_job_table_reason_column(queue):
+    table = _fmt_job_table(list(queue), show_reason=True)
+    assert "Reason" in table
+
+
+def test_fmt_job_table_no_reason_by_default(queue):
+    table = _fmt_job_table(list(queue), show_reason=False)
+    assert "Reason" not in table
+
+
+# ---------------------------------------------------------------------------
+# _fmt_stats_table
+# ---------------------------------------------------------------------------
+
+
+def test_fmt_stats_table_partition_section(queue):
+    s = _fmt_stats_table(queue)
+    assert "By Partition" in s
+    assert "gpu" in s
+
+
+def test_fmt_stats_table_state_section(queue):
+    s = _fmt_stats_table(queue)
+    assert "By State" in s
+    assert "Running" in s
+    assert "Pending" in s
+
+
+def test_fmt_stats_table_empty():
+    with patch("subprocess.run", return_value=_mock_run(stdout="")):
+        q = SQueue()
+    s = _fmt_stats_table(q)
+    # Should produce output without crashing even with no jobs
+    assert "By Partition" in s
+    assert "By State" in s
+
+
+# ---------------------------------------------------------------------------
+# CLI — stats subcommand
+# ---------------------------------------------------------------------------
+
+
+def test_cli_stats():
+    output = _run_main(["stats"])
+    assert "SLURM Queue" in output
+    assert "By Partition" in output
+    assert "By State" in output
+    assert "Running" in output
+
+
+def test_cli_stats_user_filter():
+    output = _run_main(["stats", "--user", "alice"])
+    assert "By Partition" in output
+
+
+# ---------------------------------------------------------------------------
+# CLI — list --sort / --reverse / --reason
+# ---------------------------------------------------------------------------
+
+
+def test_cli_list_sort_user():
+    output = _run_main(["list", "--sort", "user"])
+    assert "alice" in output
+
+
+def test_cli_list_sort_nodes():
+    output = _run_main(["list", "--sort", "nodes"])
+    assert "JobID" in output
+
+
+def test_cli_list_reverse():
+    output = _run_main(["list", "--sort", "id", "--reverse"])
+    assert "JobID" in output
+
+
+def test_cli_list_reason():
+    output = _run_main(["list", "--reason"])
+    assert "Reason" in output
+
+
+def test_cli_list_partition():
+    output = _run_main(["list", "--partition", "gpu"])
+    assert "JobID" in output
+
+
+# ---------------------------------------------------------------------------
+# CLI — show --partition
+# ---------------------------------------------------------------------------
+
+
+def test_cli_show_partition():
+    output = _run_main(["show", "--partition", "gpu"])
+    assert "SLURM Queue" in output
 
 
 def test_cli_wait_timeout_exits_nonzero():

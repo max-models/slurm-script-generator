@@ -1,8 +1,56 @@
 import fnmatch
+import os
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 from typing import Dict, List, Optional
+
+# ---------------------------------------------------------------------------
+# ANSI color helpers — no dependencies, disabled when not writing to a TTY
+# or when the NO_COLOR env-var is set (https://no-color.org).
+# ---------------------------------------------------------------------------
+_RESET = "\033[0m"
+_BOLD = "\033[1m"
+_DIM = "\033[2m"
+_GREEN = "\033[92m"  # bright green
+_YELLOW = "\033[93m"  # bright yellow
+_RED = "\033[91m"  # bright red
+_CYAN = "\033[96m"  # bright cyan
+
+
+def _supports_color() -> bool:
+    return sys.stdout.isatty() and not os.environ.get("NO_COLOR")
+
+
+def _c(text: str, *codes: str) -> str:
+    """Wrap *text* in ANSI escape codes when color output is supported."""
+    if not _supports_color():
+        return text
+    return "".join(codes) + str(text) + _RESET
+
+
+def _pad(plain: str, colored: str, width: int, align: str = "l") -> str:
+    """Pad *colored* to *width* visible characters using *plain* for length."""
+    padding = " " * max(0, width - len(plain))
+    return (colored + padding) if align == "l" else (padding + colored)
+
+
+# State-code -> color bucket
+_GREEN_STATES = {"R", "CG"}
+_YELLOW_STATES = {"PD", "CF", "RQ", "RS", "RH", "RF", "S", "ST", "SI", "SO"}
+_RED_STATES = {"F", "BF", "NF", "OOM", "TO", "DL", "PR"}
+
+
+def _color_state(state_name: str, state_code: str) -> str:
+    if state_code in _GREEN_STATES:
+        return _c(state_name, _GREEN)
+    if state_code in _YELLOW_STATES:
+        return _c(state_name, _YELLOW)
+    if state_code in _RED_STATES:
+        return _c(state_name, _RED)
+    return state_name
+
 
 # SLURM job state codes
 JOB_STATES = {
@@ -131,8 +179,11 @@ class SQueue:
     >>> q.wait_until_done(user='alice')
     """
 
-    def __init__(self, user: Optional[str] = None) -> None:
+    def __init__(
+        self, user: Optional[str] = None, partition: Optional[str] = None
+    ) -> None:
         self._default_user = user
+        self._default_partition = partition
         self._jobs: List[SQueueJob] = []
         self.refresh()
 
@@ -151,6 +202,8 @@ class SQueue:
         cmd = ["squeue", f"--format={_FORMAT_STR}", "--noheader"]
         if self._default_user:
             cmd += ["--user", self._default_user]
+        if self._default_partition:
+            cmd += ["--partition", self._default_partition]
 
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
@@ -193,6 +246,7 @@ class SQueue:
         job_id: Optional[int | str] = None,
         user: Optional[str] = None,
         state: Optional[str] = None,
+        partition: Optional[str] = None,
     ) -> List[SQueueJob]:
         """Return jobs matching the given criteria.
 
@@ -206,6 +260,8 @@ class SQueue:
             Username to filter by.
         state : str, optional
             SLURM state code, e.g. ``'R'`` or ``'PD'``.
+        partition : str, optional
+            Partition name to filter by.
 
         Returns
         -------
@@ -218,6 +274,8 @@ class SQueue:
             result = [j for j in result if j.user == user]
         if state is not None:
             result = [j for j in result if j.state == state]
+        if partition is not None:
+            result = [j for j in result if j.partition == partition]
         if job_name is not None:
             result = [j for j in result if fnmatch.fnmatch(j.name, job_name)]
         return result
@@ -283,7 +341,7 @@ class SQueue:
             ]
             if not active:
                 if verbose:
-                    print("All matching jobs have finished.")
+                    print(_c("✓", _GREEN) + " All matching jobs have finished.")
                 return
 
             if timeout is not None and (time.monotonic() - start) > timeout:
@@ -295,8 +353,9 @@ class SQueue:
             if verbose:
                 ids = [j.job_id for j in active]
                 print(
-                    f"Waiting — {len(active)} job(s) still active {ids}. "
-                    f"Polling again in {poll_interval}s."
+                    _c("~", _YELLOW)
+                    + f" Waiting — {_c(str(len(active)), _YELLOW)} job(s) still active {ids}."
+                    f" Polling again in {poll_interval}s."
                 )
             time.sleep(poll_interval)
 
@@ -320,6 +379,13 @@ class SQueue:
         result: Dict[str, List[SQueueJob]] = {}
         for job in self._jobs:
             result.setdefault(job.state, []).append(job)
+        return result
+
+    def jobs_by_partition(self) -> Dict[str, List[SQueueJob]]:
+        """Return a mapping of partition name -> list of jobs in that partition."""
+        result: Dict[str, List[SQueueJob]] = {}
+        for job in self._jobs:
+            result.setdefault(job.partition, []).append(job)
         return result
 
     def summary(self) -> dict:
@@ -354,7 +420,7 @@ class SQueue:
 
     def __str__(self) -> str:
         if not self._jobs:
-            return "SLURM Queue  ·  empty"
+            return _c("SLURM Queue", _BOLD, _CYAN) + "  ·  " + _c("empty", _DIM)
 
         total_running = sum(1 for j in self._jobs if j.is_running)
         total_pending = sum(1 for j in self._jobs if j.is_pending)
@@ -374,7 +440,7 @@ class SQueue:
         rows.sort(key=lambda r: (-r[4], -r[2], -r[1]))
 
         headers = ["User", "Jobs", "Running", "Pending", "Nodes (R)", "CPUs (R)"]
-        totals = [
+        totals_plain = [
             "TOTAL",
             str(len(self._jobs)),
             str(total_running),
@@ -383,39 +449,74 @@ class SQueue:
             str(total_cpus),
         ]
 
-        # Column widths: user left-aligned, rest right-aligned
+        # Column widths computed on plain text so ANSI codes don't shift columns
         str_rows = [
             [r[0], str(r[1]), str(r[2]), str(r[3]), str(r[4]), str(r[5])] for r in rows
         ]
         widths = [
             max(
                 len(headers[i]),
-                len(totals[i]),
+                len(totals_plain[i]),
                 max((len(r[i]) for r in str_rows), default=0),
             )
             for i in range(len(headers))
         ]
 
-        def fmt_row(vals: list, bold_first: bool = False) -> str:
-            cells = [vals[0].ljust(widths[0])]
-            for i in range(1, len(vals)):
-                cells.append(vals[i].rjust(widths[i]))
+        def fmt_header() -> str:
+            cells = [_pad(headers[0], _c(headers[0], _BOLD), widths[0], "l")]
+            for i in range(1, len(headers)):
+                cells.append(_pad(headers[i], _c(headers[i], _BOLD), widths[i], "r"))
+            return "  " + "   ".join(cells)
+
+        def fmt_data_row(r: list) -> str:
+            cells = [_pad(r[0], r[0], widths[0], "l")]
+            cells.append(_pad(r[1], r[1], widths[1], "r"))
+            run_c = _c(r[2], _GREEN) if r[2] != "0" else r[2]
+            cells.append(_pad(r[2], run_c, widths[2], "r"))
+            pend_c = _c(r[3], _YELLOW) if r[3] != "0" else r[3]
+            cells.append(_pad(r[3], pend_c, widths[3], "r"))
+            cells.append(_pad(r[4], r[4], widths[4], "r"))
+            cells.append(_pad(r[5], r[5], widths[5], "r"))
+            return "  " + "   ".join(cells)
+
+        def fmt_totals() -> str:
+            p = totals_plain
+            cells = [_pad(p[0], _c(p[0], _BOLD), widths[0], "l")]
+            cells.append(_pad(p[1], _c(p[1], _BOLD), widths[1], "r"))
+            cells.append(_pad(p[2], _c(p[2], _BOLD, _GREEN), widths[2], "r"))
+            cells.append(_pad(p[3], _c(p[3], _BOLD, _YELLOW), widths[3], "r"))
+            cells.append(_pad(p[4], _c(p[4], _BOLD), widths[4], "r"))
+            cells.append(_pad(p[5], _c(p[5], _BOLD), widths[5], "r"))
             return "  " + "   ".join(cells)
 
         table_width = sum(widths) + 3 * (len(widths) - 1) + 2
-        title = f"SLURM Queue  ·  {len(self._jobs)} jobs total  ·  {total_running} running  ·  {total_pending} pending"
-        width = max(table_width, len(title))
-        bar_heavy = "═" * width
-        bar_light = "─" * width
+        title_plain = (
+            f"SLURM Queue  \u00b7  {len(self._jobs)} jobs total"
+            f"  \u00b7  {total_running} running"
+            f"  \u00b7  {total_pending} pending"
+        )
+        title = (
+            _c("SLURM Queue", _BOLD, _CYAN)
+            + "  \u00b7  "
+            + f"{len(self._jobs)} jobs total"
+            + "  \u00b7  "
+            + _c(f"{total_running} running", _GREEN)
+            + "  \u00b7  "
+            + _c(f"{total_pending} pending", _YELLOW)
+        )
+
+        width = max(table_width, len(title_plain))
+        bar_heavy = _c("\u2550" * width, _DIM)
+        bar_light = _c("\u2500" * width, _DIM)
 
         lines = [
             title,
             bar_heavy,
-            fmt_row(headers),
+            fmt_header(),
             bar_light,
-            *[fmt_row(r) for r in str_rows],
+            *[fmt_data_row(r) for r in str_rows],
             bar_light,
-            fmt_row(totals),
+            fmt_totals(),
             bar_heavy,
         ]
         return "\n".join(lines)
@@ -428,7 +529,10 @@ class SQueue:
         )
 
 
-def _fmt_job_table(jobs: List[SQueueJob]) -> str:
+_REASON_MAX = 32  # truncate long scheduling-reason strings to this many characters
+
+
+def _fmt_job_table(jobs: List[SQueueJob], show_reason: bool = False) -> str:
     """Format a list of jobs as an aligned table string."""
     if not jobs:
         return "  (no jobs)"
@@ -443,7 +547,14 @@ def _fmt_job_table(jobs: List[SQueueJob]) -> str:
         "Used",
         "Limit",
     ]
-    rows = [
+    if show_reason:
+        headers.append("Reason")
+
+    def _trunc(s: str) -> str:
+        return s[:_REASON_MAX] + "\u2026" if len(s) > _REASON_MAX else s
+
+    # Plain rows for width calculation; colored rows for display
+    rows_plain = [
         [
             str(j.job_id),
             j.user,
@@ -455,24 +566,198 @@ def _fmt_job_table(jobs: List[SQueueJob]) -> str:
             j.time_used,
             j.time_limit,
         ]
+        + ([_trunc(j.reason)] if show_reason else [])
         for j in jobs
     ]
-    widths = [
-        max(len(headers[i]), max(len(r[i]) for r in rows)) for i in range(len(headers))
+    rows_colored = [
+        list(plain[:3]) + [_color_state(plain[3], j.state)] + list(plain[4:])
+        for j, plain in zip(jobs, rows_plain)
     ]
+    widths = [
+        max(len(headers[i]), max(len(r[i]) for r in rows_plain))
+        for i in range(len(headers))
+    ]
+    right = {0, 5, 6}
 
-    def fmt(vals: list) -> str:
-        # JobID, Nodes, CPUs right-aligned; rest left-aligned
-        right = {0, 5, 6}
-        cells = [
-            vals[i].rjust(widths[i]) if i in right else vals[i].ljust(widths[i])
-            for i in range(len(vals))
-        ]
+    def fmt_header() -> str:
+        cells = []
+        for i, h in enumerate(headers):
+            align = "r" if i in right else "l"
+            cells.append(_pad(h, _c(h, _BOLD), widths[i], align))
         return "  " + "   ".join(cells)
 
-    bar = "─" * (sum(widths) + 3 * (len(widths) - 1) + 2)
-    lines = [fmt(headers), bar, *[fmt(r) for r in rows]]
+    def fmt_row(plain: list, colored: list) -> str:
+        cells = []
+        for i in range(len(plain)):
+            align = "r" if i in right else "l"
+            cells.append(_pad(plain[i], colored[i], widths[i], align))
+        return "  " + "   ".join(cells)
+
+    bar = _c("─" * (sum(widths) + 3 * (len(widths) - 1) + 2), _DIM)
+    lines = [
+        fmt_header(),
+        bar,
+        *[fmt_row(p, c) for p, c in zip(rows_plain, rows_colored)],
+    ]
     return "\n".join(lines)
+
+
+def _fmt_stats_table(q: SQueue) -> str:
+    """Format a partition-breakdown and state-breakdown view for the stats subcommand."""
+    lines: List[str] = []
+
+    # --- By Partition --------------------------------------------------------
+    by_part = q.jobs_by_partition()
+    total_jobs = len(q)
+    total_running = sum(1 for j in q if j.is_running)
+    total_pending = sum(1 for j in q if j.is_pending)
+    total_nodes = sum(j.num_nodes for j in q if j.is_running)
+    total_cpus = sum(j.num_cpus for j in q if j.is_running)
+
+    p_rows: list = []
+    for part, jobs in by_part.items():
+        r = [j for j in jobs if j.is_running]
+        p = [j for j in jobs if j.is_pending]
+        p_rows.append(
+            (
+                part,
+                len(jobs),
+                len(r),
+                len(p),
+                sum(j.num_nodes for j in r),
+                sum(j.num_cpus for j in r),
+            )
+        )
+    p_rows.sort(key=lambda r: (-r[4], -r[2], r[0]))
+
+    p_headers = ["Partition", "Jobs", "Running", "Pending", "Nodes (R)", "CPUs (R)"]
+    p_tot = [
+        "TOTAL",
+        str(total_jobs),
+        str(total_running),
+        str(total_pending),
+        str(total_nodes),
+        str(total_cpus),
+    ]
+    p_str_rows = [
+        [r[0], str(r[1]), str(r[2]), str(r[3]), str(r[4]), str(r[5])] for r in p_rows
+    ]
+    p_widths = [
+        max(
+            len(p_headers[i]),
+            len(p_tot[i]),
+            max((len(r[i]) for r in p_str_rows), default=0),
+        )
+        for i in range(len(p_headers))
+    ]
+
+    def _ph() -> str:
+        cells = [_pad(p_headers[0], _c(p_headers[0], _BOLD), p_widths[0], "l")]
+        for i in range(1, len(p_headers)):
+            cells.append(_pad(p_headers[i], _c(p_headers[i], _BOLD), p_widths[i], "r"))
+        return "  " + "   ".join(cells)
+
+    def _pr(r: list) -> str:
+        cells = [_pad(r[0], r[0], p_widths[0], "l")]
+        cells.append(_pad(r[1], r[1], p_widths[1], "r"))
+        cells.append(
+            _pad(r[2], _c(r[2], _GREEN) if r[2] != "0" else r[2], p_widths[2], "r")
+        )
+        cells.append(
+            _pad(r[3], _c(r[3], _YELLOW) if r[3] != "0" else r[3], p_widths[3], "r")
+        )
+        cells.append(_pad(r[4], r[4], p_widths[4], "r"))
+        cells.append(_pad(r[5], r[5], p_widths[5], "r"))
+        return "  " + "   ".join(cells)
+
+    def _pt() -> str:
+        cells = [_pad(p_tot[0], _c(p_tot[0], _BOLD), p_widths[0], "l")]
+        cells.append(_pad(p_tot[1], _c(p_tot[1], _BOLD), p_widths[1], "r"))
+        cells.append(_pad(p_tot[2], _c(p_tot[2], _BOLD, _GREEN), p_widths[2], "r"))
+        cells.append(_pad(p_tot[3], _c(p_tot[3], _BOLD, _YELLOW), p_widths[3], "r"))
+        cells.append(_pad(p_tot[4], _c(p_tot[4], _BOLD), p_widths[4], "r"))
+        cells.append(_pad(p_tot[5], _c(p_tot[5], _BOLD), p_widths[5], "r"))
+        return "  " + "   ".join(cells)
+
+    p_bar = _c("\u2500" * (sum(p_widths) + 3 * (len(p_widths) - 1) + 2), _DIM)
+    lines += [
+        _c("By Partition", _BOLD),
+        p_bar,
+        _ph(),
+        p_bar,
+        *[_pr(r) for r in p_str_rows],
+        p_bar,
+        _pt(),
+        p_bar,
+    ]
+
+    # --- By State ------------------------------------------------------------
+    by_state = q.jobs_by_state()
+    s_rows = sorted(
+        [
+            (JOB_STATES.get(code, code), code, len(jobs))
+            for code, jobs in by_state.items()
+        ],
+        key=lambda r: -r[2],
+    )
+    s_headers = ["State", "Count"]
+    s_str_rows = [[r[0], str(r[2])] for r in s_rows]
+    s_widths = [
+        max(len(s_headers[i]), max((len(r[i]) for r in s_str_rows), default=0))
+        for i in range(len(s_headers))
+    ]
+
+    def _sh() -> str:
+        return (
+            "  "
+            + _pad(s_headers[0], _c(s_headers[0], _BOLD), s_widths[0], "l")
+            + "   "
+            + _pad(s_headers[1], _c(s_headers[1], _BOLD), s_widths[1], "r")
+        )
+
+    def _sr(state_name: str, state_code: str, count: str) -> str:
+        name_c = _color_state(state_name, state_code)
+        if state_code in _GREEN_STATES:
+            count_c = _c(count, _GREEN)
+        elif state_code in _YELLOW_STATES:
+            count_c = _c(count, _YELLOW)
+        elif state_code in _RED_STATES:
+            count_c = _c(count, _RED)
+        else:
+            count_c = count
+        return (
+            "  "
+            + _pad(state_name, name_c, s_widths[0], "l")
+            + "   "
+            + _pad(count, count_c, s_widths[1], "r")
+        )
+
+    s_bar = _c("\u2500" * (s_widths[0] + s_widths[1] + 5), _DIM)
+    lines += [
+        "",
+        _c("By State", _BOLD),
+        s_bar,
+        _sh(),
+        s_bar,
+        *[_sr(s_rows[i][0], s_rows[i][1], r[1]) for i, r in enumerate(s_str_rows)],
+        s_bar,
+    ]
+
+    return "\n".join(lines)
+
+
+# Sort-key functions for the `list --sort` option
+_SORT_KEYS = {
+    "id": lambda j: j.job_id,
+    "user": lambda j: j.user,
+    "name": lambda j: j.name,
+    "state": lambda j: j.state,
+    "partition": lambda j: j.partition,
+    "nodes": lambda j: j.num_nodes,
+    "cpus": lambda j: j.num_cpus,
+    "time": lambda j: j.time_used,
+    "priority": lambda j: j.priority,
+}
 
 
 def main() -> None:
@@ -483,7 +768,9 @@ def main() -> None:
     show  (default)
         Print a per-user queue summary table.
     list
-        Print individual jobs, optionally filtered.
+        Print individual jobs, optionally filtered and sorted.
+    stats
+        Print partition and state breakdown statistics.
     wait
         Block until matching jobs leave the active queue.
     """
@@ -494,13 +781,6 @@ def main() -> None:
         prog="slurm-queue",
         description="Inspect and wait on the SLURM job queue.",
     )
-    parser.add_argument(
-        "--user",
-        "-u",
-        metavar="USER",
-        default=None,
-        help="Restrict all squeue calls to this user.",
-    )
     sub = parser.add_subparsers(dest="cmd")
 
     # ---- show ---------------------------------------------------------------
@@ -508,10 +788,24 @@ def main() -> None:
     p_show.add_argument(
         "--user", "-u", metavar="USER", default=None, help="Filter to this user."
     )
+    p_show.add_argument(
+        "--partition",
+        "-p",
+        metavar="PARTITION",
+        default=None,
+        help="Filter to this partition.",
+    )
 
     # ---- list ---------------------------------------------------------------
     p_list = sub.add_parser("list", help="List individual jobs.")
     p_list.add_argument("--user", "-u", metavar="USER", default=None)
+    p_list.add_argument(
+        "--partition",
+        "-p",
+        metavar="PARTITION",
+        default=None,
+        help="Filter to this partition.",
+    )
     p_list.add_argument(
         "--job-name",
         "-n",
@@ -533,6 +827,37 @@ def main() -> None:
         metavar="STATE",
         default=None,
         help="Filter by state code, e.g. R, PD, CG.",
+    )
+    p_list.add_argument(
+        "--sort",
+        "-S",
+        metavar="KEY",
+        default=None,
+        choices=list(_SORT_KEYS),
+        help="Sort by: id, user, name, state, partition, nodes, cpus, time, priority.",
+    )
+    p_list.add_argument(
+        "--reverse", "-r", action="store_true", help="Reverse the sort order."
+    )
+    p_list.add_argument(
+        "--reason",
+        action="store_true",
+        help="Show the scheduling/pending reason column.",
+    )
+
+    # ---- stats --------------------------------------------------------------
+    p_stats = sub.add_parser(
+        "stats", help="Print partition and state breakdown statistics."
+    )
+    p_stats.add_argument(
+        "--user", "-u", metavar="USER", default=None, help="Filter to this user."
+    )
+    p_stats.add_argument(
+        "--partition",
+        "-p",
+        metavar="PARTITION",
+        default=None,
+        help="Filter to this partition.",
     )
 
     # ---- wait ---------------------------------------------------------------
@@ -586,8 +911,9 @@ def main() -> None:
     # Default sub-command: show
     if args.cmd is None or args.cmd == "show":
         user = getattr(args, "user", None)
+        partition = getattr(args, "partition", None)
         try:
-            q = SQueue(user=user)
+            q = SQueue(user=user, partition=partition)
             print(q)
         except RuntimeError as e:
             print(f"Error: {e}", file=sys.stderr)
@@ -595,13 +921,41 @@ def main() -> None:
 
     elif args.cmd == "list":
         try:
-            q = SQueue(user=args.user)
+            q = SQueue(user=args.user, partition=args.partition)
             jobs = q.jobs(
                 job_name=args.job_name,
                 job_id=args.job_id,
                 state=args.state,
             )
-            print(_fmt_job_table(jobs))
+            if args.sort:
+                jobs = sorted(jobs, key=_SORT_KEYS[args.sort], reverse=args.reverse)
+            print(_fmt_job_table(jobs, show_reason=args.reason))
+        except RuntimeError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+
+    elif args.cmd == "stats":
+        try:
+            q = SQueue(user=args.user, partition=args.partition)
+            n_running = sum(1 for j in q if j.is_running)
+            n_pending = sum(1 for j in q if j.is_pending)
+            title_plain = (
+                f"SLURM Queue  \u00b7  {len(q)} jobs total"
+                f"  \u00b7  {n_running} running"
+                f"  \u00b7  {n_pending} pending"
+            )
+            title = (
+                _c("SLURM Queue", _BOLD, _CYAN)
+                + "  \u00b7  "
+                + f"{len(q)} jobs total"
+                + "  \u00b7  "
+                + _c(f"{n_running} running", _GREEN)
+                + "  \u00b7  "
+                + _c(f"{n_pending} pending", _YELLOW)
+            )
+            print(title)
+            print(_c("\u2550" * len(title_plain), _DIM))
+            print(_fmt_stats_table(q))
         except RuntimeError as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
