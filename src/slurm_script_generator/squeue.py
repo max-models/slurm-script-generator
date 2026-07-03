@@ -1461,7 +1461,7 @@ def main() -> None:
                 + "  \u00b7  "
                 + f"{len(acct)} jobs"
                 + (f"  \u00b7  {args.partition}" if args.partition else "")
-                + (f"  \u00b7  " + _c(args.user, _BOLD) if args.user else "")
+                + ("  \u00b7  " + _c(args.user, _BOLD) if args.user else "")
             )
             print(title)
             print(_c("\u2550" * len(title_plain), _DIM))

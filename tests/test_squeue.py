@@ -1,16 +1,12 @@
 """Tests for the SQueue class (uses mocked squeue output)."""
 
-import time
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from slurm_script_generator.squeue import (
-    _FORMAT_STR,
     _SEPARATOR,
-    ACTIVE_STATES,
     SAcct,
-    SAcctJob,
     SQueue,
     SQueueJob,
     _fmt_history_detail,
@@ -468,7 +464,6 @@ def test_fmt_job_table_columns(queue):
 
 def _run_main(argv, mock_stdout=SAMPLE_OUTPUT):
     """Run main() with patched subprocess and sys.argv, return printed output."""
-    import sys
     from io import StringIO
 
     out = StringIO()
@@ -525,7 +520,6 @@ def test_cli_list_filter_state():
 
 
 def test_cli_wait_requires_filter(capsys):
-    import sys
 
     with patch("subprocess.run", return_value=_mock_run(stdout="")):
         with patch("sys.argv", ["slurm-queue", "wait"]):
@@ -535,7 +529,6 @@ def test_cli_wait_requires_filter(capsys):
 
 def test_cli_wait_by_job_name():
     """wait subcommand exits cleanly when queue is empty."""
-    import sys
     from io import StringIO
 
     out = StringIO()
@@ -935,7 +928,6 @@ def test_cli_history_partition():
 
 
 def test_cli_wait_timeout_exits_nonzero():
-    import sys
     from io import StringIO
 
     active = _make_line(1001, "alice", "slow_job", "R")
