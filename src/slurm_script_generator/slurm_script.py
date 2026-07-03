@@ -747,7 +747,7 @@ class SlurmScript:
                 ),
             )
 
-    def submit_job(self, path: str) -> None:
+    def submit_job(self, path: str) -> int:
         """Submit the SLURM script as a job using sbatch.
 
         Parameters
@@ -769,6 +769,9 @@ class SlurmScript:
         if result.returncode != 0:
             raise RuntimeError(f"sbatch failed: {result.stderr.strip()}")
         print(result.stdout.strip())
+
+        # Return job id
+        return int(result.stdout.strip().split()[-1])
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "SlurmScript":
