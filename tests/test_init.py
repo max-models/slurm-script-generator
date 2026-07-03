@@ -1,11 +1,9 @@
-from slurm_script_generator import SAcct, SAcctJob, SQueue, SQueueJob, SlurmScript
+from slurm_script_generator import SAcct, SAcctJob, SlurmScript, SQueue, SQueueJob
 from slurm_script_generator.slurm_script import SlurmScript as ModuleSlurmScript
-from slurm_script_generator.squeue import (
-    SAcct as ModuleSAcct,
-    SAcctJob as ModuleSAcctJob,
-    SQueue as ModuleSQueue,
-    SQueueJob as ModuleSQueueJob,
-)
+from slurm_script_generator.squeue import SAcct as ModuleSAcct
+from slurm_script_generator.squeue import SAcctJob as ModuleSAcctJob
+from slurm_script_generator.squeue import SQueue as ModuleSQueue
+from slurm_script_generator.squeue import SQueueJob as ModuleSQueueJob
 
 
 def test_package_exports_core_classes():
