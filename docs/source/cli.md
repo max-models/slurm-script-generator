@@ -8,7 +8,7 @@ file by hand.
 
 ``` bash
 generate-slurm-script [SBATCH flags] [--modules ...] [--custom-commands ...]
-                      [--output FILE] [--export-json FILE] [--submit]
+                      [--output-path FILE] [--export-json FILE] [--submit]
 ```
 
 ------------------------------------------------------------------------
@@ -38,11 +38,11 @@ generate-slurm-script --nodes 2 --ntasks-per-node 16 --time 04:00:00
     #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
     ########################################################
 
-Save to a file with `--output`:
+Save to a file with `--output-path`:
 
 ``` bash
 generate-slurm-script --nodes 2 --ntasks-per-node 16 --time 04:00:00 \
-    --output job.sh
+    --output-path job.sh
 cat job.sh
 ```
 
@@ -572,7 +572,7 @@ generate-slurm-script \
     --nodes 4 --ntasks-per-node 16 \
     --time 12:00:00 \
     --account proj_hpc \
-    --output baseline.sh
+    --output-path baseline.sh
 cat baseline.sh
 ```
 
@@ -743,7 +743,7 @@ generate-slurm-script \
 
 ## Submitting directly
 
-Add `--submit` to write the script (requires `--output`) and immediately
+Add `--submit` to write the script (requires `--output-path`) and immediately
 call `sbatch` on it:
 
 ``` bash
@@ -753,7 +753,7 @@ generate-slurm-script \
     --time 04:00:00 \
     --modules gcc/13 openmpi/5.0 \
     --custom-commands 'srun ./myprog > output.txt' \
-    --output my_job.sh \
+    --output-path my_job.sh \
     --submit
 ```
 
@@ -1011,7 +1011,7 @@ generate-slurm-script \
     --nodes 1 \
     --ntasks-per-node 8 \
     --time 04:00:00 \
-    --output logs/sweep_%A_%a.out \
+    --output-path logs/sweep_%A_%a.out \
     --error logs/sweep_%A_%a.err \
     --modules gcc/13 anaconda/3 \
     --custom-commands \
@@ -1085,7 +1085,7 @@ generate-slurm-script \
     --modules gcc/13 openmpi/5.0 \
     --custom-commands 'srun ./myprog --small-input > test.out' \
     --export-json sim_base.json \
-    --output sim_test.sh
+    --output-path sim_test.sh
 cat sim_test.sh
 ```
 
@@ -1125,7 +1125,7 @@ generate-slurm-script \
     --time 12:00:00 \
     --partition main \
     --custom-commands 'srun ./myprog --full-input > production.out' \
-    --output sim_production.sh
+    --output-path sim_production.sh
 cat sim_production.sh
 ```
 
@@ -1163,7 +1163,7 @@ generate-slurm-script \
     --read-script sim_production.sh \
     --account colleague_account \
     --partition gpu \
-    --output colleague_job.sh
+    --output-path colleague_job.sh
 cat colleague_job.sh
 ```
 

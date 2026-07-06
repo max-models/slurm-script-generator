@@ -35,10 +35,10 @@ generate-slurm-script --nodes 1 --ntasks-per-node 16
     #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
     ########################################################
 
-To save the script to file `my_script.sh` use `--output`:
+To save the script to file `my_script.sh` use `--output-path`:
 
 ``` bash
-generate-slurm-script --nodes 1 --ntasks-per-node 16 --output my_script.sh
+generate-slurm-script --nodes 1 --ntasks-per-node 16 --output-path my_script.sh
 ```
 
 Remove the header comment with `--no-header`:
@@ -228,7 +228,7 @@ generate-slurm-script -h
                                  [--bbf FILE_NAME] [--container PATH]
                                  [--container-id ID] [--line-length LINE_LENGTH]
                                  [--modules MODULES [MODULES ...]]
-                                 [--input INPUT_PATH] [--output OUTPUT_PATH]
+                                 [--input INPUT_PATH] [--output-path OUTPUT_PATH]
                                  [--export-json JSON_PATH]
                                  [--custom-command COMMAND]
                                  [--custom-commands COMMAND [COMMAND ...]]
@@ -387,7 +387,8 @@ generate-slurm-script -h
                             Modules to load (e.g., --modules mod1 mod2 mod3)
                             (default: [])
       --input INPUT_PATH    path to input json file (default: None)
-      --output OUTPUT_PATH  json path to save slurm batch script to (default:
+      --output-path OUTPUT_PATH
+                            path to save the generated SLURM script (default:
                             None)
       --export-json JSON_PATH
                             path to export yaml for generating the slurm script to
@@ -413,4 +414,4 @@ generate-slurm-script -h
       --no-header           Do not include the header comment in the generated
                             script (default: False)
       --submit              Submit the generated script to the scheduler (requires
-                            --output to be specified) (default: False)
+                            --output-path to be specified) (default: False)

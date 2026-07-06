@@ -21,10 +21,10 @@ Generate a slurm script to `slurm_script.sh` with
 generate-slurm-script --nodes 1 --ntasks-per-node 16
 ```
 
-To save the script to file `my_script.sh` use `--output`:
+To save the script to file `my_script.sh` use `--output-path`:
 
 ```{bash}
-generate-slurm-script --nodes 1 --ntasks-per-node 16 --output my_script.sh
+generate-slurm-script --nodes 1 --ntasks-per-node 16 --output-path my_script.sh
 ```
 
 Remove the header comment with `--no-header`:

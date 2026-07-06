@@ -49,12 +49,12 @@ def add_misc_options(parser: argparse.ArgumentParser) -> None:
     )
 
     parser.add_argument(
-        "--output",
-        dest="output",
+        "--output-path",
+        dest="output_path",
         type=str,
         default=None,
         metavar="OUTPUT_PATH",
-        help="json path to save slurm batch script to",
+        help="path to save the generated SLURM script",
     )
 
     parser.add_argument(
@@ -126,7 +126,7 @@ def add_misc_options(parser: argparse.ArgumentParser) -> None:
         dest="submit",
         action="store_true",
         default=False,
-        help="Submit the generated script to the scheduler (requires --output to be specified)",
+        help="Submit the generated script to the scheduler (requires --output-path to be specified)",
     )
 
 
@@ -187,10 +187,10 @@ def main():
     # Extract the paths for JSON input/output and the output script
     path_json_out = sbatch_args.export_json
     path_json_in = sbatch_args.input
-    path_out = sbatch_args.output
+    path_out = sbatch_args.output_path
     delattr(sbatch_args, "export_json")
     delattr(sbatch_args, "input")
-    delattr(sbatch_args, "output")
+    delattr(sbatch_args, "output_path")
 
     # Extract the no_header flag
     no_header = sbatch_args.no_header
@@ -233,7 +233,7 @@ def main():
 
     if submit:
         if not path_out:
-            print("Error: --submit requires --output to be specified")
+            print("Error: --submit requires --output-path to be specified")
         else:
             slurm_script.submit_job(path=path_out)
     elif path_out:
