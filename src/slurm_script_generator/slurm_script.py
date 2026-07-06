@@ -2,8 +2,9 @@ import json
 import os
 import subprocess
 from importlib.metadata import version
-from typing import Any, List
 from pathlib import Path
+from typing import Any, List
+
 from slurm_script_generator.pragmas import Pragma, PragmaFactory, PragmaTypes
 from slurm_script_generator.utils import add_line
 
@@ -725,7 +726,9 @@ class SlurmScript:
             "custom_commands": self.custom_commands,
         }
 
-    def save(self, path: str | Path, include_header: bool = True, verbose: bool = False) -> None:
+    def save(
+        self, path: str | Path, include_header: bool = True, verbose: bool = False
+    ) -> None:
         """Save the generated SLURM script to a file.
 
         Parameters
