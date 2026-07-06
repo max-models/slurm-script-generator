@@ -451,9 +451,9 @@ class Chdir(Pragma):
 
 
 class Stdout(Pragma):
-    """Represents the SLURM #SBATCH --stdout pragma.
+    """Represents the SLURM #SBATCH --output pragma.
     Redirects job standard output to a specified file, supporting job and jobname variables.
-    Usage: --stdout <FILE>
+    Usage: --output <FILE>
 
     Parameters
     ----------
@@ -465,19 +465,19 @@ class Stdout(Pragma):
 
     pragma_id = 1
     pragma_type = "io_and_directory"
-    arg_varname = "stdout"
-    flags = ["--stdout", "-o"]
-    dest = "--stdout"
-    metavar = "STDOUT"
-    help = "File to redirect stdout (%%x=jobname, %%j=jobid)"
-    example = "--stdout ./%x.%j.out"
+    arg_varname = "output"
+    flags = ["--output", "-o"]
+    dest = "--output"
+    metavar = "OUTPUT"
+    help = "File to redirect stdout (%x=jobname, %j=jobid)"
+    example = "--output ./%x.%j.out"
     type = str
 
 
 class Stderr(Pragma):
-    """Represents the SLURM #SBATCH --stderr pragma.
+    """Represents the SLURM #SBATCH --error pragma.
     Redirects job standard error to a specified file, supporting job and jobname variables.
-    Usage: --stderr <FILE>
+    Usage: --error <FILE>
 
     Parameters
     ----------
@@ -489,12 +489,12 @@ class Stderr(Pragma):
 
     pragma_id = 2
     pragma_type = "io_and_directory"
-    arg_varname = "stderr"
-    flags = ["--stderr", "-e"]
-    dest = "--stderr"
-    metavar = "STDERR"
-    help = "File to redirect stderr (%%x=jobname, %%j=jobid)"
-    example = "--stderr ./%x.%j.err"
+    arg_varname = "error"
+    flags = ["--error", "-e"]
+    dest = "--error"
+    metavar = "ERROR"
+    help = "File to redirect stderr (%x=jobname, %j=jobid)"
+    example = "--error ./%x.%j.err"
     type = str
 
 

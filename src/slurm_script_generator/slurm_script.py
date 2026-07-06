@@ -3,7 +3,7 @@ import os
 import subprocess
 from importlib.metadata import version
 from typing import Any, List
-
+from pathlib import Path
 from slurm_script_generator.pragmas import Pragma, PragmaFactory, PragmaTypes
 from slurm_script_generator.utils import add_line
 
@@ -103,9 +103,9 @@ class SlurmScript:
         Send signal when time limit within seconds.
     spread_job : str, optional
         Spread job across as many nodes as possible.
-    stderr : str, optional
+    error : str, optional
         Redirect stderr to file.
-    stdout : str, optional
+    output : str, optional
         Redirect stdout to file.
     switches : str, optional
         Optimum switches and max wait time.
@@ -252,8 +252,8 @@ class SlurmScript:
         oversubscribe: str | None = None,
         signal: str | None = None,
         spread_job: str | None = None,
-        stderr: str | None = None,
-        stdout: str | None = None,
+        error: str | None = None,
+        output: str | None = None,
         switches: str | None = None,
         core_spec: str | None = None,
         thread_spec: str | None = None,
@@ -375,8 +375,8 @@ class SlurmScript:
             "oversubscribe": oversubscribe,
             "signal": signal,
             "spread_job": spread_job,
-            "stderr": stderr,
-            "stdout": stdout,
+            "error": error,
+            "output": output,
             "switches": switches,
             "core_spec": core_spec,
             "thread_spec": thread_spec,
@@ -725,7 +725,7 @@ class SlurmScript:
             "custom_commands": self.custom_commands,
         }
 
-    def save(self, path: str, include_header: bool = True) -> None:
+    def save(self, path: str | Path, include_header: bool = True, verbose: bool = False) -> None:
         """Save the generated SLURM script to a file.
 
         Parameters
@@ -734,6 +734,8 @@ class SlurmScript:
             Path to save the script file.
         include_header : bool
             Whether to include the script header.
+        verbose : bool
+            Whether to enable verbose output. (Default value = False)
 
         Returns
         -------
@@ -746,8 +748,10 @@ class SlurmScript:
                     include_header=include_header,
                 ),
             )
+        if verbose:
+            print(f"SLURM script saved to: {path}")
 
-    def submit_job(self, path: str) -> int:
+    def submit_job(self, path: str, verbose: bool = False) -> int:
         """Submit the SLURM script as a job using sbatch.
 
         Parameters
@@ -765,10 +769,13 @@ class SlurmScript:
 
         """
         self.save(path)
+        if verbose:
+            print(f"Submitting job with sbatch: {path}")
         result = subprocess.run(["sbatch", path], capture_output=True, text=True)
         if result.returncode != 0:
             raise RuntimeError(f"sbatch failed: {result.stderr.strip()}")
-        print(result.stdout.strip())
+        if verbose:
+            print(result.stdout.strip())
 
         # Return job id
         return int(result.stdout.strip().split()[-1])
