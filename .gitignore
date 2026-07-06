@@ -176,3 +176,4 @@ junit/
 *.sh
 *.slurm
 *.json
+docs/source/tutorials/

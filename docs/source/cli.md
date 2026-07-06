@@ -8,14 +8,14 @@ file by hand.
 
 ``` bash
 generate-slurm-script [SBATCH flags] [--modules ...] [--custom-commands ...]
-                      [--output FILE] [--export-json FILE] [--submit]
+                      [--output-path FILE] [--export-json FILE] [--submit]
 ```
 
 ------------------------------------------------------------------------
 
 ## Basic usage
 
-Print a script to stdout:
+Print a script:
 
 ``` bash
 generate-slurm-script --nodes 2 --ntasks-per-node 16 --time 04:00:00
@@ -38,11 +38,11 @@ generate-slurm-script --nodes 2 --ntasks-per-node 16 --time 04:00:00
     #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
     ########################################################
 
-Save to a file with `--output`:
+Save to a file with `--output-path`:
 
 ``` bash
 generate-slurm-script --nodes 2 --ntasks-per-node 16 --time 04:00:00 \
-    --output job.sh
+    --output-path job.sh
 cat job.sh
 ```
 
@@ -306,10 +306,10 @@ generate-slurm-script \
     #SBATCH --gres=gpu:a100:1                              # required generic resources
     ########################################################
 
-### Output and working directory
+### Output, error, and working directory
 
-By default SLURM writes stdout and stderr to `slurm-<jobid>.out`. Use
-these flags to control where output goes:
+By default SLURM writes output and error to `slurm-<jobid>.out`. Use
+these flags to control where job output goes:
 
 <table>
 <colgroup>
@@ -326,15 +326,15 @@ these flags to control where output goes:
 </thead>
 <tbody>
 <tr>
-<td><code>--stdout FILE</code></td>
+<td><code>--output FILE</code></td>
 <td><code>-o</code></td>
-<td>Redirect stdout (<code>%j</code> = job ID, <code>%x</code> = job
+<td>Redirect output (<code>%j</code> = job ID, <code>%x</code> = job
 name)</td>
 </tr>
 <tr>
-<td><code>--stderr FILE</code></td>
+<td><code>--error FILE</code></td>
 <td><code>-e</code></td>
-<td>Redirect stderr</td>
+<td>Redirect error</td>
 </tr>
 <tr>
 <td><code>--chdir PATH</code></td>
@@ -348,8 +348,8 @@ name)</td>
 generate-slurm-script \
     --job-name my_job \
     --nodes 1 --ntasks-per-node 4 \
-    --stdout logs/my_job_%j.out \
-    --stderr logs/my_job_%j.err \
+    --output logs/my_job_%j.out \
+    --error logs/my_job_%j.err \
     --chdir /scratch/my_project \
     --no-header
 ```
@@ -361,8 +361,8 @@ generate-slurm-script \
     #                                                      #
     # Pragmas for Io And Directory                         #
     #SBATCH --chdir=/scratch/my_project                    # change working directory
-    #SBATCH --stdout=logs/my_job_%j.out                    # File to redirect stdout (%%x=jobname, %%j=jobid)
-    #SBATCH --stderr=logs/my_job_%j.err                    # File to redirect stderr (%%x=jobname, %%j=jobid)
+    #SBATCH --output=logs/my_job_%j.out                    # File to redirect output (%%x=jobname, %%j=jobid)
+    #SBATCH --error=logs/my_job_%j.err                     # File to redirect error (%%x=jobname, %%j=jobid)
     #                                                      #
     # Pragmas for Core Node And Task Allocation            #
     #SBATCH --nodes=1                                      # number of nodes on which to run
@@ -572,7 +572,7 @@ generate-slurm-script \
     --nodes 4 --ntasks-per-node 16 \
     --time 12:00:00 \
     --account proj_hpc \
-    --output baseline.sh
+    --output-path baseline.sh
 cat baseline.sh
 ```
 
@@ -743,7 +743,7 @@ generate-slurm-script \
 
 ## Submitting directly
 
-Add `--submit` to write the script (requires `--output`) and immediately
+Add `--submit` to write the script (requires `--output-path`) and immediately
 call `sbatch` on it:
 
 ``` bash
@@ -753,7 +753,7 @@ generate-slurm-script \
     --time 04:00:00 \
     --modules gcc/13 openmpi/5.0 \
     --custom-commands 'srun ./myprog > output.txt' \
-    --output my_job.sh \
+    --output-path my_job.sh \
     --submit
 ```
 
@@ -1011,8 +1011,8 @@ generate-slurm-script \
     --nodes 1 \
     --ntasks-per-node 8 \
     --time 04:00:00 \
-    --stdout logs/sweep_%A_%a.out \
-    --stderr logs/sweep_%A_%a.err \
+    --output-path logs/sweep_%A_%a.out \
+    --error logs/sweep_%A_%a.err \
     --modules gcc/13 anaconda/3 \
     --custom-commands \
         'python run.py --config configs/config_${SLURM_ARRAY_TASK_ID}.yaml' \
@@ -1028,8 +1028,8 @@ generate-slurm-script \
     #SBATCH --time=04:00:00                                # time limit
     #                                                      #
     # Pragmas for Io And Directory                         #
-    #SBATCH --stdout=logs/sweep_%A_%a.out                  # File to redirect stdout (%%x=jobname, %%j=jobid)
-    #SBATCH --stderr=logs/sweep_%A_%a.err                  # File to redirect stderr (%%x=jobname, %%j=jobid)
+    #SBATCH --output=logs/sweep_%A_%a.out                  # File to redirect output (%%x=jobname, %%j=jobid)
+    #SBATCH --error=logs/sweep_%A_%a.err                   # File to redirect error (%%x=jobname, %%j=jobid)
     #                                                      #
     # Pragmas for Dependencies And Arrays                  #
     #SBATCH --array=0-9                                    # submit a job array
@@ -1085,7 +1085,7 @@ generate-slurm-script \
     --modules gcc/13 openmpi/5.0 \
     --custom-commands 'srun ./myprog --small-input > test.out' \
     --export-json sim_base.json \
-    --output sim_test.sh
+    --output-path sim_test.sh
 cat sim_test.sh
 ```
 
@@ -1125,7 +1125,7 @@ generate-slurm-script \
     --time 12:00:00 \
     --partition main \
     --custom-commands 'srun ./myprog --full-input > production.out' \
-    --output sim_production.sh
+    --output-path sim_production.sh
 cat sim_production.sh
 ```
 
@@ -1163,7 +1163,7 @@ generate-slurm-script \
     --read-script sim_production.sh \
     --account colleague_account \
     --partition gpu \
-    --output colleague_job.sh
+    --output-path colleague_job.sh
 cat colleague_job.sh
 ```
 

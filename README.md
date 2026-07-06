@@ -35,10 +35,10 @@ generate-slurm-script --nodes 1 --ntasks-per-node 16
     #SBATCH --ntasks-per-node=16                           # number of tasks to invoke on each node
     ########################################################
 
-To save the script to file `my_script.sh` use `--output`:
+To save the script to file `my_script.sh` use `--output-path`:
 
 ``` bash
-generate-slurm-script --nodes 1 --ntasks-per-node 16 --output my_script.sh
+generate-slurm-script --nodes 1 --ntasks-per-node 16 --output-path my_script.sh
 ```
 
 Remove the header comment with `--no-header`:
@@ -196,8 +196,8 @@ generate-slurm-script -h
                                  [--mcs-label MCS] [--comment NAME] [-t MINUTES]
                                  [--time-min MINUTES] [-b TIME] [--deadline TIME]
                                  [--priority VALUE] [--nice VALUE] [-D PATH]
-                                 [--stdout STDOUT] [--stderr STDERR]
-                                 [--disable-stdout-job-summary] [--get-user-env]
+                                 [--output OUTPUT] [--error ERROR]
+                                 [--disable-output-job-summary] [--get-user-env]
                                  [-Q] [--mail-user USER] [--mail-type TYPE]
                                  [--bell] [-d TYPE:JOBID[:TIME]] [--array INDEXES]
                                  [-N NODES] [-n N] [--ntasks-per-node N]
@@ -228,7 +228,7 @@ generate-slurm-script -h
                                  [--bbf FILE_NAME] [--container PATH]
                                  [--container-id ID] [--line-length LINE_LENGTH]
                                  [--modules MODULES [MODULES ...]]
-                                 [--input INPUT_PATH] [--output OUTPUT_PATH]
+                                 [--input INPUT_PATH] [--output-path OUTPUT_PATH]
                                  [--export-json JSON_PATH]
                                  [--custom-command COMMAND]
                                  [--custom-commands COMMAND [COMMAND ...]]
@@ -262,12 +262,12 @@ generate-slurm-script -h
       --priority VALUE      set the priority of the job (default: None)
       --nice VALUE          decrease scheduling priority by value (default: None)
       -D, --chdir PATH      change working directory (default: None)
-      --stdout, -o STDOUT   File to redirect stdout (%x=jobname, %j=jobid)
+      --output, -o OUTPUT   File to redirect output (%x=jobname, %j=jobid)
                             (default: None)
-      --stderr, -e STDERR   File to redirect stderr (%x=jobname, %j=jobid)
+      --error, -e ERROR     File to redirect error (%x=jobname, %j=jobid)
                             (default: None)
-      --disable-stdout-job-summary
-                            disable job summary in stdout file for the job
+      --disable-output-job-summary
+                            disable job summary in output file for the job
                             (default: None)
       --get-user-env        used by Moab. See srun man page (default: None)
       -Q, --quiet           quiet mode (suppress informational messages) (default:
@@ -387,7 +387,8 @@ generate-slurm-script -h
                             Modules to load (e.g., --modules mod1 mod2 mod3)
                             (default: [])
       --input INPUT_PATH    path to input json file (default: None)
-      --output OUTPUT_PATH  json path to save slurm batch script to (default:
+      --output-path OUTPUT_PATH
+                            path to save the generated SLURM script (default:
                             None)
       --export-json JSON_PATH
                             path to export yaml for generating the slurm script to
@@ -413,4 +414,4 @@ generate-slurm-script -h
       --no-header           Do not include the header comment in the generated
                             script (default: False)
       --submit              Submit the generated script to the scheduler (requires
-                            --output to be specified) (default: False)
+                            --output-path to be specified) (default: False)

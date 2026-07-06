@@ -58,3 +58,22 @@ def test_pragma_type_and_value():
     pragma = PragmaFactory.create_pragma("account", "max")
     assert pragma.type is str
     assert isinstance(pragma.value, str)
+
+
+def test_io_pragmas():
+    output = PragmaFactory.create_pragma("output", "./job.out.%j")
+    assert output.flags == ["--output", "-o"]
+    assert output.dest == "--output"
+    assert output.arg_varname == "output"
+    assert output.value == "./job.out.%j"
+
+    error = PragmaFactory.create_pragma("error", "./job.err.%j")
+    assert error.flags == ["--error", "-e"]
+    assert error.dest == "--error"
+    assert error.arg_varname == "error"
+    assert error.value == "./job.err.%j"
+
+    summary = PragmaFactory.create_pragma("disable_output_job_summary", True)
+    assert summary.flags == ["--disable-output-job-summary"]
+    assert summary.dest == "--disable-output-job-summary"
+    assert summary.arg_varname == "disable_output_job_summary"

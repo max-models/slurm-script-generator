@@ -1,6 +1,9 @@
+from unittest.mock import patch
+
 import pytest
 
 # from slurm_script_generator.main import generate_script
+from slurm_script_generator.main import main as cli_main
 from slurm_script_generator.pragmas import PragmaFactory
 from slurm_script_generator.slurm_script import SlurmScript
 
@@ -30,6 +33,26 @@ def test_options():
     script = slurm_script.generate_script()
     assert "#SBATCH --nodes=1" in script
     assert "#SBATCH --ntasks-per-node=16" in script
+
+
+def test_cli_output_path_flag():
+    with patch("slurm_script_generator.main.SlurmScript.save") as save:
+        with patch(
+            "sys.argv",
+            ["generate-slurm-script", "--output-path", "job.sh"],
+        ):
+            cli_main()
+
+    save.assert_called_once_with(path="job.sh", include_header=True)
+
+
+def test_cli_help_does_not_crash(capsys):
+    with patch("sys.argv", ["generate-slurm-script", "-h"]):
+        with pytest.raises(SystemExit) as excinfo:
+            cli_main()
+
+    assert excinfo.value.code == 0
+    assert "--output-path" in capsys.readouterr().out
 
 
 @pytest.mark.parametrize("job_name", ["test_job1", "test_job2"])

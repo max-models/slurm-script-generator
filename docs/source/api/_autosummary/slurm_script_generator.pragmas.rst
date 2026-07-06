@@ -30,7 +30,7 @@ slurm\_script\_generator.pragmas
       Deadline
       Delay_boot
       Dependency
-      Disable_stdout_job_summary
+      Disable_output_job_summary
       Distribution
       Exclude
       Exclusive_mcs
@@ -86,8 +86,8 @@ slurm\_script\_generator.pragmas
       Signal
       Sockets_per_node
       Spread_job
-      Stderr
-      Stdout
+      Error
+      Output
       Switches
       Thread_spec
       Threads_per_core

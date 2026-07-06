@@ -47,11 +47,11 @@ jobs:
         run: |
           source env/bin/activate
           generate-slurm-script -h
-      
+
       - name: Test CLI
         run: |
           source env/bin/activate
-          generate-slurm-script --nodes 1 --ntasks-per-node 16 --output sbatch.sh
+          generate-slurm-script --nodes 1 --ntasks-per-node 16 --output-path sbatch.sh
           cat sbatch.sh
           grep -q "^#SBATCH --nodes=1" sbatch.sh
           grep -q "^#SBATCH --ntasks-per-node=16" sbatch.sh

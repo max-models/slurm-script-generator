@@ -6,7 +6,10 @@ from slurm_script_generator.slurm_script import SlurmScript
 def test_export_import():
 
     slurm_script = SlurmScript(
+        error="./job.err.%j",
         nodes=2,
+        output="./job.out.%j",
+        disable_output_job_summary=True,
         ntasks_per_core=16,
         custom_commands=[
             "# Run simulation",

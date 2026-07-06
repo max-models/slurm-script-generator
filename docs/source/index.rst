@@ -19,7 +19,7 @@ Quickstart
 
 .. code-block:: bash
 
-   generate-slurm-script --nodes 2 --ntasks-per-node 16 --job-name my_job --output job.sh
+   generate-slurm-script --nodes 2 --ntasks-per-node 16 --job-name my_job --output-path job.sh
 
 **Or from Python:**
 

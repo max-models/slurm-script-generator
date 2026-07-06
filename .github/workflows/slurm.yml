@@ -28,13 +28,13 @@ jobs:
 
       - uses: koesterlab/setup-slurm-action@v1
 
-      # Afterwards, you can submit to the slurm cluster via sbatch and srun, 
+      # Afterwards, you can submit to the slurm cluster via sbatch and srun,
       # and interact via all other usual commands.
       - name: Install slurm-script-generator
         run: |
           pip install .
-      
+
       - name: Run job with sbatch
         run: |
-          generate-slurm-script -D ./ -J test_slurm --nodes 16 --ntasks-per-node 72 --mail-type=ALL --mail-user=userid@example.mpg.de --time=12:00:00 --modules intel/21.2.0 impi/2021.2 --output batch_script.sh
+          generate-slurm-script -D ./ -J test_slurm --nodes 16 --ntasks-per-node 72 --mail-type=ALL --mail-user=userid@example.mpg.de --time=12:00:00 --modules intel/21.2.0 impi/2021.2 --output-path batch_script.sh
           sbatch batch_script.sh
