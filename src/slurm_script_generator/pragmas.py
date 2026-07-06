@@ -469,7 +469,7 @@ class Output(Pragma):
     flags = ["--output", "-o"]
     dest = "--output"
     metavar = "OUTPUT"
-    help = "File to redirect output (%x=jobname, %j=jobid)"
+    help = "File to redirect output (%%x=jobname, %%j=jobid)"
     example = "--output ./%x.%j.out"
     type = str
 
@@ -493,7 +493,7 @@ class Error(Pragma):
     flags = ["--error", "-e"]
     dest = "--error"
     metavar = "ERROR"
-    help = "File to redirect error (%x=jobname, %j=jobid)"
+    help = "File to redirect error (%%x=jobname, %%j=jobid)"
     example = "--error ./%x.%j.err"
     type = str
 
