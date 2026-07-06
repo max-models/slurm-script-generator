@@ -186,8 +186,8 @@ class SlurmScript:
         GPUs per spawned task.
     mem_per_gpu : str, optional
         Real memory per allocated GPU.
-    disable_stdout_job_summary : str, optional
-        Disable job summary in stdout file.
+    disable_output_job_summary : str, optional
+        Disable job summary in output file.
     nvmps : str, optional
         Launch NVIDIA MPS for job.
     pragmas : List[Pragma], optional
@@ -294,7 +294,7 @@ class SlurmScript:
         gpus_per_socket: str | None = None,
         gpus_per_task: str | None = None,
         mem_per_gpu: str | None = None,
-        disable_stdout_job_summary: str | None = None,
+        disable_output_job_summary: str | None = None,
         nvmps: str | None = None,
         # List of pragmas to add to the script
         pragmas: List[Pragma] | None = None,
@@ -417,7 +417,7 @@ class SlurmScript:
             "gpus_per_socket": gpus_per_socket,
             "gpus_per_task": gpus_per_task,
             "mem_per_gpu": mem_per_gpu,
-            "disable_stdout_job_summary": disable_stdout_job_summary,
+            "disable_output_job_summary": disable_output_job_summary,
             "nvmps": nvmps,
         }
 

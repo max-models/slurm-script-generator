@@ -196,8 +196,8 @@ generate-slurm-script -h
                                  [--mcs-label MCS] [--comment NAME] [-t MINUTES]
                                  [--time-min MINUTES] [-b TIME] [--deadline TIME]
                                  [--priority VALUE] [--nice VALUE] [-D PATH]
-                                 [--stdout STDOUT] [--stderr STDERR]
-                                 [--disable-stdout-job-summary] [--get-user-env]
+                                 [--output OUTPUT] [--error ERROR]
+                                 [--disable-output-job-summary] [--get-user-env]
                                  [-Q] [--mail-user USER] [--mail-type TYPE]
                                  [--bell] [-d TYPE:JOBID[:TIME]] [--array INDEXES]
                                  [-N NODES] [-n N] [--ntasks-per-node N]
@@ -262,12 +262,12 @@ generate-slurm-script -h
       --priority VALUE      set the priority of the job (default: None)
       --nice VALUE          decrease scheduling priority by value (default: None)
       -D, --chdir PATH      change working directory (default: None)
-      --stdout, -o STDOUT   File to redirect stdout (%x=jobname, %j=jobid)
+      --output, -o OUTPUT   File to redirect output (%x=jobname, %j=jobid)
                             (default: None)
-      --stderr, -e STDERR   File to redirect stderr (%x=jobname, %j=jobid)
+      --error, -e ERROR     File to redirect error (%x=jobname, %j=jobid)
                             (default: None)
-      --disable-stdout-job-summary
-                            disable job summary in stdout file for the job
+      --disable-output-job-summary
+                            disable job summary in output file for the job
                             (default: None)
       --get-user-env        used by Moab. See srun man page (default: None)
       -Q, --quiet           quiet mode (suppress informational messages) (default:

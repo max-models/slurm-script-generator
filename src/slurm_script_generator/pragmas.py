@@ -450,9 +450,9 @@ class Chdir(Pragma):
     type = str
 
 
-class Stdout(Pragma):
+class Output(Pragma):
     """Represents the SLURM #SBATCH --output pragma.
-    Redirects job standard output to a specified file, supporting job and jobname variables.
+    Redirects job output to a specified file, supporting job and jobname variables.
     Usage: --output <FILE>
 
     Parameters
@@ -469,14 +469,14 @@ class Stdout(Pragma):
     flags = ["--output", "-o"]
     dest = "--output"
     metavar = "OUTPUT"
-    help = "File to redirect stdout (%x=jobname, %j=jobid)"
+    help = "File to redirect output (%x=jobname, %j=jobid)"
     example = "--output ./%x.%j.out"
     type = str
 
 
-class Stderr(Pragma):
+class Error(Pragma):
     """Represents the SLURM #SBATCH --error pragma.
-    Redirects job standard error to a specified file, supporting job and jobname variables.
+    Redirects job error to a specified file, supporting job and jobname variables.
     Usage: --error <FILE>
 
     Parameters
@@ -493,15 +493,15 @@ class Stderr(Pragma):
     flags = ["--error", "-e"]
     dest = "--error"
     metavar = "ERROR"
-    help = "File to redirect stderr (%x=jobname, %j=jobid)"
+    help = "File to redirect error (%x=jobname, %j=jobid)"
     example = "--error ./%x.%j.err"
     type = str
 
 
-class Disable_stdout_job_summary(Pragma):
-    """Represents the SLURM #SBATCH --disable-stdout-job-summary pragma.
-    Disables the job summary in the stdout file for the job.
-    Usage: --disable-stdout-job-summary
+class Disable_output_job_summary(Pragma):
+    """Represents the SLURM #SBATCH --disable-output-job-summary pragma.
+    Disables the job summary in the output file for the job.
+    Usage: --disable-output-job-summary
 
     Parameters
     ----------
@@ -513,10 +513,10 @@ class Disable_stdout_job_summary(Pragma):
 
     pragma_id = 3
     pragma_type = "io_and_directory"
-    arg_varname = "disable_stdout_job_summary"
-    flags = ["--disable-stdout-job-summary"]
-    dest = "--disable-stdout-job-summary"
-    help = "disable job summary in stdout file for the job"
+    arg_varname = "disable_output_job_summary"
+    flags = ["--disable-output-job-summary"]
+    dest = "--disable-output-job-summary"
+    help = "disable job summary in output file for the job"
     action = "store_true"
     type = str
 
@@ -2163,9 +2163,9 @@ pragmas_ordered: List[Type[Pragma]] = [
     Nice,
     # --- Standard IO & Directory ---
     Chdir,
-    Stdout,
-    Stderr,
-    Disable_stdout_job_summary,
+    Output,
+    Error,
+    Disable_output_job_summary,
     Get_user_env,
     Quiet,
     # --- Notifications ---
