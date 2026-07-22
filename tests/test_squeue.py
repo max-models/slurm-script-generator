@@ -138,6 +138,11 @@ def test_filter_by_job_id(queue):
     assert jobs[0].name == "eval_run"
 
 
+def test_filter_by_job_id_list(queue):
+    jobs = queue.jobs(job_id=[1001, 1004])
+    assert {j.job_id for j in jobs} == {1001, 1004}
+
+
 def test_filter_glob_exact(queue):
     jobs = queue.jobs(job_name="train_resnet")
     assert len(jobs) == 1
@@ -294,6 +299,32 @@ def test_wait_until_done_by_job_id():
         with patch("time.sleep"):
             q = SQueue()
             q.wait_until_done(job_id=1001, verbose=False)
+
+
+def test_wait_until_done_by_job_id_list():
+    active = "\n".join(
+        [
+            _make_line(1001, "alice", "job1", "R"),
+            _make_line(1002, "alice", "job2", "PD"),
+        ]
+    )
+
+    call_count = 0
+
+    def side_effect(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        # job 1001 finishes first, 1002 stays active until the 3rd poll
+        if call_count <= 1:
+            return _mock_run(stdout=active)
+        if call_count == 2:
+            return _mock_run(stdout=_make_line(1002, "alice", "job2", "PD"))
+        return _mock_run(stdout="")
+
+    with patch("subprocess.run", side_effect=side_effect):
+        with patch("time.sleep"):
+            q = SQueue()
+            q.wait_until_done(job_id=[1001, 1002], verbose=False)
 
 
 def test_wait_until_done_by_user():
