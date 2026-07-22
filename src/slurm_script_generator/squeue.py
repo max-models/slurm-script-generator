@@ -5,7 +5,7 @@ import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 # ---------------------------------------------------------------------------
 # ANSI color helpers — no dependencies, disabled when not writing to a TTY
@@ -177,6 +177,7 @@ class SQueue:
 
     >>> q.wait_until_done(job_name='training_*')
     >>> q.wait_until_done(job_id=12345)
+    >>> q.wait_until_done(job_id=[12345, 12346])
     >>> q.wait_until_done(user='alice')
     """
 
@@ -244,7 +245,7 @@ class SQueue:
     def jobs(
         self,
         job_name: Optional[str] = None,
-        job_id: Optional[int | str] = None,
+        job_id: Optional[Union[int, str, List[Union[int, str]]]] = None,
         user: Optional[str] = None,
         state: Optional[str] = None,
         partition: Optional[str] = None,
@@ -255,8 +256,8 @@ class SQueue:
         ----------
         job_name : str, optional
             Job name or glob pattern (e.g. ``'train_*'``).
-        job_id : int or str, optional
-            Exact job ID.
+        job_id : int, str, or list of int/str, optional
+            Exact job ID, or a list of job IDs.
         user : str, optional
             Username to filter by.
         state : str, optional
@@ -270,7 +271,8 @@ class SQueue:
         """
         result = list(self._jobs)
         if job_id is not None:
-            result = [j for j in result if j.job_id == int(job_id)]
+            job_ids = {int(j) for j in job_id} if isinstance(job_id, list) else {int(job_id)}
+            result = [j for j in result if j.job_id in job_ids]
         if user is not None:
             result = [j for j in result if j.user == user]
         if state is not None:
@@ -296,7 +298,7 @@ class SQueue:
     def wait_until_done(
         self,
         job_name: Optional[str] = None,
-        job_id: Optional[int | str] = None,
+        job_id: Optional[Union[int, str, List[Union[int, str]]]] = None,
         user: Optional[str] = None,
         poll_interval: float = 30.0,
         timeout: Optional[float] = None,
@@ -311,8 +313,8 @@ class SQueue:
         ----------
         job_name : str, optional
             Job name or glob pattern, e.g. ``'train_*'``.
-        job_id : int or str, optional
-            A specific job ID to wait for.
+        job_id : int, str, or list of int/str, optional
+            A specific job ID, or a list of job IDs, to wait for.
         user : str, optional
             Wait for all jobs belonging to this user to finish.
         poll_interval : float
