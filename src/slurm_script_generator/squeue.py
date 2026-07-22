@@ -271,7 +271,9 @@ class SQueue:
         """
         result = list(self._jobs)
         if job_id is not None:
-            job_ids = {int(j) for j in job_id} if isinstance(job_id, list) else {int(job_id)}
+            job_ids = (
+                {int(j) for j in job_id} if isinstance(job_id, list) else {int(job_id)}
+            )
             result = [j for j in result if j.job_id in job_ids]
         if user is not None:
             result = [j for j in result if j.user == user]
