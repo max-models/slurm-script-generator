@@ -783,9 +783,6 @@ class SlurmScript:
         # Return job id
         return int(result.stdout.strip().split()[-1])
 
-        # Return job id
-        return int(result.stdout.strip().split()[-1])
-
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "SlurmScript":
         """Create a SlurmScript instance from a dictionary.
