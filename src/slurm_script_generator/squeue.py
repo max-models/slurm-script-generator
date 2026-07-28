@@ -363,9 +363,7 @@ class SQueue:
                 )
 
             if verbose:
-                block = _fmt_wait_block(
-                    active, time.monotonic() - start, poll_interval
-                )
+                block = _fmt_wait_block(active, time.monotonic() - start, poll_interval)
                 if redraw and lines_printed:
                     print(f"\033[{lines_printed}A\033[J", end="")
                 print(block)
