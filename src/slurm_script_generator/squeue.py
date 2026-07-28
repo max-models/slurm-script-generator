@@ -337,15 +337,22 @@ class SQueue:
             raise ValueError("Specify at least one of: job_name, job_id, user")
 
         start = time.monotonic()
+        lines_printed = 0
+        redraw = verbose and _supports_color()
         while True:
             self.refresh()
-            active = [
-                j
-                for j in self.jobs(job_name=job_name, job_id=job_id, user=user)
-                if j.is_active
-            ]
+            active = sorted(
+                (
+                    j
+                    for j in self.jobs(job_name=job_name, job_id=job_id, user=user)
+                    if j.is_active
+                ),
+                key=lambda j: j.job_id,
+            )
             if not active:
                 if verbose:
+                    if redraw and lines_printed:
+                        print(f"\033[{lines_printed}A\033[J", end="")
                     print(_c("✓", _GREEN) + " All matching jobs have finished.")
                 return
 
@@ -356,12 +363,13 @@ class SQueue:
                 )
 
             if verbose:
-                ids = [j.job_id for j in active]
-                print(
-                    _c("~", _YELLOW)
-                    + f" Waiting — {_c(str(len(active)), _YELLOW)} job(s) still active {ids}."
-                    f" Polling again in {poll_interval}s."
+                block = _fmt_wait_block(
+                    active, time.monotonic() - start, poll_interval
                 )
+                if redraw and lines_printed:
+                    print(f"\033[{lines_printed}A\033[J", end="")
+                print(block)
+                lines_printed = block.count("\n") + 1
             time.sleep(poll_interval)
 
     # ------------------------------------------------------------------
@@ -605,6 +613,39 @@ def _fmt_job_table(jobs: List[SQueueJob], show_reason: bool = False) -> str:
         *[fmt_row(p, c) for p, c in zip(rows_plain, rows_colored)],
     ]
     return "\n".join(lines)
+
+
+def _fmt_elapsed(seconds: float) -> str:
+    """Format a duration in seconds as e.g. ``5s``, ``3m12s``, ``1h04m``."""
+    total = int(seconds)
+    hours, rem = divmod(total, 3600)
+    minutes, secs = divmod(rem, 60)
+    if hours:
+        return f"{hours}h{minutes:02d}m"
+    if minutes:
+        return f"{minutes}m{secs:02d}s"
+    return f"{secs}s"
+
+
+def _fmt_wait_block(jobs: List[SQueueJob], elapsed: float, poll_interval: float) -> str:
+    """Format the live status view shown while ``wait_until_done`` polls."""
+    title_plain = (
+        f"Waiting on {len(jobs)} job(s)"
+        f"  ·  elapsed {_fmt_elapsed(elapsed)}"
+        f"  ·  next poll in {poll_interval:g}s"
+    )
+    title = (
+        _c("~", _YELLOW, _BOLD)
+        + " "
+        + _c(f"Waiting on {len(jobs)} job(s)", _BOLD)
+        + "  ·  "
+        + _c(f"elapsed {_fmt_elapsed(elapsed)}", _DIM)
+        + "  ·  "
+        + _c(f"next poll in {poll_interval:g}s", _DIM)
+    )
+    table = _fmt_job_table(jobs)
+    bar = _c("─" * len(title_plain), _DIM)
+    return "\n".join([title, bar, table])
 
 
 def _fmt_stats_table(q: SQueue) -> str:
