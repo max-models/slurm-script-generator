@@ -48,6 +48,17 @@ Quickstart
 
    SQueue().wait_until_done(job_id=job_id)
 
+**Cancel jobs:**
+
+.. code-block:: python
+
+   from slurm_script_generator.squeue import SQueue
+
+   q = SQueue()
+   q.cancel(job_id=job_id)          # a single job (or a list of IDs)
+   q.cancel(job_name="train_*")     # every job matching a glob
+   q.cancel(user="alice", state="PD")  # only alice's pending jobs
+
 **Inspect the live queue:**
 
 .. code-block:: bash

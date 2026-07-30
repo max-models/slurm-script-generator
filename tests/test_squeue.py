@@ -362,6 +362,131 @@ def test_default_user_passed_to_squeue():
 
 
 # ---------------------------------------------------------------------------
+# cancel
+# ---------------------------------------------------------------------------
+
+
+def _scancel_calls(mock_run):
+    return [c[0][0] for c in mock_run.call_args_list if c[0][0][0] == "scancel"]
+
+
+def test_cancel_by_job_id():
+    with patch("subprocess.run", return_value=_mock_run()) as mock_run:
+        q = SQueue()
+        cancelled = q.cancel(job_id=1001, verbose=False)
+
+    assert cancelled == [1001]
+    assert _scancel_calls(mock_run) == [["scancel", "1001"]]
+
+
+def test_cancel_by_job_id_list():
+    with patch("subprocess.run", return_value=_mock_run()) as mock_run:
+        q = SQueue()
+        cancelled = q.cancel(job_id=[1001, 1003], verbose=False)
+
+    assert cancelled == [1001, 1003]
+    assert _scancel_calls(mock_run) == [["scancel", "1001", "1003"]]
+
+
+def test_cancel_by_job_name_glob():
+    with patch("subprocess.run", return_value=_mock_run()) as mock_run:
+        q = SQueue()
+        cancelled = q.cancel(job_name="train_*", verbose=False)
+
+    assert cancelled == [1001, 1002]
+    assert _scancel_calls(mock_run) == [["scancel", "1001", "1002"]]
+
+
+def test_cancel_by_user_and_state():
+    with patch("subprocess.run", return_value=_mock_run()) as mock_run:
+        q = SQueue()
+        cancelled = q.cancel(user="bob", state="PD", verbose=False)
+
+    assert cancelled == [1003]
+    assert _scancel_calls(mock_run) == [["scancel", "1003"]]
+
+
+def test_cancel_by_partition():
+    output = "\n".join(
+        [
+            _make_line(1001, "alice", "job1", "R", partition="gpu"),
+            _make_line(1002, "alice", "job2", "R", partition="cpu"),
+        ]
+    )
+    with patch("subprocess.run", return_value=_mock_run(stdout=output)) as mock_run:
+        q = SQueue()
+        cancelled = q.cancel(partition="cpu", verbose=False)
+
+    assert cancelled == [1002]
+    assert _scancel_calls(mock_run) == [["scancel", "1002"]]
+
+
+def test_cancel_requires_filter(queue):
+    with pytest.raises(ValueError):
+        queue.cancel()
+
+
+def test_cancel_no_matching_jobs_is_noop():
+    with patch("subprocess.run", return_value=_mock_run()) as mock_run:
+        q = SQueue()
+        cancelled = q.cancel(job_id=9999, verbose=False)
+
+    assert cancelled == []
+    assert _scancel_calls(mock_run) == []
+
+
+def test_cancel_raises_on_scancel_error():
+    def side_effect(cmd, *args, **kwargs):
+        if cmd[0] == "scancel":
+            return _mock_run(returncode=1, stderr="Invalid job id")
+        return _mock_run()
+
+    with patch("subprocess.run", side_effect=side_effect):
+        q = SQueue()
+        with pytest.raises(RuntimeError, match="scancel failed"):
+            q.cancel(job_id=1001, verbose=False)
+
+
+def test_cancel_refreshes_after_success():
+    """The queue reflects the post-cancel state."""
+    remaining = _make_line(1003, "bob", "preprocess", "PD")
+    seen_scancel = False
+
+    def side_effect(cmd, *args, **kwargs):
+        nonlocal seen_scancel
+        if cmd[0] == "scancel":
+            seen_scancel = True
+            return _mock_run(stdout="")
+        return _mock_run(stdout=remaining if seen_scancel else SAMPLE_OUTPUT)
+
+    with patch("subprocess.run", side_effect=side_effect):
+        q = SQueue()
+        assert len(q) == 5
+        q.cancel(job_name="train_*", verbose=False)
+        assert [j.job_id for j in q.jobs()] == [1003]
+
+
+# ---------------------------------------------------------------------------
+# SQueueJob.cancel
+# ---------------------------------------------------------------------------
+
+
+def test_job_cancel_delegates_to_squeue():
+    def side_effect(cmd, *args, **kwargs):
+        if cmd[0] == "scancel":
+            return _mock_run(stdout="")
+        return _mock_run()
+
+    job = SQueueJob(
+        1001, "alice", "train_resnet", "R", "gpu", 1, 4, "0:01", "1:00", "None", 100
+    )
+    with patch("subprocess.run", side_effect=side_effect) as mock_run:
+        job.cancel(verbose=False)
+
+    assert _scancel_calls(mock_run) == [["scancel", "1001"]]
+
+
+# ---------------------------------------------------------------------------
 # SQueueJob.wait_until_done
 # ---------------------------------------------------------------------------
 

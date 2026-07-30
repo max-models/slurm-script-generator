@@ -146,6 +146,16 @@ class SQueueJob:
             verbose=verbose,
         )
 
+    def cancel(self, verbose: bool = True) -> None:
+        """Cancel this specific job with ``scancel``.
+
+        Parameters
+        ----------
+        verbose : bool
+            Print a confirmation message. Defaults to True.
+        """
+        SQueue().cancel(job_id=self.job_id, verbose=verbose)
+
     def __repr__(self) -> str:
         return (
             f"SQueueJob(job_id={self.job_id}, user={self.user!r}, "
@@ -179,6 +189,9 @@ class SQueue:
     >>> q.wait_until_done(job_id=12345)
     >>> q.wait_until_done(job_id=[12345, 12346])
     >>> q.wait_until_done(user='alice')
+
+    >>> q.cancel(job_id=12345)
+    >>> q.cancel(job_name='training_*')
     """
 
     def __init__(
@@ -363,6 +376,97 @@ class SQueue:
                     f" Polling again in {poll_interval}s."
                 )
             time.sleep(poll_interval)
+
+    # ------------------------------------------------------------------
+    # Cancelling
+    # ------------------------------------------------------------------
+
+    def cancel(
+        self,
+        job_name: Optional[str] = None,
+        job_id: Optional[Union[int, str, List[Union[int, str]]]] = None,
+        user: Optional[str] = None,
+        state: Optional[str] = None,
+        partition: Optional[str] = None,
+        verbose: bool = True,
+    ) -> List[int]:
+        """Cancel all matching jobs with ``scancel``.
+
+        Supports glob patterns in *job_name* (``*`` and ``?`` wildcards).
+        At least one filter argument must be provided, so that an accidental
+        call cannot cancel the whole queue.
+
+        Parameters
+        ----------
+        job_name : str, optional
+            Job name or glob pattern, e.g. ``'train_*'``.
+        job_id : int, str, or list of int/str, optional
+            A specific job ID, or a list of job IDs, to cancel.
+        user : str, optional
+            Cancel all jobs belonging to this user.
+        state : str, optional
+            SLURM state code, e.g. ``'PD'`` to cancel only pending jobs.
+        partition : str, optional
+            Partition name to filter by.
+        verbose : bool
+            Print progress messages. Defaults to True.
+
+        Returns
+        -------
+        list of int
+            The job IDs that were passed to ``scancel``.
+
+        Raises
+        ------
+        ValueError
+            If no filter is specified.
+        RuntimeError
+            If ``scancel`` exits with a non-zero status.
+
+        Examples
+        --------
+        >>> q = SQueue()
+        >>> q.cancel(job_id=12345)
+        >>> q.cancel(job_name='train_*')
+        >>> q.cancel(user='alice', state='PD')
+        """
+        if (
+            job_name is None
+            and job_id is None
+            and user is None
+            and state is None
+            and partition is None
+        ):
+            raise ValueError(
+                "Specify at least one of: job_name, job_id, user, state, partition"
+            )
+
+        self.refresh()
+        targets = self.jobs(
+            job_name=job_name,
+            job_id=job_id,
+            user=user,
+            state=state,
+            partition=partition,
+        )
+        ids = [j.job_id for j in targets]
+        if not ids:
+            if verbose:
+                print(_c("✓", _GREEN) + " No matching jobs to cancel.")
+            return []
+
+        cmd = ["scancel"] + [str(i) for i in ids]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(f"scancel failed: {result.stderr.strip()}")
+
+        if verbose:
+            print(
+                _c("✓", _GREEN)
+                + f" Cancelled {_c(str(len(ids)), _CYAN)} job(s): {ids}."
+            )
+        self.refresh()
+        return ids
 
     # ------------------------------------------------------------------
     # Statistics
