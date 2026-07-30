@@ -1,5 +1,6 @@
 import fnmatch
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -84,6 +85,21 @@ JOB_STATES = {
 # States that mean the job is still alive in the queue
 ACTIVE_STATES = {"R", "PD", "CG", "CF", "RQ", "RS", "SI", "SO", "ST", "S", "RH", "RF"}
 
+# sacct states that mean the job did not finish successfully. Deliberately an
+# explicit list rather than "anything but COMPLETED": accounting can lag behind
+# the queue, and a transient RUNNING/PENDING record must not read as a failure.
+FAILED_JOB_STATES = {
+    "BOOT_FAIL",
+    "CANCELLED",
+    "DEADLINE",
+    "FAILED",
+    "NODE_FAIL",
+    "OUT_OF_MEMORY",
+    "PREEMPTED",
+    "REVOKED",
+    "TIMEOUT",
+}
+
 # squeue --format codes and matching field names
 _SEPARATOR = "\x1f"  # ASCII unit separator — won't appear in job fields
 _FORMAT_CODES = ["%i", "%u", "%j", "%t", "%P", "%D", "%C", "%M", "%l", "%r", "%Q"]
@@ -127,7 +143,8 @@ class SQueueJob:
         poll_interval: float = 30.0,
         timeout: Optional[float] = None,
         verbose: bool = True,
-    ) -> None:
+        check: bool = False,
+    ) -> Optional[str]:
         """Block until this specific job leaves the active queue.
 
         Parameters
@@ -138,13 +155,41 @@ class SQueueJob:
             Maximum seconds to wait before raising ``TimeoutError``.
         verbose : bool
             Print progress messages. Defaults to True.
+        check : bool
+            Raise ``RuntimeError`` if the job ends in a failure state.
+            Defaults to False.
+
+        Returns
+        -------
+        str or None
+            The job's final accounting state, or None if undetermined.
         """
-        SQueue().wait_until_done(
+        states = SQueue().wait_until_done(
             job_id=self.job_id,
             poll_interval=poll_interval,
             timeout=timeout,
             verbose=verbose,
+            check=check,
         )
+        return states.get(self.job_id)
+
+    def final_state(self) -> Optional[str]:
+        """Return this job's accounting state via ``sacct``.
+
+        See :func:`job_state`. Returns None when the state cannot be
+        determined; that is not evidence of failure.
+        """
+        return job_state(self.job_id)
+
+    def cancel(self, verbose: bool = True) -> None:
+        """Cancel this specific job with ``scancel``.
+
+        Parameters
+        ----------
+        verbose : bool
+            Print a confirmation message. Defaults to True.
+        """
+        SQueue().cancel(job_id=self.job_id, verbose=verbose)
 
     def __repr__(self) -> str:
         return (
@@ -179,6 +224,9 @@ class SQueue:
     >>> q.wait_until_done(job_id=12345)
     >>> q.wait_until_done(job_id=[12345, 12346])
     >>> q.wait_until_done(user='alice')
+
+    >>> q.cancel(job_id=12345)
+    >>> q.cancel(job_name='training_*')
     """
 
     def __init__(
@@ -305,11 +353,16 @@ class SQueue:
         poll_interval: float = 30.0,
         timeout: Optional[float] = None,
         verbose: bool = True,
-    ) -> None:
+        check: bool = False,
+    ) -> Dict[int, Optional[str]]:
         """Block until all matching jobs leave the active queue.
 
         Supports glob patterns in *job_name* (``*`` and ``?`` wildcards).
         At least one filter argument must be provided.
+
+        Once the jobs are gone the final states are looked up with a single
+        ``sacct`` call (see :func:`job_states`), so the caller learns whether
+        the jobs it waited for actually succeeded.
 
         Parameters
         ----------
@@ -325,6 +378,16 @@ class SQueue:
             Maximum seconds to wait before raising ``TimeoutError``.
         verbose : bool
             Print progress messages. Defaults to True.
+        check : bool
+            Raise ``RuntimeError`` if any job ended in a state from
+            :data:`FAILED_JOB_STATES`. Jobs whose state is undetermined
+            (None) never trigger this. Defaults to False.
+
+        Returns
+        -------
+        dict of int -> (str or None)
+            Final accounting state per job ID that was waited on. A None value
+            means the state could not be determined, not that the job failed.
 
         Raises
         ------
@@ -332,22 +395,38 @@ class SQueue:
             If no filter is specified.
         TimeoutError
             If *timeout* is exceeded before all jobs finish.
+        RuntimeError
+            If *check* is True and a job ended in a failure state.
+
+        Examples
+        --------
+        >>> q.wait_until_done(job_id=12345)
+        {12345: 'COMPLETED'}
+        >>> q.wait_until_done(job_name='train_*', check=True)
+        {12345: 'COMPLETED', 12346: 'COMPLETED'}
         """
         if job_name is None and job_id is None and user is None:
             raise ValueError("Specify at least one of: job_name, job_id, user")
 
+        # Jobs leave the queue as they finish, so collect IDs while polling
+        # rather than only looking at what is left at the end.
+        seen: List[int] = []
+        if job_id is not None:
+            requested = job_id if isinstance(job_id, list) else [job_id]
+            seen.extend(int(j) for j in requested)
+
         start = time.monotonic()
         while True:
             self.refresh()
-            active = [
-                j
-                for j in self.jobs(job_name=job_name, job_id=job_id, user=user)
-                if j.is_active
-            ]
+            matched = self.jobs(job_name=job_name, job_id=job_id, user=user)
+            for j in matched:
+                if j.job_id not in seen:
+                    seen.append(j.job_id)
+            active = [j for j in matched if j.is_active]
             if not active:
                 if verbose:
                     print(_c("✓", _GREEN) + " All matching jobs have finished.")
-                return
+                return self._final_states(seen, check=check, verbose=verbose)
 
             if timeout is not None and (time.monotonic() - start) > timeout:
                 ids = [j.job_id for j in active]
@@ -363,6 +442,117 @@ class SQueue:
                     f" Polling again in {poll_interval}s."
                 )
             time.sleep(poll_interval)
+
+    @staticmethod
+    def _final_states(
+        job_ids: List[int], check: bool, verbose: bool
+    ) -> Dict[int, Optional[str]]:
+        """Look up final states for finished jobs, optionally enforcing success."""
+        if not job_ids:
+            return {}
+        states = job_states(job_ids)
+
+        failed = {jid: st for jid, st in states.items() if st in FAILED_JOB_STATES}
+        if verbose and failed:
+            for jid, st in failed.items():
+                print(_c("✗", _RED) + f" Job {jid} ended in state {st}.")
+        if check and failed:
+            raise RuntimeError(
+                "Job(s) did not complete successfully: "
+                + ", ".join(f"{jid}={st}" for jid, st in failed.items())
+            )
+        return states
+
+    # ------------------------------------------------------------------
+    # Cancelling
+    # ------------------------------------------------------------------
+
+    def cancel(
+        self,
+        job_name: Optional[str] = None,
+        job_id: Optional[Union[int, str, List[Union[int, str]]]] = None,
+        user: Optional[str] = None,
+        state: Optional[str] = None,
+        partition: Optional[str] = None,
+        verbose: bool = True,
+    ) -> List[int]:
+        """Cancel all matching jobs with ``scancel``.
+
+        Supports glob patterns in *job_name* (``*`` and ``?`` wildcards).
+        At least one filter argument must be provided, so that an accidental
+        call cannot cancel the whole queue.
+
+        Parameters
+        ----------
+        job_name : str, optional
+            Job name or glob pattern, e.g. ``'train_*'``.
+        job_id : int, str, or list of int/str, optional
+            A specific job ID, or a list of job IDs, to cancel.
+        user : str, optional
+            Cancel all jobs belonging to this user.
+        state : str, optional
+            SLURM state code, e.g. ``'PD'`` to cancel only pending jobs.
+        partition : str, optional
+            Partition name to filter by.
+        verbose : bool
+            Print progress messages. Defaults to True.
+
+        Returns
+        -------
+        list of int
+            The job IDs that were passed to ``scancel``.
+
+        Raises
+        ------
+        ValueError
+            If no filter is specified.
+        RuntimeError
+            If ``scancel`` exits with a non-zero status.
+
+        Examples
+        --------
+        >>> q = SQueue()
+        >>> q.cancel(job_id=12345)
+        >>> q.cancel(job_name='train_*')
+        >>> q.cancel(user='alice', state='PD')
+        """
+        if (
+            job_name is None
+            and job_id is None
+            and user is None
+            and state is None
+            and partition is None
+        ):
+            raise ValueError(
+                "Specify at least one of: job_name, job_id, user, state, partition"
+            )
+
+        self.refresh()
+        targets = self.jobs(
+            job_name=job_name,
+            job_id=job_id,
+            user=user,
+            state=state,
+            partition=partition,
+        )
+        ids = [j.job_id for j in targets]
+        if not ids:
+            if verbose:
+                print(_c("✓", _GREEN) + " No matching jobs to cancel.")
+            return []
+
+        cmd = ["scancel"] + [str(i) for i in ids]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(f"scancel failed: {result.stderr.strip()}")
+
+        if verbose:
+            print(
+                _c("✓", _GREEN)
+                + f" Cancelled {_c(str(len(ids)), _CYAN)} job(s): {ids}."
+            )
+        self.refresh()
+        return ids
 
     # ------------------------------------------------------------------
     # Statistics
@@ -781,6 +971,130 @@ def _normalize_sacct_state(state: str) -> str:
     if state.startswith("CANCELLED"):
         return "CANCELLED"
     return state
+
+
+def _base_job_id(job_id_field: str) -> Optional[int]:
+    """Extract the parent job ID from an ``sacct`` JobID field.
+
+    Handles job steps (``12345.batch``) and array tasks (``12345_3``,
+    ``12345_[4-9]``), both of which map back to job 12345.
+    """
+    field = job_id_field.strip().split(".")[0].split("_")[0]
+    try:
+        return int(field)
+    except ValueError:
+        return None
+
+
+def job_states(
+    job_ids: Union[int, str, List[Union[int, str]]], timeout: float = 30.0
+) -> Dict[int, Optional[str]]:
+    """Return the states of several jobs from SLURM accounting (``sacct``).
+
+    Uses a single ``sacct`` call for the whole batch, so waiting on many jobs
+    costs one subprocess rather than one per job. States are normalized,
+    e.g. ``'CANCELLED by 1234'`` -> ``'CANCELLED'``.
+
+    Parameters
+    ----------
+    job_ids : int, str, or list of int/str
+        The job IDs to look up.
+    timeout : float
+        Seconds to wait for ``sacct`` before giving up. Defaults to 30.
+
+    Returns
+    -------
+    dict of int -> (str or None)
+        One entry per requested job ID, in the order given. The value is None
+        when the state cannot be determined — no accounting configured,
+        ``sacct`` missing or unresponsive, or the job not yet in the accounting
+        database. A None value is *not* evidence of failure and callers should
+        not report one.
+
+    Examples
+    --------
+    >>> job_states([12345, 12346])
+    {12345: 'COMPLETED', 12346: 'FAILED'}
+    """
+    if not isinstance(job_ids, list):
+        job_ids = [job_ids]
+
+    states: Dict[int, Optional[str]] = {}
+    for jid in job_ids:
+        parsed = _base_job_id(str(jid))
+        if parsed is not None:
+            states.setdefault(parsed, None)
+    if not states or not shutil.which("sacct"):
+        return states
+
+    cmd = [
+        "sacct",
+        "-j",
+        ",".join(str(i) for i in states),
+        "--format=JobID,State",
+        "--noheader",
+        "--parsable2",
+    ]
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, check=False, timeout=timeout
+        )
+    except (OSError, subprocess.SubprocessError):
+        return states
+    if result.returncode != 0:
+        return states
+
+    # One line per step ("<id>", "<id>.batch", "<id>.0", ...); the first line
+    # for a given ID is the job allocation itself, so later steps are ignored.
+    for line in result.stdout.splitlines():
+        parts = line.strip().split("|")
+        if len(parts) < 2:
+            continue
+        jid = _base_job_id(parts[0])
+        state = parts[1].strip()
+        if jid is None or not state or jid not in states:
+            continue
+        if states[jid] is None:
+            states[jid] = _normalize_sacct_state(state).split()[0]
+    return states
+
+
+def job_state(job_id: Union[int, str], timeout: float = 30.0) -> Optional[str]:
+    """Return the state of a job from SLURM accounting (``sacct``).
+
+    ``squeue`` only says whether a job is still in the queue, not how it ended,
+    so this is what distinguishes a crashed run from one that simply wrote no
+    output. States are normalized, e.g. ``'CANCELLED by 1234'`` -> ``'CANCELLED'``.
+
+    Parameters
+    ----------
+    job_id : int or str
+        The job ID to look up.
+    timeout : float
+        Seconds to wait for ``sacct`` before giving up. Defaults to 30.
+
+    Returns
+    -------
+    str or None
+        The job state (``'COMPLETED'``, ``'FAILED'``, ``'RUNNING'``, ...), or
+        None when it cannot be determined — no accounting configured, ``sacct``
+        missing or unresponsive, or the job not yet in the accounting database.
+        A None result is *not* evidence of failure and callers should not
+        report one.
+
+    See Also
+    --------
+    job_states : Batch version, one ``sacct`` call for many jobs.
+
+    Examples
+    --------
+    >>> job_state(12345)
+    'COMPLETED'
+    """
+    parsed = _base_job_id(str(job_id))
+    if parsed is None:
+        return None
+    return job_states([parsed], timeout=timeout).get(parsed)
 
 
 def _fmt_cpu_hours(hours: float) -> str:

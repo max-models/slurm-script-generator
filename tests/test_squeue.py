@@ -13,6 +13,8 @@ from slurm_script_generator.squeue import (
     _fmt_history_summary,
     _fmt_job_table,
     _fmt_stats_table,
+    job_state,
+    job_states,
     main,
 )
 
@@ -75,6 +77,18 @@ def _mock_run(stdout=SAMPLE_OUTPUT, returncode=0, stderr=""):
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def no_sacct():
+    """Pretend ``sacct`` is absent unless a test patches ``shutil.which`` itself.
+
+    Keeps the accounting lookup in ``wait_until_done`` from consuming the mocked
+    ``squeue`` output — and from depending on whether the machine running the
+    tests happens to have SLURM installed.
+    """
+    with patch("shutil.which", return_value=None):
+        yield
 
 
 @pytest.fixture
@@ -359,6 +373,407 @@ def test_default_user_passed_to_squeue():
         cmd = mock_run.call_args[0][0]
         assert "--user" in cmd
         assert "alice" in cmd
+
+
+# ---------------------------------------------------------------------------
+# cancel
+# ---------------------------------------------------------------------------
+
+
+def _scancel_calls(mock_run):
+    return [c[0][0] for c in mock_run.call_args_list if c[0][0][0] == "scancel"]
+
+
+def test_cancel_by_job_id():
+    with patch("subprocess.run", return_value=_mock_run()) as mock_run:
+        q = SQueue()
+        cancelled = q.cancel(job_id=1001, verbose=False)
+
+    assert cancelled == [1001]
+    assert _scancel_calls(mock_run) == [["scancel", "1001"]]
+
+
+def test_cancel_by_job_id_list():
+    with patch("subprocess.run", return_value=_mock_run()) as mock_run:
+        q = SQueue()
+        cancelled = q.cancel(job_id=[1001, 1003], verbose=False)
+
+    assert cancelled == [1001, 1003]
+    assert _scancel_calls(mock_run) == [["scancel", "1001", "1003"]]
+
+
+def test_cancel_by_job_name_glob():
+    with patch("subprocess.run", return_value=_mock_run()) as mock_run:
+        q = SQueue()
+        cancelled = q.cancel(job_name="train_*", verbose=False)
+
+    assert cancelled == [1001, 1002]
+    assert _scancel_calls(mock_run) == [["scancel", "1001", "1002"]]
+
+
+def test_cancel_by_user_and_state():
+    with patch("subprocess.run", return_value=_mock_run()) as mock_run:
+        q = SQueue()
+        cancelled = q.cancel(user="bob", state="PD", verbose=False)
+
+    assert cancelled == [1003]
+    assert _scancel_calls(mock_run) == [["scancel", "1003"]]
+
+
+def test_cancel_by_partition():
+    output = "\n".join(
+        [
+            _make_line(1001, "alice", "job1", "R", partition="gpu"),
+            _make_line(1002, "alice", "job2", "R", partition="cpu"),
+        ]
+    )
+    with patch("subprocess.run", return_value=_mock_run(stdout=output)) as mock_run:
+        q = SQueue()
+        cancelled = q.cancel(partition="cpu", verbose=False)
+
+    assert cancelled == [1002]
+    assert _scancel_calls(mock_run) == [["scancel", "1002"]]
+
+
+def test_cancel_requires_filter(queue):
+    with pytest.raises(ValueError):
+        queue.cancel()
+
+
+def test_cancel_no_matching_jobs_is_noop():
+    with patch("subprocess.run", return_value=_mock_run()) as mock_run:
+        q = SQueue()
+        cancelled = q.cancel(job_id=9999, verbose=False)
+
+    assert cancelled == []
+    assert _scancel_calls(mock_run) == []
+
+
+def test_cancel_raises_on_scancel_error():
+    def side_effect(cmd, *args, **kwargs):
+        if cmd[0] == "scancel":
+            return _mock_run(returncode=1, stderr="Invalid job id")
+        return _mock_run()
+
+    with patch("subprocess.run", side_effect=side_effect):
+        q = SQueue()
+        with pytest.raises(RuntimeError, match="scancel failed"):
+            q.cancel(job_id=1001, verbose=False)
+
+
+def test_cancel_refreshes_after_success():
+    """The queue reflects the post-cancel state."""
+    remaining = _make_line(1003, "bob", "preprocess", "PD")
+    seen_scancel = False
+
+    def side_effect(cmd, *args, **kwargs):
+        nonlocal seen_scancel
+        if cmd[0] == "scancel":
+            seen_scancel = True
+            return _mock_run(stdout="")
+        return _mock_run(stdout=remaining if seen_scancel else SAMPLE_OUTPUT)
+
+    with patch("subprocess.run", side_effect=side_effect):
+        q = SQueue()
+        assert len(q) == 5
+        q.cancel(job_name="train_*", verbose=False)
+        assert [j.job_id for j in q.jobs()] == [1003]
+
+
+# ---------------------------------------------------------------------------
+# SQueueJob.cancel
+# ---------------------------------------------------------------------------
+
+
+def test_job_cancel_delegates_to_squeue():
+    def side_effect(cmd, *args, **kwargs):
+        if cmd[0] == "scancel":
+            return _mock_run(stdout="")
+        return _mock_run()
+
+    job = SQueueJob(
+        1001, "alice", "train_resnet", "R", "gpu", 1, 4, "0:01", "1:00", "None", 100
+    )
+    with patch("subprocess.run", side_effect=side_effect) as mock_run:
+        job.cancel(verbose=False)
+
+    assert _scancel_calls(mock_run) == [["scancel", "1001"]]
+
+
+# ---------------------------------------------------------------------------
+# job_state
+# ---------------------------------------------------------------------------
+
+
+def _patch_sacct(**run_kwargs):
+    """Patch shutil.which so sacct is found, plus subprocess.run."""
+    return patch("shutil.which", return_value="/usr/bin/sacct"), patch(
+        "subprocess.run", **run_kwargs
+    )
+
+
+def test_job_state_completed():
+    which, run = _patch_sacct(
+        return_value=_mock_run(stdout="1001|COMPLETED\n1001.batch|COMPLETED\n")
+    )
+    with which, run as mock_run:
+        assert job_state(1001) == "COMPLETED"
+        cmd = mock_run.call_args[0][0]
+
+    assert cmd[:3] == ["sacct", "-j", "1001"]
+    assert "--format=JobID,State" in cmd
+
+
+def test_job_state_strips_cancelled_reason():
+    which, run = _patch_sacct(return_value=_mock_run(stdout="1001|CANCELLED by 1234\n"))
+    with which, run:
+        assert job_state(1001) == "CANCELLED"
+
+
+def test_job_state_uses_allocation_not_steps():
+    """The first line for an ID wins; later step records are ignored."""
+    which, run = _patch_sacct(
+        return_value=_mock_run(stdout="\n1001|FAILED\n1001.batch|COMPLETED\n")
+    )
+    with which, run:
+        assert job_state(1001) == "FAILED"
+
+
+def test_job_state_array_task_maps_to_parent():
+    which, run = _patch_sacct(return_value=_mock_run(stdout="1001_3|COMPLETED\n"))
+    with which, run:
+        assert job_state(1001) == "COMPLETED"
+
+
+def test_job_state_ignores_unrequested_ids():
+    which, run = _patch_sacct(return_value=_mock_run(stdout="9999|FAILED\n"))
+    with which, run:
+        assert job_state(1001) is None
+
+
+def test_job_state_non_numeric_id():
+    with patch("subprocess.run") as mock_run:
+        assert job_state("not-a-job") is None
+    mock_run.assert_not_called()
+
+
+def test_job_state_none_when_sacct_missing():
+    with patch("shutil.which", return_value=None):
+        with patch("subprocess.run") as mock_run:
+            assert job_state(1001) is None
+    mock_run.assert_not_called()
+
+
+def test_job_state_none_on_nonzero_exit():
+    which, run = _patch_sacct(return_value=_mock_run(returncode=1, stderr="nope"))
+    with which, run:
+        assert job_state(1001) is None
+
+
+def test_job_state_none_on_empty_output():
+    which, run = _patch_sacct(return_value=_mock_run(stdout="\n\n"))
+    with which, run:
+        assert job_state(1001) is None
+
+
+def test_job_state_none_on_timeout():
+    import subprocess as _sp
+
+    which, run = _patch_sacct(side_effect=_sp.TimeoutExpired(cmd="sacct", timeout=30))
+    with which, run:
+        assert job_state(1001) is None
+
+
+def test_job_state_none_on_oserror():
+    which, run = _patch_sacct(side_effect=OSError("boom"))
+    with which, run:
+        assert job_state(1001) is None
+
+
+def test_job_final_state_delegates():
+    job = SQueueJob(
+        1001, "alice", "myjob", "R", "gpu", 1, 4, "0:01", "1:00", "None", 100
+    )
+    which, run = _patch_sacct(return_value=_mock_run(stdout="1001|TIMEOUT\n"))
+    with which, run as mock_run:
+        assert job.final_state() == "TIMEOUT"
+        assert mock_run.call_args[0][0][:3] == ["sacct", "-j", "1001"]
+
+
+# ---------------------------------------------------------------------------
+# job_states (batch)
+# ---------------------------------------------------------------------------
+
+
+def test_job_states_single_sacct_call():
+    stdout = "1001|COMPLETED\n1001.batch|COMPLETED\n1002|FAILED\n1003|RUNNING\n"
+    which, run = _patch_sacct(return_value=_mock_run(stdout=stdout))
+    with which, run as mock_run:
+        states = job_states([1001, 1002, 1003])
+        cmd = mock_run.call_args[0][0]
+
+    assert states == {1001: "COMPLETED", 1002: "FAILED", 1003: "RUNNING"}
+    assert mock_run.call_count == 1
+    assert cmd[:3] == ["sacct", "-j", "1001,1002,1003"]
+
+
+def test_job_states_missing_job_is_none():
+    which, run = _patch_sacct(return_value=_mock_run(stdout="1001|COMPLETED\n"))
+    with which, run:
+        assert job_states([1001, 1002]) == {1001: "COMPLETED", 1002: None}
+
+
+def test_job_states_accepts_scalar():
+    which, run = _patch_sacct(return_value=_mock_run(stdout="1001|COMPLETED\n"))
+    with which, run:
+        assert job_states(1001) == {1001: "COMPLETED"}
+
+
+def test_job_states_dedupes_ids():
+    which, run = _patch_sacct(return_value=_mock_run(stdout="1001|COMPLETED\n"))
+    with which, run as mock_run:
+        assert job_states([1001, 1001, "1001"]) == {1001: "COMPLETED"}
+        assert mock_run.call_args[0][0][2] == "1001"
+
+
+def test_job_states_empty_input_makes_no_call():
+    with patch("subprocess.run") as mock_run:
+        assert job_states([]) == {}
+    mock_run.assert_not_called()
+
+
+def test_job_states_all_none_when_sacct_missing():
+    with patch("shutil.which", return_value=None):
+        with patch("subprocess.run") as mock_run:
+            assert job_states([1001, 1002]) == {1001: None, 1002: None}
+    mock_run.assert_not_called()
+
+
+def test_job_states_all_none_on_error():
+    which, run = _patch_sacct(return_value=_mock_run(returncode=1, stderr="nope"))
+    with which, run:
+        assert job_states([1001, 1002]) == {1001: None, 1002: None}
+
+
+# ---------------------------------------------------------------------------
+# wait_until_done — final states and check=True
+# ---------------------------------------------------------------------------
+
+
+def _wait_side_effect(queue_outputs, sacct_stdout):
+    """Serve *queue_outputs* to successive squeue calls, then sacct output."""
+    remaining = list(queue_outputs)
+
+    def side_effect(cmd, *args, **kwargs):
+        if cmd[0] == "sacct":
+            return _mock_run(stdout=sacct_stdout)
+        return _mock_run(stdout=remaining.pop(0) if remaining else "")
+
+    return side_effect
+
+
+def test_wait_until_done_returns_final_states():
+    active = "\n".join(
+        [
+            _make_line(1001, "alice", "train_a", "R"),
+            _make_line(1002, "alice", "train_b", "R"),
+        ]
+    )
+    side_effect = _wait_side_effect(
+        [active, active, ""], "1001|COMPLETED\n1002|FAILED\n"
+    )
+    with patch("shutil.which", return_value="/usr/bin/sacct"):
+        with patch("subprocess.run", side_effect=side_effect):
+            with patch("time.sleep"):
+                q = SQueue()
+                states = q.wait_until_done(job_name="train_*", verbose=False)
+
+    assert states == {1001: "COMPLETED", 1002: "FAILED"}
+
+
+def test_wait_until_done_states_for_jobs_that_left_between_polls():
+    """A job seen on the first poll is still reported after it disappears."""
+    first = "\n".join(
+        [
+            _make_line(1001, "alice", "train_a", "R"),
+            _make_line(1002, "alice", "train_b", "R"),
+        ]
+    )
+    second = _make_line(1001, "alice", "train_a", "R")
+    side_effect = _wait_side_effect(
+        [first, first, second, ""], "1001|COMPLETED\n1002|COMPLETED\n"
+    )
+    with patch("shutil.which", return_value="/usr/bin/sacct"):
+        with patch("subprocess.run", side_effect=side_effect):
+            with patch("time.sleep"):
+                q = SQueue()
+                states = q.wait_until_done(job_name="train_*", verbose=False)
+
+    assert states == {1001: "COMPLETED", 1002: "COMPLETED"}
+
+
+def test_wait_until_done_states_for_job_id_gone_before_first_poll():
+    """Explicit job IDs are looked up even if never seen in the queue."""
+    side_effect = _wait_side_effect([""], "1001|COMPLETED\n")
+    with patch("shutil.which", return_value="/usr/bin/sacct"):
+        with patch("subprocess.run", side_effect=side_effect):
+            q = SQueue()
+            states = q.wait_until_done(job_id=1001, verbose=False)
+
+    assert states == {1001: "COMPLETED"}
+
+
+def test_wait_until_done_check_raises_on_failure():
+    side_effect = _wait_side_effect([""], "1001|FAILED\n")
+    with patch("shutil.which", return_value="/usr/bin/sacct"):
+        with patch("subprocess.run", side_effect=side_effect):
+            q = SQueue()
+            with pytest.raises(RuntimeError, match="1001=FAILED"):
+                q.wait_until_done(job_id=1001, verbose=False, check=True)
+
+
+def test_wait_until_done_check_passes_on_completed():
+    side_effect = _wait_side_effect([""], "1001|COMPLETED\n")
+    with patch("shutil.which", return_value="/usr/bin/sacct"):
+        with patch("subprocess.run", side_effect=side_effect):
+            q = SQueue()
+            assert q.wait_until_done(job_id=1001, verbose=False, check=True) == {
+                1001: "COMPLETED"
+            }
+
+
+def test_wait_until_done_check_ignores_undetermined_state():
+    """No accounting available must not be reported as a failure."""
+    with patch("subprocess.run", return_value=_mock_run(stdout="")):
+        q = SQueue()
+        assert q.wait_until_done(job_id=1001, verbose=False, check=True) == {1001: None}
+
+
+def test_wait_until_done_check_ignores_lagging_running_state():
+    side_effect = _wait_side_effect([""], "1001|RUNNING\n")
+    with patch("shutil.which", return_value="/usr/bin/sacct"):
+        with patch("subprocess.run", side_effect=side_effect):
+            q = SQueue()
+            assert q.wait_until_done(job_id=1001, verbose=False, check=True) == {
+                1001: "RUNNING"
+            }
+
+
+def test_wait_until_done_no_matches_returns_empty():
+    with patch("subprocess.run", return_value=_mock_run(stdout="")) as mock_run:
+        q = SQueue()
+        assert q.wait_until_done(job_name="nothing_*", verbose=False) == {}
+    assert all(c[0][0][0] != "sacct" for c in mock_run.call_args_list)
+
+
+def test_job_wait_until_done_returns_state():
+    job = SQueueJob(
+        1001, "alice", "myjob", "R", "gpu", 1, 4, "0:01", "1:00", "None", 100
+    )
+    side_effect = _wait_side_effect([""], "1001|TIMEOUT\n")
+    with patch("shutil.which", return_value="/usr/bin/sacct"):
+        with patch("subprocess.run", side_effect=side_effect):
+            assert job.wait_until_done(verbose=False) == "TIMEOUT"
 
 
 # ---------------------------------------------------------------------------
