@@ -516,7 +516,9 @@ def test_job_state_strips_cancelled_reason():
 
 
 def test_job_state_uses_first_nonempty_line():
-    which, run = _patch_sacct(return_value=_mock_run(stdout="\n  \nFAILED\nCOMPLETED\n"))
+    which, run = _patch_sacct(
+        return_value=_mock_run(stdout="\n  \nFAILED\nCOMPLETED\n")
+    )
     with which, run:
         assert job_state(1001) == "FAILED"
 
