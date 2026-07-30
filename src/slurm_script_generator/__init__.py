@@ -7,6 +7,7 @@ from slurm_script_generator.squeue import (
     SQueue,
     SQueueJob,
     job_state,
+    job_states,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "SAcct",
     "SAcctJob",
     "job_state",
+    "job_states",
 ]
