@@ -1,5 +1,6 @@
 import fnmatch
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -145,6 +146,14 @@ class SQueueJob:
             timeout=timeout,
             verbose=verbose,
         )
+
+    def final_state(self) -> Optional[str]:
+        """Return this job's accounting state via ``sacct``.
+
+        See :func:`job_state`. Returns None when the state cannot be
+        determined; that is not evidence of failure.
+        """
+        return job_state(self.job_id)
 
     def cancel(self, verbose: bool = True) -> None:
         """Cancel this specific job with ``scancel``.
@@ -885,6 +894,62 @@ def _normalize_sacct_state(state: str) -> str:
     if state.startswith("CANCELLED"):
         return "CANCELLED"
     return state
+
+
+def job_state(job_id: Union[int, str], timeout: float = 30.0) -> Optional[str]:
+    """Return the state of a job from SLURM accounting (``sacct``).
+
+    ``squeue`` only says whether a job is still in the queue, not how it ended,
+    so this is what distinguishes a crashed run from one that simply wrote no
+    output. States are normalized, e.g. ``'CANCELLED by 1234'`` -> ``'CANCELLED'``.
+
+    Parameters
+    ----------
+    job_id : int or str
+        The job ID to look up.
+    timeout : float
+        Seconds to wait for ``sacct`` before giving up. Defaults to 30.
+
+    Returns
+    -------
+    str or None
+        The job state (``'COMPLETED'``, ``'FAILED'``, ``'RUNNING'``, ...), or
+        None when it cannot be determined — no accounting configured, ``sacct``
+        missing or unresponsive, or the job not yet in the accounting database.
+        A None result is *not* evidence of failure and callers should not
+        report one.
+
+    Examples
+    --------
+    >>> job_state(12345)
+    'COMPLETED'
+    """
+    if not shutil.which("sacct"):
+        return None
+    cmd = [
+        "sacct",
+        "-j",
+        str(job_id),
+        "--format=State",
+        "--noheader",
+        "--parsable2",
+    ]
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, check=False, timeout=timeout
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode != 0:
+        return None
+
+    # One line per step ("<id>", "<id>.batch", "<id>.0", ...); the first is the
+    # job allocation itself.
+    for line in result.stdout.splitlines():
+        state = line.strip()
+        if state:
+            return _normalize_sacct_state(state).split()[0]
+    return None
 
 
 def _fmt_cpu_hours(hours: float) -> str:

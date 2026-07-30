@@ -13,6 +13,7 @@ from slurm_script_generator.squeue import (
     _fmt_history_summary,
     _fmt_job_table,
     _fmt_stats_table,
+    job_state,
     main,
 )
 
@@ -484,6 +485,83 @@ def test_job_cancel_delegates_to_squeue():
         job.cancel(verbose=False)
 
     assert _scancel_calls(mock_run) == [["scancel", "1001"]]
+
+
+# ---------------------------------------------------------------------------
+# job_state
+# ---------------------------------------------------------------------------
+
+
+def _patch_sacct(**run_kwargs):
+    """Patch shutil.which so sacct is found, plus subprocess.run."""
+    return patch("shutil.which", return_value="/usr/bin/sacct"), patch(
+        "subprocess.run", **run_kwargs
+    )
+
+
+def test_job_state_completed():
+    which, run = _patch_sacct(return_value=_mock_run(stdout="COMPLETED\nCOMPLETED\n"))
+    with which, run as mock_run:
+        assert job_state(1001) == "COMPLETED"
+        cmd = mock_run.call_args[0][0]
+
+    assert cmd[:3] == ["sacct", "-j", "1001"]
+    assert "--format=State" in cmd
+
+
+def test_job_state_strips_cancelled_reason():
+    which, run = _patch_sacct(return_value=_mock_run(stdout="CANCELLED by 1234\n"))
+    with which, run:
+        assert job_state(1001) == "CANCELLED"
+
+
+def test_job_state_uses_first_nonempty_line():
+    which, run = _patch_sacct(return_value=_mock_run(stdout="\n  \nFAILED\nCOMPLETED\n"))
+    with which, run:
+        assert job_state(1001) == "FAILED"
+
+
+def test_job_state_none_when_sacct_missing():
+    with patch("shutil.which", return_value=None):
+        with patch("subprocess.run") as mock_run:
+            assert job_state(1001) is None
+    mock_run.assert_not_called()
+
+
+def test_job_state_none_on_nonzero_exit():
+    which, run = _patch_sacct(return_value=_mock_run(returncode=1, stderr="nope"))
+    with which, run:
+        assert job_state(1001) is None
+
+
+def test_job_state_none_on_empty_output():
+    which, run = _patch_sacct(return_value=_mock_run(stdout="\n\n"))
+    with which, run:
+        assert job_state(1001) is None
+
+
+def test_job_state_none_on_timeout():
+    import subprocess as _sp
+
+    which, run = _patch_sacct(side_effect=_sp.TimeoutExpired(cmd="sacct", timeout=30))
+    with which, run:
+        assert job_state(1001) is None
+
+
+def test_job_state_none_on_oserror():
+    which, run = _patch_sacct(side_effect=OSError("boom"))
+    with which, run:
+        assert job_state(1001) is None
+
+
+def test_job_final_state_delegates():
+    job = SQueueJob(
+        1001, "alice", "myjob", "R", "gpu", 1, 4, "0:01", "1:00", "None", 100
+    )
+    which, run = _patch_sacct(return_value=_mock_run(stdout="TIMEOUT\n"))
+    with which, run as mock_run:
+        assert job.final_state() == "TIMEOUT"
+        assert mock_run.call_args[0][0][:3] == ["sacct", "-j", "1001"]
 
 
 # ---------------------------------------------------------------------------

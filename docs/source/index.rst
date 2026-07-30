@@ -48,6 +48,20 @@ Quickstart
 
    SQueue().wait_until_done(job_id=job_id)
 
+**Check how a job ended:**
+
+.. code-block:: python
+
+   from slurm_script_generator.squeue import job_state
+
+   state = job_state(job_id)   # 'COMPLETED', 'FAILED', 'TIMEOUT', ...
+   if state == "FAILED":
+       raise RuntimeError(f"job {job_id} failed")
+
+``job_state`` returns ``None`` when the state cannot be determined (no accounting
+configured, ``sacct`` missing, or the job not yet recorded) — treat that as
+"unknown", not as a failure.
+
 **Cancel jobs:**
 
 .. code-block:: python
