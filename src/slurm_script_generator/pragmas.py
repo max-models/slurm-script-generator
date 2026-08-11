@@ -18,7 +18,36 @@ PragmaTypes = Literal[
     "execution_behavior_and_signals",
     "advanced_hardware_misc",
     "plugins",
+    "other_options",
 ]
+
+_TRUE_STRINGS = {"true", "yes", "1", ""}
+_FALSE_STRINGS = {"false", "no", "0"}
+
+
+def to_bool(value: Any) -> bool:
+    """Interpret ``value`` as the boolean of a valueless pragma such as ``--hold``.
+
+    ``None`` means the flag was present without a value and is therefore True.
+
+    Args:
+        value: The value to interpret.
+
+    Returns:
+        The boolean the value stands for.
+
+    Raises:
+        ValueError: If a string value is not recognized as a boolean.
+    """
+    if value is None or isinstance(value, bool):
+        return True if value is None else value
+    if isinstance(value, str):
+        if value.strip().lower() in _TRUE_STRINGS:
+            return True
+        if value.strip().lower() in _FALSE_STRINGS:
+            return False
+        raise ValueError(f"Cannot interpret {value!r} as a boolean")
+    return bool(value)
 
 
 class Pragma:
@@ -53,7 +82,12 @@ class Pragma:
         #         self.value = value
         # else:
         #     self.value = value
-        self.value = value
+        self.value = to_bool(value) if self.is_flag else value
+
+    @property
+    def is_flag(self) -> bool:
+        """Whether this pragma is a valueless switch such as ``--hold``."""
+        return self.action == "store_true"
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, Pragma):
@@ -61,9 +95,11 @@ class Pragma:
         return self.dest == value.dest and self.value == value.value
 
     def __str__(self) -> str:
-        return add_line(
-            f"#SBATCH {self.dest.replace('_', '-')}={self.value}", comment=self.help
-        )
+        flag = self.dest.replace("_", "-")
+        # Valueless switches are written without a value: sbatch rejects
+        # `--hold=True`.
+        line = flag if self.is_flag else f"{flag}={self.value}"
+        return add_line(f"#SBATCH {line}", comment=self.help)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(value={self.value})"
@@ -327,7 +363,7 @@ class Time_min(Pragma):
     pragma_type = "time_and_priority"
     arg_varname = "time_min"
     flags = ["--time-min"]
-    dest = "--time_min"
+    dest = "--time-min"
     metavar = "MINUTES"
     help = "minimum time limit (if distinct)"
     type = str
@@ -1788,7 +1824,7 @@ class Delay_boot(Pragma):
     pragma_type = "execution_behavior_and_signals"
     arg_varname = "delay_boot"
     flags = ["--delay-boot"]
-    dest = "--delay_boot"
+    dest = "--delay-boot"
     metavar = "MINS"
     help = "delay boot for desired node features"
     type = str
@@ -2068,7 +2104,7 @@ class Burst_buffer(Pragma):
     pragma_type = "plugins"
     arg_varname = "burst_buffer"
     flags = ["--bb"]
-    dest = "--burst-buffer"
+    dest = "--bb"
     metavar = "SPEC"
     help = "burst buffer specifications"
     type = str
@@ -2091,7 +2127,7 @@ class Bb_file(Pragma):
     pragma_type = "plugins"
     arg_varname = "bb_file"
     flags = ["--bbf"]
-    dest = "--bb-file"
+    dest = "--bbf"
     metavar = "FILE_NAME"
     help = "burst buffer specification file"
     type = str
@@ -2250,6 +2286,41 @@ pragmas_ordered: List[Type[Pragma]] = [
 ]
 
 
+class UnknownPragma(Pragma):
+    """An #SBATCH option this library has no class for.
+
+    Scripts written by hand (or by a newer SLURM release) may contain options
+    that are not modelled here. Rather than dropping or rejecting them,
+    :meth:`SlurmScript.from_script` keeps them in this pragma so that reading a
+    script and writing it back out preserves them verbatim.
+    """
+
+    pragma_id = 0
+    pragma_type = "other_options"
+
+    def __init__(self, flag: str, value: Any = True):
+        """Initialize the pragma from the raw flag as it appeared in the script.
+
+        Args:
+            flag: The flag as written, e.g. ``"--frobnicate"``.
+            value: The value it was given, or True if it took no value.
+        """
+        self.flag = flag
+        # Instance-level overrides of the class attributes, since every unknown
+        # option carries its own flag.
+        self.dest = flag
+        self.flags = [flag]
+        self.arg_varname = flag
+        self.value = value
+
+    def __str__(self) -> str:
+        line = self.flag if self.value is True else f"{self.flag}={self.value}"
+        return add_line(f"#SBATCH {line}", comment=self.help)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(flag={self.flag!r}, value={self.value!r})"
+
+
 class PragmaFactory:
     """Factory class for creating and managing SLURM pragma classes.
     Provides methods to validate pragma keys, create pragma instances, and retrieve pragma classes.
@@ -2339,10 +2410,25 @@ class PragmaFactory:
             If the flag is not recognized.
 
         """
+        pragma_cls = PragmaFactory.flag_to_cls(flag)
+        if pragma_cls is None:
+            raise ValueError(f"Unknown pragma flag: {flag}")
+        return pragma_cls(value=value)
+
+    @staticmethod
+    def flag_to_cls(flag: str) -> Type[Pragma] | None:
+        """Look up the Pragma class carrying a given flag.
+
+        Args:
+            flag: The flag to look up (e.g. ``"--job-name"`` or ``"-J"``).
+
+        Returns:
+            The matching Pragma class, or None if the flag is not known.
+        """
         for pragma_cls in PragmaFactory.pragmas.values():
             if flag in pragma_cls.flags:
-                return pragma_cls(value=value)
-        raise ValueError(f"Unknown pragma flag: {flag}")
+                return pragma_cls
+        return None
 
     @staticmethod
     def get_pragma_cls(key: str) -> Type[Pragma]:

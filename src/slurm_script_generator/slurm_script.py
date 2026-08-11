@@ -1,11 +1,17 @@
 import json
 import os
+import re
 import subprocess
 from importlib.metadata import version
 from pathlib import Path
 from typing import Any, List
 
-from slurm_script_generator.pragmas import Pragma, PragmaFactory, PragmaTypes
+from slurm_script_generator.pragmas import (
+    Pragma,
+    PragmaFactory,
+    PragmaTypes,
+    UnknownPragma,
+)
 from slurm_script_generator.utils import add_line
 
 
@@ -327,6 +333,7 @@ class SlurmScript:
             "execution_behavior_and_signals": [],
             "advanced_hardware_misc": [],
             "plugins": [],
+            "other_options": [],
         }
 
         # Pragma dict for creating pragmas from individual parameters
@@ -667,7 +674,12 @@ class SlurmScript:
         # Loop over pragmas (ordered by pragma_id)
         itype = 0
         for pragma_type in self._pragma_dict:
-            pragmas = self._pragma_dict[pragma_type]
+            # A switch that was explicitly set to False is not written out.
+            pragmas = [
+                p
+                for p in self._pragma_dict[pragma_type]
+                if not (p.is_flag and not p.value)
+            ]
             if len(pragmas) > 0:
                 if itype > 0:
                     script_str += add_line("#", "", line_length=line_length)
@@ -802,7 +814,11 @@ class SlurmScript:
         # for pragma in data.get("pragmas", []):
         #     print(f"Creating pragma from dict: {pragma}")
         for key, value in data.get("pragmas", {}).items():
-            pragma = PragmaFactory.create_pragma(key=key, value=value)
+            # Unknown options are keyed by their raw flag (see UnknownPragma).
+            if key.startswith("-"):
+                pragma = UnknownPragma(flag=key, value=value)
+            else:
+                pragma = PragmaFactory.create_pragma(key=key, value=value)
             script.add_pragma(pragma=pragma)
         script._modules = data.get("modules", [])
         script._custom_commands = data.get("custom_commands", [])
@@ -862,30 +878,42 @@ class SlurmScript:
                 if verbose:
                     print(f"Extracted pragma line: '{pragma_line}'")
 
-                # Split on = or whitespace
-                if "=" in pragma_line:
-                    key, value = pragma_line.split("=", 1)
-                else:
-                    key, value = pragma_line.split(None, 1)
-                if verbose:
-                    print(f"Extracted key='{key}', value='{value}'")
-                flag = key.strip().split()[0]
-                # key = key.strip().lstrip("-").replace("-", "_")
-                value = value.strip()
-                # Extract comment if present
-                if "#" in value:
-                    value, comment = value.split("#", 1)
+                # Strip a trailing comment. The '#' must start a new word, so
+                # that values containing a '#' (e.g. --comment=a#b) survive.
+                pragma_line = re.split(r"\s+#", pragma_line, maxsplit=1)[0].strip()
+                if not pragma_line:
+                    continue
+
+                # Split on '=' or whitespace. Valueless switches such as
+                # --hold have no separator at all.
+                if "=" in pragma_line.split(None, 1)[0]:
+                    flag, value = pragma_line.split("=", 1)
                     value = value.strip()
-                    comment = comment.strip()
                 else:
-                    comment = None
+                    parts = pragma_line.split(None, 1)
+                    flag = parts[0]
+                    value = parts[1].strip() if len(parts) > 1 else None
                 if verbose:
                     print(f"Parsing pragma: {flag = }, {value = }")
-                pragmas.append(PragmaFactory.flag_to_pragma(flag, value))
+
+                pragma_cls = PragmaFactory.flag_to_cls(flag)
+                if pragma_cls is None:
+                    # Keep options we do not model, so that reading a script
+                    # and writing it back out does not silently drop them.
+                    pragmas.append(
+                        UnknownPragma(flag=flag, value=True if value is None else value)
+                    )
+                elif value is None and not pragma_cls.action == "store_true":
+                    raise ValueError(f"Pragma '{flag}' requires a value: '{line}'")
+                else:
+                    pragmas.append(pragma_cls(True if value is None else value))
             elif line.startswith("#") or line == "":
                 continue
             elif line.startswith("module load"):
-                modules.extend(line[len("module load") :].strip().split())
+                module_line = line[len("module load") :]
+                # Drop the trailing comment we add when generating the line.
+                module_line = re.split(r"\s+#", module_line, maxsplit=1)[0]
+                modules.extend(module_line.split())
             elif line.startswith("module purge") or line.startswith("module list"):
                 continue
             else:

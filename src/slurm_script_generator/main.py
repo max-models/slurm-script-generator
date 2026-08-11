@@ -155,6 +155,8 @@ def main():
             isinstance(pragma_cls, type)
             and issubclass(pragma_cls, pragmas.Pragma)
             and pragma_cls != pragmas.Pragma
+            # Skip helpers that carry no flags of their own (UnknownPragma).
+            and pragma_cls.flags
         ):
             # print(f"{pragma_cls = }")
             pragma_dict[pragma_cls.dest] = pragma_cls

@@ -44,11 +44,19 @@ def test_invalid_pragma_key():
 
 def test_all_pragmas_have_flags_and_dest():
     for _, pragma_cls in PragmaFactory.pragmas.items():
-        pragma = pragma_cls("test")
+        # Switches only accept booleans, everything else takes a value.
+        pragma = pragma_cls(True if pragma_cls.action == "store_true" else "test")
         assert hasattr(pragma, "flags")
         assert hasattr(pragma, "dest")
         assert isinstance(pragma.flags, list)
         assert isinstance(pragma.dest, str)
+
+
+def test_dest_is_one_of_the_flags():
+    """The written flag must be a flag sbatch actually accepts, otherwise the
+    generated script cannot be submitted nor parsed back."""
+    for name, pragma_cls in PragmaFactory.pragmas.items():
+        assert pragma_cls.dest in pragma_cls.flags, name
 
 
 def test_pragma_type_and_value():
