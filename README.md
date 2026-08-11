@@ -183,6 +183,44 @@ generate-slurm-script --read-script slurm_script.sh --job-name NEW_JOB_NAME --no
     ########################################################
     srun ./myprog > prog.out
 
+## Interactive allocations
+
+`slurm-alloc` reads the `#SBATCH` pragmas of an existing script and starts
+`salloc` with the same resource request, so you can debug a job interactively
+on the nodes it would have run on:
+
+``` bash
+slurm-alloc slurm_script.sh
+```
+
+Use `--dry-run` to see the command without running it:
+
+``` bash
+slurm-alloc slurm_script.sh --dry-run
+```
+
+    salloc --job-name=OLD_JOB_NAME --nodes=2 --ntasks-per-node=16
+
+Options that `salloc` does not accept (`--output`, `--error`, `--array`, …)
+are skipped and reported on stderr.
+
+By default you land in an interactive shell. With `--run`, the commands
+after the pragmas are executed in the allocation instead:
+
+``` bash
+slurm-alloc slurm_script.sh --run
+```
+
+The commands run where you launched them with `SLURM_JOB_ID` set — just as
+under `sbatch` — so any `srun` in the script fans out across the allocated
+nodes.
+
+Anything after `--` is passed straight to `salloc`:
+
+``` bash
+slurm-alloc slurm_script.sh -- --x11
+```
+
 ### Other
 
 All optional arguments can be shown with

@@ -60,6 +60,7 @@ repository = "https://github.com/max-models/slurm-script-generator"
 [project.scripts]
 generate-slurm-script = "slurm_script_generator.main:main"
 slurm-queue = "slurm_script_generator.squeue:main"
+slurm-alloc = "slurm_script_generator.salloc:main"
 
 [tool.setuptools.packages.find]
 where = [ "src" ]

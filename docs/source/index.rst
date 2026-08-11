@@ -85,6 +85,18 @@ configured, ``sacct`` missing, or the job not yet recorded) — treat that as
    q.cancel(job_name="train_*")     # every job matching a glob
    q.cancel(user="alice", state="PD")  # only alice's pending jobs
 
+**Get an interactive allocation from a batch script:**
+
+.. code-block:: bash
+
+   slurm-alloc job.sh              # salloc with the script's resource request
+   slurm-alloc job.sh --run        # run the script's commands in the allocation
+   slurm-alloc job.sh --dry-run    # just print the salloc command
+   slurm-alloc job.sh -- --x11     # pass extra arguments to salloc
+
+Options that ``salloc`` does not accept (``--output``, ``--array``, …) are
+skipped and reported on stderr.
+
 **Inspect the live queue:**
 
 .. code-block:: bash
