@@ -206,6 +206,22 @@ def _parse_int(s: str, default: int = 0) -> int:
         return default
 
 
+def current_user() -> str:
+    """Return the current OS username (as ``whoami``/``$USER`` would report it)."""
+    import getpass
+
+    return getpass.getuser()
+
+
+def _resolve_user(user: Optional[str], me: bool) -> Optional[str]:
+    """Resolve the ``user``/``me`` argument pair used throughout this module."""
+    if me:
+        if user is not None:
+            raise ValueError("Specify either `user` or `me=True`, not both.")
+        return current_user()
+    return user
+
+
 class SQueue:
     """Interface to the SLURM job queue via ``squeue``.
 
@@ -213,6 +229,9 @@ class SQueue:
     ----------
     user : str, optional
         If given, only fetch jobs belonging to this user by default.
+    me : bool
+        If True, fetch only jobs belonging to the current OS user by default.
+        Mutually exclusive with *user*. Defaults to False.
 
     Examples
     --------
@@ -230,9 +249,12 @@ class SQueue:
     """
 
     def __init__(
-        self, user: Optional[str] = None, partition: Optional[str] = None
+        self,
+        user: Optional[str] = None,
+        partition: Optional[str] = None,
+        me: bool = False,
     ) -> None:
-        self._default_user = user
+        self._default_user = _resolve_user(user, me)
         self._default_partition = partition
         self._jobs: List[SQueueJob] = []
         self.refresh()
@@ -297,6 +319,7 @@ class SQueue:
         user: Optional[str] = None,
         state: Optional[str] = None,
         partition: Optional[str] = None,
+        me: bool = False,
     ) -> List[SQueueJob]:
         """Return jobs matching the given criteria.
 
@@ -312,11 +335,15 @@ class SQueue:
             SLURM state code, e.g. ``'R'`` or ``'PD'``.
         partition : str, optional
             Partition name to filter by.
+        me : bool
+            Filter to jobs belonging to the current OS user. Mutually
+            exclusive with *user*. Defaults to False.
 
         Returns
         -------
         list of SQueueJob
         """
+        user = _resolve_user(user, me)
         result = list(self._jobs)
         if job_id is not None:
             job_ids = (
@@ -354,6 +381,7 @@ class SQueue:
         timeout: Optional[float] = None,
         verbose: bool = True,
         check: bool = False,
+        me: bool = False,
     ) -> Dict[int, Optional[str]]:
         """Block until all matching jobs leave the active queue.
 
@@ -372,6 +400,9 @@ class SQueue:
             A specific job ID, or a list of job IDs, to wait for.
         user : str, optional
             Wait for all jobs belonging to this user to finish.
+        me : bool
+            Wait for all jobs belonging to the current OS user. Mutually
+            exclusive with *user*. Defaults to False.
         poll_interval : float
             Seconds between queue polls. Defaults to 30.
         timeout : float, optional
@@ -405,8 +436,9 @@ class SQueue:
         >>> q.wait_until_done(job_name='train_*', check=True)
         {12345: 'COMPLETED', 12346: 'COMPLETED'}
         """
+        user = _resolve_user(user, me)
         if job_name is None and job_id is None and user is None:
-            raise ValueError("Specify at least one of: job_name, job_id, user")
+            raise ValueError("Specify at least one of: job_name, job_id, user, me")
 
         # Jobs leave the queue as they finish, so collect IDs while polling
         # rather than only looking at what is left at the end.
@@ -475,6 +507,7 @@ class SQueue:
         state: Optional[str] = None,
         partition: Optional[str] = None,
         verbose: bool = True,
+        me: bool = False,
     ) -> List[int]:
         """Cancel all matching jobs with ``scancel``.
 
@@ -490,6 +523,9 @@ class SQueue:
             A specific job ID, or a list of job IDs, to cancel.
         user : str, optional
             Cancel all jobs belonging to this user.
+        me : bool
+            Cancel all jobs belonging to the current OS user. Mutually
+            exclusive with *user*. Defaults to False.
         state : str, optional
             SLURM state code, e.g. ``'PD'`` to cancel only pending jobs.
         partition : str, optional
@@ -516,6 +552,7 @@ class SQueue:
         >>> q.cancel(job_name='train_*')
         >>> q.cancel(user='alice', state='PD')
         """
+        user = _resolve_user(user, me)
         if (
             job_name is None
             and job_id is None
@@ -524,7 +561,7 @@ class SQueue:
             and partition is None
         ):
             raise ValueError(
-                "Specify at least one of: job_name, job_id, user, state, partition"
+                "Specify at least one of: job_name, job_id, user, me, state, partition"
             )
 
         self.refresh()
@@ -1177,6 +1214,9 @@ class SAcct:
         Number of days of history to look back (default: 7).
     partition : str, optional
         If given, filter to this partition.
+    me : bool
+        If True, fetch only jobs belonging to the current OS user.
+        Mutually exclusive with *user*. Defaults to False.
 
     Examples
     --------
@@ -1190,8 +1230,9 @@ class SAcct:
         user: Optional[str] = None,
         days: int = 7,
         partition: Optional[str] = None,
+        me: bool = False,
     ) -> None:
-        self._user = user
+        self._user = _resolve_user(user, me)
         self._days = days
         self._partition = partition
         self._jobs: List[SAcctJob] = []
@@ -1562,8 +1603,12 @@ def main() -> None:
 
     # ---- show ---------------------------------------------------------------
     p_show = sub.add_parser("show", help="Print per-user queue summary (default).")
-    p_show.add_argument(
+    g_show = p_show.add_mutually_exclusive_group()
+    g_show.add_argument(
         "--user", "-u", metavar="USER", default=None, help="Filter to this user."
+    )
+    g_show.add_argument(
+        "--me", action="store_true", help="Filter to the current user."
     )
     p_show.add_argument(
         "--partition",
@@ -1575,7 +1620,11 @@ def main() -> None:
 
     # ---- list ---------------------------------------------------------------
     p_list = sub.add_parser("list", help="List individual jobs.")
-    p_list.add_argument("--user", "-u", metavar="USER", default=None)
+    g_list = p_list.add_mutually_exclusive_group()
+    g_list.add_argument("--user", "-u", metavar="USER", default=None)
+    g_list.add_argument(
+        "--me", action="store_true", help="Filter to the current user."
+    )
     p_list.add_argument(
         "--partition",
         "-p",
@@ -1626,8 +1675,12 @@ def main() -> None:
     p_stats = sub.add_parser(
         "stats", help="Print partition and state breakdown statistics."
     )
-    p_stats.add_argument(
+    g_stats = p_stats.add_mutually_exclusive_group()
+    g_stats.add_argument(
         "--user", "-u", metavar="USER", default=None, help="Filter to this user."
+    )
+    g_stats.add_argument(
+        "--me", action="store_true", help="Filter to the current user."
     )
     p_stats.add_argument(
         "--partition",
@@ -1641,12 +1694,18 @@ def main() -> None:
     p_hist = sub.add_parser(
         "history", help="Show job submission history from accounting records (sacct)."
     )
-    p_hist.add_argument(
+    g_hist = p_hist.add_mutually_exclusive_group()
+    g_hist.add_argument(
         "--user",
         "-u",
         metavar="USER",
         default=None,
         help="Show detailed per-state breakdown for this user; omit for all-users summary.",
+    )
+    g_hist.add_argument(
+        "--me",
+        action="store_true",
+        help="Show detailed per-state breakdown for the current user.",
     )
     p_hist.add_argument(
         "--days",
@@ -1683,12 +1742,18 @@ def main() -> None:
         default=None,
         help="Wait for a specific job ID.",
     )
-    p_wait.add_argument(
+    g_wait = p_wait.add_mutually_exclusive_group()
+    g_wait.add_argument(
         "--user",
         "-u",
         metavar="USER",
         default=None,
         help="Wait for all jobs belonging to this user.",
+    )
+    g_wait.add_argument(
+        "--me",
+        action="store_true",
+        help="Wait for all jobs belonging to the current user.",
     )
     p_wait.add_argument(
         "--poll-interval",
@@ -1714,7 +1779,7 @@ def main() -> None:
 
     # Default sub-command: show
     if args.cmd is None or args.cmd == "show":
-        user = getattr(args, "user", None)
+        user = current_user() if getattr(args, "me", False) else getattr(args, "user", None)
         partition = getattr(args, "partition", None)
         try:
             q = SQueue(user=user, partition=partition)
@@ -1724,8 +1789,9 @@ def main() -> None:
             sys.exit(1)
 
     elif args.cmd == "list":
+        user = current_user() if args.me else args.user
         try:
-            q = SQueue(user=args.user, partition=args.partition)
+            q = SQueue(user=user, partition=args.partition)
             jobs = q.jobs(
                 job_name=args.job_name,
                 job_id=args.job_id,
@@ -1739,8 +1805,9 @@ def main() -> None:
             sys.exit(1)
 
     elif args.cmd == "stats":
+        user = current_user() if args.me else args.user
         try:
-            q = SQueue(user=args.user, partition=args.partition)
+            q = SQueue(user=user, partition=args.partition)
             n_running = sum(1 for j in q if j.is_running)
             n_pending = sum(1 for j in q if j.is_pending)
             title_plain = (
@@ -1765,12 +1832,13 @@ def main() -> None:
             sys.exit(1)
 
     elif args.cmd == "history":
+        user = current_user() if args.me else args.user
         try:
-            acct = SAcct(user=args.user, days=args.days, partition=args.partition)
+            acct = SAcct(user=user, days=args.days, partition=args.partition)
             n = args.days
             day_s = "day" if n == 1 else "days"
             part_s = f"  \u00b7  {args.partition}" if args.partition else ""
-            user_s = f"  \u00b7  {args.user}" if args.user else ""
+            user_s = f"  \u00b7  {user}" if user else ""
             title_plain = f"Job History  \u00b7  last {n} {day_s}  \u00b7  {len(acct)} jobs{part_s}{user_s}"
             title = (
                 _c("Job History", _BOLD, _CYAN)
@@ -1779,11 +1847,11 @@ def main() -> None:
                 + "  \u00b7  "
                 + f"{len(acct)} jobs"
                 + (f"  \u00b7  {args.partition}" if args.partition else "")
-                + ("  \u00b7  " + _c(args.user, _BOLD) if args.user else "")
+                + ("  \u00b7  " + _c(user, _BOLD) if user else "")
             )
             print(title)
             print(_c("\u2550" * len(title_plain), _DIM))
-            if args.user:
+            if user:
                 print(_fmt_history_detail(acct))
             else:
                 print(_fmt_history_summary(acct))
@@ -1792,14 +1860,15 @@ def main() -> None:
             sys.exit(1)
 
     elif args.cmd == "wait":
-        if args.job_name is None and args.job_id is None and args.user is None:
-            p_wait.error("Specify at least one of: --job-name, --job-id, --user")
+        user = current_user() if args.me else args.user
+        if args.job_name is None and args.job_id is None and user is None:
+            p_wait.error("Specify at least one of: --job-name, --job-id, --user, --me")
         try:
             q = SQueue()
             q.wait_until_done(
                 job_name=args.job_name,
                 job_id=args.job_id,
-                user=args.user,
+                user=user,
                 poll_interval=args.poll_interval,
                 timeout=args.timeout,
                 verbose=not args.quiet,

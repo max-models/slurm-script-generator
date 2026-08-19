@@ -45,6 +45,7 @@ Filter to a single user or partition:
 
 ```bash
 slurm-queue show --user alice
+slurm-queue show --me                  # shortcut for --user <your username>
 slurm-queue show --partition gpu
 slurm-queue show -u alice -p gpu
 ```
@@ -76,12 +77,15 @@ state — any combination works:
 
 ```bash
 slurm-queue list --user alice
+slurm-queue list --me                      # shortcut for --user <your username>
 slurm-queue list --partition gpu
 slurm-queue list --job-name "train_*"      # glob pattern
 slurm-queue list --job-id 1001
 slurm-queue list --state PD                # pending only
 slurm-queue list --user alice --state R    # alice's running jobs
 ```
+
+`--user` and `--me` are mutually exclusive.
 
 Common state codes:
 
@@ -135,6 +139,7 @@ states — useful for spotting overloaded partitions or accumulating failures:
 ```bash
 slurm-queue stats
 slurm-queue stats --user alice
+slurm-queue stats --me                 # shortcut for --user <your username>
 slurm-queue stats --partition gpu
 ```
 
@@ -172,6 +177,7 @@ making it easy to spot which users or experiments used the most compute.
 slurm-queue history                      # all users, last 7 days
 slurm-queue history --days 30            # last 30 days
 slurm-queue history --user alice         # detailed breakdown for alice
+slurm-queue history --me                 # detailed breakdown for the current user
 slurm-queue history --partition gpu      # filter to GPU partition
 ```
 
@@ -253,6 +259,7 @@ slurm-queue wait -j 1001
 ```bash
 slurm-queue wait --user alice
 slurm-queue wait -u alice
+slurm-queue wait --me           # shortcut for --user <your username>
 ```
 
 ### Options
