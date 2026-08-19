@@ -1607,9 +1607,7 @@ def main() -> None:
     g_show.add_argument(
         "--user", "-u", metavar="USER", default=None, help="Filter to this user."
     )
-    g_show.add_argument(
-        "--me", action="store_true", help="Filter to the current user."
-    )
+    g_show.add_argument("--me", action="store_true", help="Filter to the current user.")
     p_show.add_argument(
         "--partition",
         "-p",
@@ -1622,9 +1620,7 @@ def main() -> None:
     p_list = sub.add_parser("list", help="List individual jobs.")
     g_list = p_list.add_mutually_exclusive_group()
     g_list.add_argument("--user", "-u", metavar="USER", default=None)
-    g_list.add_argument(
-        "--me", action="store_true", help="Filter to the current user."
-    )
+    g_list.add_argument("--me", action="store_true", help="Filter to the current user.")
     p_list.add_argument(
         "--partition",
         "-p",
@@ -1779,7 +1775,11 @@ def main() -> None:
 
     # Default sub-command: show
     if args.cmd is None or args.cmd == "show":
-        user = current_user() if getattr(args, "me", False) else getattr(args, "user", None)
+        user = (
+            current_user()
+            if getattr(args, "me", False)
+            else getattr(args, "user", None)
+        )
         partition = getattr(args, "partition", None)
         try:
             q = SQueue(user=user, partition=partition)
