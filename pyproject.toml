@@ -64,6 +64,7 @@ slurm-stats = "slurm_script_generator.squeue:main_stats"
 slurm-history = "slurm_script_generator.squeue:main_history"
 slurm-wait = "slurm_script_generator.squeue:main_wait"
 slurm-alloc = "slurm_script_generator.salloc:main"
+slurm-template = "slurm_script_generator.slurm_template:main"
 
 [tool.setuptools.packages.find]
 where = [ "src" ]

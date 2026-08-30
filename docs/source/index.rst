@@ -21,6 +21,14 @@ Quickstart
 
    generate-slurm-script --nodes 2 --ntasks-per-node 16 --job-name my_job --output-path job.sh
 
+**Or start from a built-in template for a common job shape:**
+
+.. code-block:: bash
+
+   slurm-template --list                       # cpu, openmp, mpi, hybrid, gpu, array
+   slurm-template gpu -o job.sh --gpus 2 --time 02:00:00
+   slurm-template mpi -o job.sh --nodes 8 --command "srun ./my_mpi_program"
+
 **Or from Python:**
 
 .. code-block:: python
@@ -112,8 +120,7 @@ skipped and reported on stderr.
    :caption: Documentation
 
    cli.md
-   slurm_queue.md
-   tutorials
+   slurm_template.md
    slurm_queue.md
    tutorials
    api/index
