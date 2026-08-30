@@ -119,6 +119,29 @@ SLURM Queue  ·  42 jobs total  ·  30 running  ·  12 pending
 `Nodes (R)` and `CPUs (R)` count only **running** jobs — pending jobs have not
 yet been allocated resources.
 
+### Cancelling jobs
+
+Add `--cancel` to cancel the matching jobs instead of listing them. At least
+one filter is required, so a bare `slurm-queue --cancel` refuses to run
+rather than cancelling the whole queue:
+
+```bash
+slurm-queue --job-name "sweep_*" --cancel   # prompts for confirmation
+slurm-queue --job-id 1001 --cancel --yes    # skip the prompt
+slurm-queue --me --state PD --cancel        # cancel your own pending jobs
+```
+
+The matching jobs are printed first, then you're prompted to confirm unless
+`--yes`/`-y` is given:
+
+```
+  JobID   User    Job Name     State     Partition   Nodes   CPUs   Used       Limit
+  ─────────────────────────────────────────────────────────────────────────────────
+   1006   alice   sweep_lr01   Pending   gpu             1     16   0:00:00   4:00:00
+   1007   alice   sweep_lr02   Pending   gpu             1     16   0:00:00   4:00:00
+Cancel 2 job(s) above? [y/N]
+```
+
 ---
 
 ## slurm-stats — partition and state breakdown
@@ -153,6 +176,31 @@ By State
   Running        30
   Pending        12
 ────────────────────
+```
+
+### Per-user highlights
+
+Filtering to a single user (`--user`/`--me`) adds extra detail beyond the
+partition/state tables: their longest-running job, their longest-waiting
+pending job, and a breakdown of their jobs by name — handy for checking on
+what a specific user (yourself or someone else) has going on:
+
+```bash
+slurm-stats --user alice
+slurm-stats --me
+```
+
+```
+Longest running:  train_resnet (#1001)  —  2:13:05 elapsed on gpu
+Longest waiting:  sweep_lr03 (#1009)  —  waiting 00:42:10, reason: Priority
+
+By Job Name
+──────────────────────────────────
+  Job Name     Jobs   Running   Pending
+──────────────────────────────────
+  train_*         2         2         0
+  sweep_*         3         0         3
+──────────────────────────────────
 ```
 
 ---

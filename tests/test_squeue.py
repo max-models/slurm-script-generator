@@ -9,10 +9,13 @@ from slurm_script_generator.squeue import (
     SAcct,
     SQueue,
     SQueueJob,
+    _fmt_duration,
     _fmt_history_detail,
     _fmt_history_summary,
     _fmt_job_table,
     _fmt_stats_table,
+    _fmt_user_highlights,
+    _parse_slurm_elapsed,
     job_state,
     job_states,
     main,
@@ -40,6 +43,7 @@ def _make_line(
     time_limit="1:00:00",
     reason="None",
     priority=1000,
+    submit_time="2024-01-01T00:00:00",
 ):
     return SEP.join(
         [
@@ -54,6 +58,7 @@ def _make_line(
             time_limit,
             reason,
             str(priority),
+            submit_time,
         ]
     )
 
@@ -982,6 +987,75 @@ def test_cli_wait_by_job_name():
 
 
 # ---------------------------------------------------------------------------
+# CLI — --cancel
+# ---------------------------------------------------------------------------
+
+
+def test_cli_cancel_requires_filter():
+    with patch("subprocess.run", return_value=_mock_run(stdout="")):
+        with patch("sys.argv", ["slurm-queue", "--cancel"]):
+            with pytest.raises(SystemExit):
+                main()
+
+
+def test_cli_cancel_prompts_and_confirms():
+    def side_effect(cmd, *args, **kwargs):
+        if cmd[0] == "scancel":
+            return _mock_run(stdout="")
+        return _mock_run()
+
+    with patch("subprocess.run", side_effect=side_effect) as mock_run:
+        with patch("sys.argv", ["slurm-queue", "--job-id", "1001", "--cancel"]):
+            with patch("builtins.input", return_value="y"):
+                main()
+    scancel_calls = [
+        c[0][0] for c in mock_run.call_args_list if c[0][0][0] == "scancel"
+    ]
+    assert scancel_calls == [["scancel", "1001"]]
+
+
+def test_cli_cancel_aborts_without_confirmation():
+    def side_effect(cmd, *args, **kwargs):
+        if cmd[0] == "scancel":
+            return _mock_run(stdout="")
+        return _mock_run()
+
+    with patch("subprocess.run", side_effect=side_effect) as mock_run:
+        with patch("sys.argv", ["slurm-queue", "--job-id", "1001", "--cancel"]):
+            with patch("builtins.input", return_value="n"):
+                main()
+    scancel_calls = [
+        c[0][0] for c in mock_run.call_args_list if c[0][0][0] == "scancel"
+    ]
+    assert scancel_calls == []
+
+
+def test_cli_cancel_yes_skips_prompt():
+    def side_effect(cmd, *args, **kwargs):
+        if cmd[0] == "scancel":
+            return _mock_run(stdout="")
+        return _mock_run()
+
+    with patch("subprocess.run", side_effect=side_effect) as mock_run:
+        with patch(
+            "sys.argv", ["slurm-queue", "--job-id", "1001", "--cancel", "--yes"]
+        ):
+            with patch(
+                "builtins.input", side_effect=AssertionError("should not prompt")
+            ):
+                main()
+    scancel_calls = [
+        c[0][0] for c in mock_run.call_args_list if c[0][0][0] == "scancel"
+    ]
+    assert scancel_calls == [["scancel", "1001"]]
+
+
+def test_cli_cancel_no_matches():
+    output = _run_main(["--job-id", "9999", "--cancel", "--yes"])
+    assert "No matching jobs to cancel" in output
+
+
+# ---------------------------------------------------------------------------
 # jobs_by_partition / partition filter
 # ---------------------------------------------------------------------------
 
@@ -1395,3 +1469,172 @@ def test_cli_wait_timeout_exits_nonzero():
                             main_wait()
     assert exc.value.code == 1
     assert "Timeout" in err.getvalue()
+
+
+# ---------------------------------------------------------------------------
+# submit_time / waiting_seconds
+# ---------------------------------------------------------------------------
+
+
+def test_submit_time_parsed():
+    with patch(
+        "subprocess.run",
+        return_value=_mock_run(
+            stdout=_make_line(
+                1001, "alice", "job", "PD", submit_time="2020-01-01T00:00:00"
+            )
+        ),
+    ):
+        q = SQueue()
+    job = q.jobs()[0]
+    assert job.submit_datetime is not None
+    assert job.submit_datetime.year == 2020
+    assert job.waiting_seconds > 0
+
+
+def test_submit_time_unknown():
+    with patch(
+        "subprocess.run",
+        return_value=_mock_run(
+            stdout=_make_line(1001, "alice", "job", "PD", submit_time="N/A")
+        ),
+    ):
+        q = SQueue()
+    job = q.jobs()[0]
+    assert job.submit_datetime is None
+    assert job.waiting_seconds is None
+
+
+# ---------------------------------------------------------------------------
+# _parse_slurm_elapsed / _fmt_duration
+# ---------------------------------------------------------------------------
+
+
+def test_parse_slurm_elapsed_mmss():
+    assert _parse_slurm_elapsed("05:30") == 5 * 60 + 30
+
+
+def test_parse_slurm_elapsed_hhmmss():
+    assert _parse_slurm_elapsed("2:13:05") == 2 * 3600 + 13 * 60 + 5
+
+
+def test_parse_slurm_elapsed_days():
+    assert _parse_slurm_elapsed("1-02:13:05") == 86400 + 2 * 3600 + 13 * 60 + 5
+
+
+def test_fmt_duration_no_days():
+    assert _fmt_duration(3725) == "01:02:05"
+
+
+def test_fmt_duration_with_days():
+    assert _fmt_duration(90000) == "1-01:00:00"
+
+
+# ---------------------------------------------------------------------------
+# _fmt_user_highlights
+# ---------------------------------------------------------------------------
+
+
+def test_fmt_user_highlights_empty():
+    assert _fmt_user_highlights([]) == ""
+
+
+def test_fmt_user_highlights_longest_running():
+    with patch(
+        "subprocess.run",
+        return_value=_mock_run(
+            stdout="\n".join(
+                [
+                    _make_line(1001, "alice", "short", "R", time_used="00:05:00"),
+                    _make_line(1002, "alice", "long", "R", time_used="02:00:00"),
+                ]
+            )
+        ),
+    ):
+        q = SQueue()
+    highlights = _fmt_user_highlights(list(q))
+    assert "Longest running" in highlights
+    assert "long" in highlights
+
+
+def test_fmt_user_highlights_longest_waiting():
+    with patch(
+        "subprocess.run",
+        return_value=_mock_run(
+            stdout="\n".join(
+                [
+                    _make_line(
+                        1001,
+                        "alice",
+                        "recent",
+                        "PD",
+                        submit_time="2099-01-01T00:00:00",
+                    ),
+                    _make_line(
+                        1002,
+                        "alice",
+                        "stale",
+                        "PD",
+                        submit_time="2000-01-01T00:00:00",
+                    ),
+                ]
+            )
+        ),
+    ):
+        q = SQueue()
+    highlights = _fmt_user_highlights(list(q))
+    assert "Longest waiting" in highlights
+    assert "stale" in highlights
+
+
+def test_fmt_user_highlights_by_job_name():
+    with patch(
+        "subprocess.run",
+        return_value=_mock_run(
+            stdout="\n".join(
+                [
+                    _make_line(1001, "alice", "train", "R"),
+                    _make_line(1002, "alice", "train", "R"),
+                    _make_line(1003, "alice", "eval", "PD"),
+                ]
+            )
+        ),
+    ):
+        q = SQueue()
+    highlights = _fmt_user_highlights(list(q))
+    assert "By Job Name" in highlights
+    assert "train" in highlights
+    assert "eval" in highlights
+
+
+def test_fmt_user_highlights_single_name_no_breakdown():
+    with patch(
+        "subprocess.run",
+        return_value=_mock_run(stdout=_make_line(1001, "alice", "only_job", "R")),
+    ):
+        q = SQueue()
+    highlights = _fmt_user_highlights(list(q))
+    assert "By Job Name" not in highlights
+
+
+# ---------------------------------------------------------------------------
+# CLI — slurm-stats --user shows highlights
+# ---------------------------------------------------------------------------
+
+
+def test_cli_stats_user_shows_highlights():
+    stdout = "\n".join(
+        [
+            _make_line(1001, "alice", "train", "R", time_used="02:00:00"),
+            _make_line(1002, "alice", "eval", "PD"),
+        ]
+    )
+    output = _run_main(
+        ["--user", "alice"], mock_stdout=stdout, entry=main_stats, prog="slurm-stats"
+    )
+    assert "Longest running" in output
+
+
+def test_cli_stats_no_user_omits_highlights():
+    output = _run_main([], entry=main_stats, prog="slurm-stats")
+    assert "Longest running" not in output

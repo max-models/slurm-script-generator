@@ -957,18 +957,6 @@ class SlurmScript:
             data = json.load(f)
         return SlurmScript.from_dict(data)
 
-    def __eq__(self, value: object) -> bool:
-        """
-        Compare two SlurmScript instances for equality.
-        Args:
-            value (object): The object to compare.
-        Returns:
-            bool: True if equal, False otherwise.
-        """
-        if not isinstance(value, SlurmScript):
-            return False
-        return self.to_dict() == value.to_dict()
-
     def to_string(self, include_header: bool = True) -> str:
         """Generate the SLURM script as a string.
 
@@ -984,36 +972,6 @@ class SlurmScript:
 
         """
         return self.generate_script(include_header=include_header)
-
-    def __str__(self) -> str:
-        """
-        Return the string representation of the SLurmScript instance.
-
-        Returns
-        -------
-        str
-            The generated script string with header.
-        """
-        return self.to_string(include_header=True)
-
-    def __repr__(self) -> str:
-        """
-        Return the official string representation of the SlurmScript instance.
-
-        Returns
-        -------
-        str
-            The formatted representation of the SlurmScript object.
-        """
-        script_repr = "SlurmScript(\n"
-        for pragma in self.pragmas:
-            script_repr += f"    {pragma.arg_varname}={repr(pragma.value)},\n"
-        if len(self.modules) > 0:
-            script_repr += f"    modules={repr(self.modules)},\n"
-        if len(self.custom_commands) > 0:
-            script_repr += f"    custom_commands={repr(self.custom_commands)},\n"
-        script_repr += ")"
-        return script_repr
 
     @property
     def line_length(self) -> int:
@@ -1080,6 +1038,48 @@ class SlurmScript:
 
         """
         return self._custom_commands
+
+    def __eq__(self, value: object) -> bool:
+        """
+        Compare two SlurmScript instances for equality.
+        Args:
+            value (object): The object to compare.
+        Returns:
+            bool: True if equal, False otherwise.
+        """
+        if not isinstance(value, SlurmScript):
+            return False
+        return self.to_dict() == value.to_dict()
+
+    def __repr__(self) -> str:
+        """
+        Return the official string representation of the SlurmScript instance.
+
+        Returns
+        -------
+        str
+            The formatted representation of the SlurmScript object.
+        """
+        script_repr = "SlurmScript(\n"
+        for pragma in self.pragmas:
+            script_repr += f"    {pragma.arg_varname}={repr(pragma.value)},\n"
+        if len(self.modules) > 0:
+            script_repr += f"    modules={repr(self.modules)},\n"
+        if len(self.custom_commands) > 0:
+            script_repr += f"    custom_commands={repr(self.custom_commands)},\n"
+        script_repr += ")"
+        return script_repr
+
+    def __str__(self) -> str:
+        """
+        Return the string representation of the SLurmScript instance.
+
+        Returns
+        -------
+        str
+            The generated script string with header.
+        """
+        return self.to_string(include_header=True)
 
     # @property
     # def inlined_scripts(self) -> list:
