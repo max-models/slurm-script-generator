@@ -1581,61 +1581,36 @@ _SORT_KEYS = {
 def main() -> None:
     """Entry point for the ``slurm-queue`` command-line tool.
 
-    Sub-commands
-    ------------
-    show  (default)
-        Print a per-user queue summary table.
-    list
-        Print individual jobs, optionally filtered and sorted.
-    stats
-        Print partition and state breakdown statistics.
-    wait
-        Block until matching jobs leave the active queue.
+    Prints the individual-jobs list by default; pass ``--summary`` for the
+    per-user summary table instead.
     """
     import argparse
     import sys
 
     parser = argparse.ArgumentParser(
         prog="slurm-queue",
-        description="Inspect and wait on the SLURM job queue.",
+        description="List and inspect jobs in the SLURM queue.",
     )
-    sub = parser.add_subparsers(dest="cmd")
-
-    # ---- show ---------------------------------------------------------------
-    p_show = sub.add_parser("show", help="Print per-user queue summary (default).")
-    g_show = p_show.add_mutually_exclusive_group()
-    g_show.add_argument(
+    g = parser.add_mutually_exclusive_group()
+    g.add_argument(
         "--user", "-u", metavar="USER", default=None, help="Filter to this user."
     )
-    g_show.add_argument("--me", action="store_true", help="Filter to the current user.")
-    p_show.add_argument(
+    g.add_argument("--me", action="store_true", help="Filter to the current user.")
+    parser.add_argument(
         "--partition",
         "-p",
         metavar="PARTITION",
         default=None,
         help="Filter to this partition.",
     )
-
-    # ---- list ---------------------------------------------------------------
-    p_list = sub.add_parser("list", help="List individual jobs.")
-    g_list = p_list.add_mutually_exclusive_group()
-    g_list.add_argument("--user", "-u", metavar="USER", default=None)
-    g_list.add_argument("--me", action="store_true", help="Filter to the current user.")
-    p_list.add_argument(
-        "--partition",
-        "-p",
-        metavar="PARTITION",
-        default=None,
-        help="Filter to this partition.",
-    )
-    p_list.add_argument(
+    parser.add_argument(
         "--job-name",
         "-n",
         metavar="PATTERN",
         default=None,
         help="Filter by job name (glob patterns supported, e.g. 'train_*').",
     )
-    p_list.add_argument(
+    parser.add_argument(
         "--job-id",
         "-j",
         metavar="ID",
@@ -1643,14 +1618,14 @@ def main() -> None:
         default=None,
         help="Filter to a specific job ID.",
     )
-    p_list.add_argument(
+    parser.add_argument(
         "--state",
         "-s",
         metavar="STATE",
         default=None,
         help="Filter by state code, e.g. R, PD, CG.",
     )
-    p_list.add_argument(
+    parser.add_argument(
         "--sort",
         "-S",
         metavar="KEY",
@@ -1658,140 +1633,27 @@ def main() -> None:
         choices=list(_SORT_KEYS),
         help="Sort by: id, user, name, state, partition, nodes, cpus, time, priority.",
     )
-    p_list.add_argument(
+    parser.add_argument(
         "--reverse", "-r", action="store_true", help="Reverse the sort order."
     )
-    p_list.add_argument(
+    parser.add_argument(
         "--reason",
         action="store_true",
         help="Show the scheduling/pending reason column.",
     )
-
-    # ---- stats --------------------------------------------------------------
-    p_stats = sub.add_parser(
-        "stats", help="Print partition and state breakdown statistics."
-    )
-    g_stats = p_stats.add_mutually_exclusive_group()
-    g_stats.add_argument(
-        "--user", "-u", metavar="USER", default=None, help="Filter to this user."
-    )
-    g_stats.add_argument(
-        "--me", action="store_true", help="Filter to the current user."
-    )
-    p_stats.add_argument(
-        "--partition",
-        "-p",
-        metavar="PARTITION",
-        default=None,
-        help="Filter to this partition.",
-    )
-
-    # ---- history ------------------------------------------------------------
-    p_hist = sub.add_parser(
-        "history", help="Show job submission history from accounting records (sacct)."
-    )
-    g_hist = p_hist.add_mutually_exclusive_group()
-    g_hist.add_argument(
-        "--user",
-        "-u",
-        metavar="USER",
-        default=None,
-        help="Show detailed per-state breakdown for this user; omit for all-users summary.",
-    )
-    g_hist.add_argument(
-        "--me",
+    parser.add_argument(
+        "--summary",
         action="store_true",
-        help="Show detailed per-state breakdown for the current user.",
-    )
-    p_hist.add_argument(
-        "--days",
-        "-d",
-        metavar="N",
-        type=int,
-        default=7,
-        help="Number of days to look back (default: 7).",
-    )
-    p_hist.add_argument(
-        "--partition",
-        "-p",
-        metavar="PARTITION",
-        default=None,
-        help="Filter to this partition.",
-    )
-
-    # ---- wait ---------------------------------------------------------------
-    p_wait = sub.add_parser(
-        "wait", help="Wait until matching jobs leave the active queue."
-    )
-    p_wait.add_argument(
-        "--job-name",
-        "-n",
-        metavar="PATTERN",
-        default=None,
-        help="Job name or glob pattern to wait for (e.g. 'train_*').",
-    )
-    p_wait.add_argument(
-        "--job-id",
-        "-j",
-        metavar="ID",
-        type=int,
-        default=None,
-        help="Wait for a specific job ID.",
-    )
-    g_wait = p_wait.add_mutually_exclusive_group()
-    g_wait.add_argument(
-        "--user",
-        "-u",
-        metavar="USER",
-        default=None,
-        help="Wait for all jobs belonging to this user.",
-    )
-    g_wait.add_argument(
-        "--me",
-        action="store_true",
-        help="Wait for all jobs belonging to the current user.",
-    )
-    p_wait.add_argument(
-        "--poll-interval",
-        "-i",
-        metavar="SECONDS",
-        type=float,
-        default=30.0,
-        help="Seconds between queue polls (default: 30).",
-    )
-    p_wait.add_argument(
-        "--timeout",
-        "-t",
-        metavar="SECONDS",
-        type=float,
-        default=None,
-        help="Raise an error if jobs are still running after this many seconds.",
-    )
-    p_wait.add_argument(
-        "--quiet", "-q", action="store_true", help="Suppress progress messages."
+        help="Print a per-user summary table instead of the individual-jobs list.",
     )
 
     args = parser.parse_args()
-
-    # Default sub-command: show
-    if args.cmd is None or args.cmd == "show":
-        user = (
-            current_user()
-            if getattr(args, "me", False)
-            else getattr(args, "user", None)
-        )
-        partition = getattr(args, "partition", None)
-        try:
-            q = SQueue(user=user, partition=partition)
+    user = current_user() if args.me else args.user
+    try:
+        q = SQueue(user=user, partition=args.partition)
+        if args.summary:
             print(q)
-        except RuntimeError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
-
-    elif args.cmd == "list":
-        user = current_user() if args.me else args.user
-        try:
-            q = SQueue(user=user, partition=args.partition)
+        else:
             jobs = q.jobs(
                 job_name=args.job_name,
                 job_id=args.job_id,
@@ -1800,85 +1662,216 @@ def main() -> None:
             if args.sort:
                 jobs = sorted(jobs, key=_SORT_KEYS[args.sort], reverse=args.reverse)
             print(_fmt_job_table(jobs, show_reason=args.reason))
-        except RuntimeError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
+    except RuntimeError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
-    elif args.cmd == "stats":
-        user = current_user() if args.me else args.user
-        try:
-            q = SQueue(user=user, partition=args.partition)
-            n_running = sum(1 for j in q if j.is_running)
-            n_pending = sum(1 for j in q if j.is_pending)
-            title_plain = (
-                f"SLURM Queue  \u00b7  {len(q)} jobs total"
-                f"  \u00b7  {n_running} running"
-                f"  \u00b7  {n_pending} pending"
-            )
-            title = (
-                _c("SLURM Queue", _BOLD, _CYAN)
-                + "  \u00b7  "
-                + f"{len(q)} jobs total"
-                + "  \u00b7  "
-                + _c(f"{n_running} running", _GREEN)
-                + "  \u00b7  "
-                + _c(f"{n_pending} pending", _YELLOW)
-            )
-            print(title)
-            print(_c("\u2550" * len(title_plain), _DIM))
-            print(_fmt_stats_table(q))
-        except RuntimeError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
 
-    elif args.cmd == "history":
-        user = current_user() if args.me else args.user
-        try:
-            acct = SAcct(user=user, days=args.days, partition=args.partition)
-            n = args.days
-            day_s = "day" if n == 1 else "days"
-            part_s = f"  \u00b7  {args.partition}" if args.partition else ""
-            user_s = f"  \u00b7  {user}" if user else ""
-            title_plain = f"Job History  \u00b7  last {n} {day_s}  \u00b7  {len(acct)} jobs{part_s}{user_s}"
-            title = (
-                _c("Job History", _BOLD, _CYAN)
-                + "  \u00b7  "
-                + _c(f"last {n} {day_s}", _DIM)
-                + "  \u00b7  "
-                + f"{len(acct)} jobs"
-                + (f"  \u00b7  {args.partition}" if args.partition else "")
-                + ("  \u00b7  " + _c(user, _BOLD) if user else "")
-            )
-            print(title)
-            print(_c("\u2550" * len(title_plain), _DIM))
-            if user:
-                print(_fmt_history_detail(acct))
-            else:
-                print(_fmt_history_summary(acct))
-        except RuntimeError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
+def main_stats() -> None:
+    """Entry point for the ``slurm-stats`` command-line tool.
 
-    elif args.cmd == "wait":
-        user = current_user() if args.me else args.user
-        if args.job_name is None and args.job_id is None and user is None:
-            p_wait.error("Specify at least one of: --job-name, --job-id, --user, --me")
-        try:
-            q = SQueue()
-            q.wait_until_done(
-                job_name=args.job_name,
-                job_id=args.job_id,
-                user=user,
-                poll_interval=args.poll_interval,
-                timeout=args.timeout,
-                verbose=not args.quiet,
-            )
-        except TimeoutError as e:
-            print(f"Timeout: {e}", file=sys.stderr)
-            sys.exit(1)
-        except RuntimeError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
+    Prints partition and state breakdown statistics for the SLURM queue.
+    """
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(
+        prog="slurm-stats",
+        description="Print partition and state breakdown statistics for the SLURM queue.",
+    )
+    g = parser.add_mutually_exclusive_group()
+    g.add_argument(
+        "--user", "-u", metavar="USER", default=None, help="Filter to this user."
+    )
+    g.add_argument("--me", action="store_true", help="Filter to the current user.")
+    parser.add_argument(
+        "--partition",
+        "-p",
+        metavar="PARTITION",
+        default=None,
+        help="Filter to this partition.",
+    )
+
+    args = parser.parse_args()
+    user = current_user() if args.me else args.user
+    try:
+        q = SQueue(user=user, partition=args.partition)
+        n_running = sum(1 for j in q if j.is_running)
+        n_pending = sum(1 for j in q if j.is_pending)
+        title_plain = (
+            f"SLURM Queue  \u00b7  {len(q)} jobs total"
+            f"  \u00b7  {n_running} running"
+            f"  \u00b7  {n_pending} pending"
+        )
+        title = (
+            _c("SLURM Queue", _BOLD, _CYAN)
+            + "  \u00b7  "
+            + f"{len(q)} jobs total"
+            + "  \u00b7  "
+            + _c(f"{n_running} running", _GREEN)
+            + "  \u00b7  "
+            + _c(f"{n_pending} pending", _YELLOW)
+        )
+        print(title)
+        print(_c("\u2550" * len(title_plain), _DIM))
+        print(_fmt_stats_table(q))
+    except RuntimeError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def main_history() -> None:
+    """Entry point for the ``slurm-history`` command-line tool.
+
+    Shows job submission history from accounting records (``sacct``).
+    """
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(
+        prog="slurm-history",
+        description="Show job submission history from accounting records (sacct).",
+    )
+    g = parser.add_mutually_exclusive_group()
+    g.add_argument(
+        "--user",
+        "-u",
+        metavar="USER",
+        default=None,
+        help="Show detailed per-state breakdown for this user; omit for all-users summary.",
+    )
+    g.add_argument(
+        "--me",
+        action="store_true",
+        help="Show detailed per-state breakdown for the current user.",
+    )
+    parser.add_argument(
+        "--days",
+        "-d",
+        metavar="N",
+        type=int,
+        default=7,
+        help="Number of days to look back (default: 7).",
+    )
+    parser.add_argument(
+        "--partition",
+        "-p",
+        metavar="PARTITION",
+        default=None,
+        help="Filter to this partition.",
+    )
+
+    args = parser.parse_args()
+    user = current_user() if args.me else args.user
+    try:
+        acct = SAcct(user=user, days=args.days, partition=args.partition)
+        n = args.days
+        day_s = "day" if n == 1 else "days"
+        title_plain = f"Job History  \u00b7  last {n} {day_s}  \u00b7  {len(acct)} jobs"
+        if args.partition:
+            title_plain += f"  \u00b7  {args.partition}"
+        if user:
+            title_plain += f"  \u00b7  {user}"
+        title = (
+            _c("Job History", _BOLD, _CYAN)
+            + "  \u00b7  "
+            + _c(f"last {n} {day_s}", _DIM)
+            + "  \u00b7  "
+            + f"{len(acct)} jobs"
+            + (f"  \u00b7  {args.partition}" if args.partition else "")
+            + ("  \u00b7  " + _c(user, _BOLD) if user else "")
+        )
+        print(title)
+        print(_c("\u2550" * len(title_plain), _DIM))
+        if user:
+            print(_fmt_history_detail(acct))
+        else:
+            print(_fmt_history_summary(acct))
+    except RuntimeError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def main_wait() -> None:
+    """Entry point for the ``slurm-wait`` command-line tool.
+
+    Blocks until matching jobs leave the active queue.
+    """
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(
+        prog="slurm-wait",
+        description="Wait until matching jobs leave the active queue.",
+    )
+    parser.add_argument(
+        "--job-name",
+        "-n",
+        metavar="PATTERN",
+        default=None,
+        help="Job name or glob pattern to wait for (e.g. 'train_*').",
+    )
+    parser.add_argument(
+        "--job-id",
+        "-j",
+        metavar="ID",
+        type=int,
+        default=None,
+        help="Wait for a specific job ID.",
+    )
+    g = parser.add_mutually_exclusive_group()
+    g.add_argument(
+        "--user",
+        "-u",
+        metavar="USER",
+        default=None,
+        help="Wait for all jobs belonging to this user.",
+    )
+    g.add_argument(
+        "--me",
+        action="store_true",
+        help="Wait for all jobs belonging to the current user.",
+    )
+    parser.add_argument(
+        "--poll-interval",
+        "-i",
+        metavar="SECONDS",
+        type=float,
+        default=30.0,
+        help="Seconds between queue polls (default: 30).",
+    )
+    parser.add_argument(
+        "--timeout",
+        "-t",
+        metavar="SECONDS",
+        type=float,
+        default=None,
+        help="Raise an error if jobs are still running after this many seconds.",
+    )
+    parser.add_argument(
+        "--quiet", "-q", action="store_true", help="Suppress progress messages."
+    )
+
+    args = parser.parse_args()
+    user = current_user() if args.me else args.user
+    if args.job_name is None and args.job_id is None and user is None:
+        parser.error("Specify at least one of: --job-name, --job-id, --user, --me")
+    try:
+        q = SQueue()
+        q.wait_until_done(
+            job_name=args.job_name,
+            job_id=args.job_id,
+            user=user,
+            poll_interval=args.poll_interval,
+            timeout=args.timeout,
+            verbose=not args.quiet,
+        )
+    except TimeoutError as e:
+        print(f"Timeout: {e}", file=sys.stderr)
+        sys.exit(1)
+    except RuntimeError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

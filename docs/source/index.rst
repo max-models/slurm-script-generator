@@ -101,10 +101,9 @@ skipped and reported on stderr.
 
 .. code-block:: bash
 
-   slurm-queue              # per-user summary
-   slurm-queue list         # one row per job
-   slurm-queue stats        # partition and state breakdown
-   slurm-queue history      # job accounting (sacct)
+   slurm-queue              # one row per job (--summary for per-user totals)
+   slurm-stats              # partition and state breakdown
+   slurm-history            # job accounting (sacct)
 
 ---
 

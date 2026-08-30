@@ -1,63 +1,25 @@
 # slurm-queue CLI
 
-`slurm-queue` is a terminal tool for inspecting the SLURM job queue, viewing
-per-user and per-partition statistics, querying job history, and blocking until
-jobs finish — all without writing a custom `squeue` or `sacct` one-liner.
+`slurm-queue`, `slurm-stats`, `slurm-history`, and `slurm-wait` are terminal
+tools for inspecting the SLURM job queue, viewing per-user and per-partition
+statistics, querying job history, and blocking until jobs finish — all
+without writing a custom `squeue` or `sacct` one-liner.
 
 ```bash
-slurm-queue [show]              # per-user queue summary (default)
-slurm-queue list   [filters]   # one row per job
-slurm-queue stats  [filters]   # partition and state breakdown
-slurm-queue history [filters]  # accounting history via sacct
-slurm-queue wait   [filters]   # block until jobs are done
+slurm-queue   [filters]  # one row per job (default); --summary for per-user totals
+slurm-stats   [filters]  # partition and state breakdown
+slurm-history [filters]  # accounting history via sacct
+slurm-wait    [filters]  # block until jobs are done
 ```
 
 ---
 
-## show — queue summary
+## slurm-queue — per-job table
 
-Running `slurm-queue` with no arguments (or the explicit `show` subcommand)
-prints a per-user summary of the current queue, sorted by heaviest users first
-(running nodes, then running jobs):
+Running `slurm-queue` with no arguments prints one row per job:
 
 ```bash
 slurm-queue
-slurm-queue show
-```
-
-```
-SLURM Queue  ·  42 jobs total  ·  30 running  ·  12 pending
-════════════════════════════════════════════════════════════════════
-  User    Jobs   Running   Pending   Nodes (R)   CPUs (R)
-────────────────────────────────────────────────────────────────────
-  alice     20        18         2          36        576
-  bob       15        10         5          20        320
-  carol      7         2         5           4         64
-────────────────────────────────────────────────────────────────────
-  TOTAL     42        30        12          60        960
-════════════════════════════════════════════════════════════════════
-```
-
-`Nodes (R)` and `CPUs (R)` count only **running** jobs — pending jobs have not
-yet been allocated resources.
-
-Filter to a single user or partition:
-
-```bash
-slurm-queue show --user alice
-slurm-queue show --me                  # shortcut for --user <your username>
-slurm-queue show --partition gpu
-slurm-queue show -u alice -p gpu
-```
-
----
-
-## list — per-job table
-
-The `list` subcommand prints one row per job:
-
-```bash
-slurm-queue list
 ```
 
 ```
@@ -76,13 +38,13 @@ Filter by user, partition, job name (glob patterns supported), job ID, or
 state — any combination works:
 
 ```bash
-slurm-queue list --user alice
-slurm-queue list --me                      # shortcut for --user <your username>
-slurm-queue list --partition gpu
-slurm-queue list --job-name "train_*"      # glob pattern
-slurm-queue list --job-id 1001
-slurm-queue list --state PD                # pending only
-slurm-queue list --user alice --state R    # alice's running jobs
+slurm-queue --user alice
+slurm-queue --me                      # shortcut for --user <your username>
+slurm-queue --partition gpu
+slurm-queue --job-name "train_*"      # glob pattern
+slurm-queue --job-id 1001
+slurm-queue --state PD                # pending only
+slurm-queue --user alice --state R    # alice's running jobs
 ```
 
 `--user` and `--me` are mutually exclusive.
@@ -104,10 +66,10 @@ Common state codes:
 Sort the output by any field with `--sort` / `-S`:
 
 ```bash
-slurm-queue list --sort nodes          # fewest nodes first
-slurm-queue list --sort nodes --reverse  # most nodes first
-slurm-queue list --sort time           # least time used first
-slurm-queue list --user alice --sort priority --reverse
+slurm-queue --sort nodes          # fewest nodes first
+slurm-queue --sort nodes --reverse  # most nodes first
+slurm-queue --sort time           # least time used first
+slurm-queue --user alice --sort priority --reverse
 ```
 
 Available sort keys: `id`, `user`, `name`, `state`, `partition`, `nodes`,
@@ -119,7 +81,7 @@ Add `--reason` to show why each job is waiting (very useful for debugging
 stuck jobs):
 
 ```bash
-slurm-queue list --state PD --reason
+slurm-queue --state PD --reason
 ```
 
 ```
@@ -129,18 +91,46 @@ slurm-queue list --state PD --reason
    1006   dave    eval         Pending   gpu             2     64   0:00:00   8:00:00    Priority
 ```
 
+### Per-user summary
+
+Add `--summary` for a per-user summary instead of the per-job table, sorted
+by heaviest users first (running nodes, then running jobs):
+
+```bash
+slurm-queue --summary
+slurm-queue --summary --user alice
+slurm-queue --summary --me                  # shortcut for --user <your username>
+slurm-queue --summary --partition gpu
+```
+
+```
+SLURM Queue  ·  42 jobs total  ·  30 running  ·  12 pending
+════════════════════════════════════════════════════════════════════
+  User    Jobs   Running   Pending   Nodes (R)   CPUs (R)
+────────────────────────────────────────────────────────────────────
+  alice     20        18         2          36        576
+  bob       15        10         5          20        320
+  carol      7         2         5           4         64
+────────────────────────────────────────────────────────────────────
+  TOTAL     42        30        12          60        960
+════════════════════════════════════════════════════════════════════
+```
+
+`Nodes (R)` and `CPUs (R)` count only **running** jobs — pending jobs have not
+yet been allocated resources.
+
 ---
 
-## stats — partition and state breakdown
+## slurm-stats — partition and state breakdown
 
-`slurm-queue stats` shows how the queue is distributed across partitions and
+`slurm-stats` shows how the queue is distributed across partitions and
 states — useful for spotting overloaded partitions or accumulating failures:
 
 ```bash
-slurm-queue stats
-slurm-queue stats --user alice
-slurm-queue stats --me                 # shortcut for --user <your username>
-slurm-queue stats --partition gpu
+slurm-stats
+slurm-stats --user alice
+slurm-stats --me                 # shortcut for --user <your username>
+slurm-stats --partition gpu
 ```
 
 ```
@@ -167,18 +157,18 @@ By State
 
 ---
 
-## history — job accounting
+## slurm-history — job accounting
 
-`slurm-queue history` queries `sacct` to show completed, failed, and cancelled
+`slurm-history` queries `sacct` to show completed, failed, and cancelled
 jobs from recent history. It shows CPU-hours consumed alongside job counts,
 making it easy to spot which users or experiments used the most compute.
 
 ```bash
-slurm-queue history                      # all users, last 7 days
-slurm-queue history --days 30            # last 30 days
-slurm-queue history --user alice         # detailed breakdown for alice
-slurm-queue history --me                 # detailed breakdown for the current user
-slurm-queue history --partition gpu      # filter to GPU partition
+slurm-history                      # all users, last 7 days
+slurm-history --days 30            # last 30 days
+slurm-history --user alice         # detailed breakdown for alice
+slurm-history --me                 # detailed breakdown for the current user
+slurm-history --partition gpu      # filter to GPU partition
 ```
 
 **All-users summary** (no `--user`):
@@ -228,17 +218,17 @@ By Partition
 
 ---
 
-## wait — block until jobs finish
+## slurm-wait — block until jobs finish
 
-The `wait` subcommand polls the queue and blocks until all matching jobs leave
+`slurm-wait` polls the queue and blocks until all matching jobs leave
 the active queue (running, pending, completing, etc.). It is designed to be
 used in shell scripts and Python workflows.
 
 ### Wait by job name (glob patterns supported)
 
 ```bash
-slurm-queue wait --job-name "train_*"
-slurm-queue wait -n "train_resnet"
+slurm-wait --job-name "train_*"
+slurm-wait -n "train_resnet"
 ```
 
 ```
@@ -250,16 +240,16 @@ slurm-queue wait -n "train_resnet"
 ### Wait by job ID
 
 ```bash
-slurm-queue wait --job-id 1001
-slurm-queue wait -j 1001
+slurm-wait --job-id 1001
+slurm-wait -j 1001
 ```
 
 ### Wait for all jobs from a user
 
 ```bash
-slurm-queue wait --user alice
-slurm-queue wait -u alice
-slurm-queue wait --me           # shortcut for --user <your username>
+slurm-wait --user alice
+slurm-wait -u alice
+slurm-wait --me           # shortcut for --user <your username>
 ```
 
 ### Options
@@ -272,13 +262,13 @@ slurm-queue wait --me           # shortcut for --user <your username>
 
 ```bash
 # Poll every 60 s, give up after 2 hours
-slurm-queue wait --job-name "train_*" --poll-interval 60 --timeout 7200
+slurm-wait --job-name "train_*" --poll-interval 60 --timeout 7200
 
 # Silent — useful in automation scripts
-slurm-queue wait --user alice --quiet
+slurm-wait --user alice --quiet
 ```
 
-If `--timeout` is exceeded, `slurm-queue` prints to stderr and exits with
+If `--timeout` is exceeded, `slurm-wait` prints to stderr and exits with
 code `1`:
 
 ```
@@ -289,19 +279,19 @@ Timeout: Timed out after 7200.0s. Still active job IDs: [1002]
 
 ## Use in shell scripts
 
-`slurm-queue wait` blocks and exits non-zero on timeout, so it composes
+`slurm-wait` blocks and exits non-zero on timeout, so it composes
 naturally in shell pipelines:
 
 ```bash
 # Submit, wait, post-process
 sbatch train.sh
-slurm-queue wait --job-name train --quiet && python analyse.py
+slurm-wait --job-name train --quiet && python analyse.py
 
 # Submit a batch, wait for all, then clean up
 for config in small medium large; do
     sbatch --job-name "sweep_${config}" train.sh
 done
-slurm-queue wait --job-name "sweep_*" && echo "All sweeps done"
+slurm-wait --job-name "sweep_*" && echo "All sweeps done"
 ```
 
 ---
