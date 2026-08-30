@@ -102,7 +102,7 @@ FAILED_JOB_STATES = {
 
 # squeue --format codes and matching field names
 _SEPARATOR = "\x1f"  # ASCII unit separator — won't appear in job fields
-_FORMAT_CODES = ["%i", "%u", "%j", "%t", "%P", "%D", "%C", "%M", "%l", "%r", "%Q"]
+_FORMAT_CODES = ["%i", "%u", "%j", "%t", "%P", "%D", "%C", "%M", "%l", "%r", "%Q", "%V"]
 _FORMAT_STR = _SEPARATOR.join(_FORMAT_CODES)
 
 
@@ -121,6 +121,7 @@ class SQueueJob:
     time_limit: str
     reason: str
     priority: int
+    submit_time: str = ""
 
     @property
     def is_running(self) -> bool:
@@ -137,6 +138,22 @@ class SQueueJob:
     @property
     def state_name(self) -> str:
         return JOB_STATES.get(self.state, self.state)
+
+    @property
+    def submit_datetime(self) -> Optional[datetime]:
+        """The job's submission time, or None if squeue didn't report one."""
+        return _parse_squeue_datetime(self.submit_time)
+
+    @property
+    def waiting_seconds(self) -> Optional[float]:
+        """Seconds elapsed since submission — how long a pending job has waited.
+
+        None when the submission time could not be determined.
+        """
+        submitted = self.submit_datetime
+        if submitted is None:
+            return None
+        return (datetime.now() - submitted).total_seconds()
 
     def wait_until_done(
         self,
@@ -204,6 +221,50 @@ def _parse_int(s: str, default: int = 0) -> int:
         return int(s.strip())
     except ValueError:
         return default
+
+
+def _parse_squeue_datetime(s: str) -> Optional[datetime]:
+    """Parse a squeue ISO-8601 timestamp (e.g. from ``%V``/``%S``).
+
+    Tolerates the placeholders squeue prints when a time isn't known
+    (``N/A``, ``Unknown``) and any other unparseable input.
+    """
+    s = s.strip()
+    if not s or s in ("N/A", "Unknown"):
+        return None
+    try:
+        return datetime.strptime(s, "%Y-%m-%dT%H:%M:%S")
+    except ValueError:
+        return None
+
+
+def _parse_slurm_elapsed(t: str) -> int:
+    """Parse a SLURM elapsed/time-limit string into seconds.
+
+    Accepts the formats squeue's ``%M``/``%l`` can produce: ``MM:SS``,
+    ``HH:MM:SS``, or ``D-HH:MM:SS``.
+    """
+    t = t.strip()
+    days = 0
+    if "-" in t:
+        days_str, t = t.split("-", 1)
+        days = _parse_int(days_str)
+    parts = [_parse_int(p) for p in t.split(":")]
+    while len(parts) < 3:
+        parts.insert(0, 0)
+    h, m, s = parts[-3], parts[-2], parts[-1]
+    return days * 86400 + h * 3600 + m * 60 + s
+
+
+def _fmt_duration(seconds: float) -> str:
+    """Format a duration in seconds as ``[D-]HH:MM:SS``."""
+    total = int(seconds)
+    days, rem = divmod(total, 86400)
+    h, rem = divmod(rem, 3600)
+    m, s = divmod(rem, 60)
+    if days:
+        return f"{days}-{h:02d}:{m:02d}:{s:02d}"
+    return f"{h:02d}:{m:02d}:{s:02d}"
 
 
 def current_user() -> str:
@@ -302,6 +363,7 @@ class SQueue:
                     time_limit=parts[8].strip(),
                     reason=parts[9].strip(),
                     priority=_parse_int(parts[10]),
+                    submit_time=parts[11].strip(),
                 )
                 self._jobs.append(job)
             except (ValueError, IndexError):
@@ -978,6 +1040,93 @@ def _fmt_stats_table(q: SQueue) -> str:
     return "\n".join(lines)
 
 
+def _fmt_user_highlights(jobs: List[SQueueJob]) -> str:
+    """Extra detail for a single user's queue view: their longest-running and
+    longest-waiting jobs, plus a breakdown by job name.
+
+    Used to enrich ``slurm-stats --user``/``--me`` beyond the plain
+    partition/state tables.
+    """
+    if not jobs:
+        return ""
+    lines: List[str] = []
+
+    running = [j for j in jobs if j.is_running]
+    pending = [j for j in jobs if j.is_pending]
+
+    if running:
+        longest = max(running, key=lambda j: _parse_slurm_elapsed(j.time_used))
+        lines.append(
+            _c("Longest running:  ", _BOLD)
+            + f"{longest.name} (#{longest.job_id})  —  "
+            f"{longest.time_used} elapsed on {longest.partition}"
+        )
+    if pending:
+        known_wait = [(j, j.waiting_seconds) for j in pending]
+        known_wait = [(j, w) for j, w in known_wait if w is not None]
+        if known_wait:
+            oldest, wait_s = max(known_wait, key=lambda jw: jw[1])
+            lines.append(
+                _c("Longest waiting:  ", _BOLD)
+                + f"{oldest.name} (#{oldest.job_id})  —  "
+                f"waiting {_fmt_duration(wait_s)}, reason: {oldest.reason}"
+            )
+        else:
+            top = max(pending, key=lambda j: j.priority)
+            lines.append(
+                _c("Top pending:      ", _BOLD)
+                + f"{top.name} (#{top.job_id})  —  "
+                f"priority {top.priority}, reason: {top.reason}"
+            )
+
+    by_name: Dict[str, List[SQueueJob]] = {}
+    for j in jobs:
+        by_name.setdefault(j.name, []).append(j)
+    if len(by_name) > 1:
+        headers = ["Job Name", "Jobs", "Running", "Pending"]
+        rows = []
+        for name, group in by_name.items():
+            r = sum(1 for j in group if j.is_running)
+            p = sum(1 for j in group if j.is_pending)
+            rows.append((name, len(group), r, p))
+        rows.sort(key=lambda r: -r[1])
+        str_rows = [[r[0], str(r[1]), str(r[2]), str(r[3])] for r in rows]
+        widths = [
+            max(len(headers[i]), max(len(r[i]) for r in str_rows))
+            for i in range(len(headers))
+        ]
+
+        def _h() -> str:
+            cells = [_pad(headers[0], _c(headers[0], _BOLD), widths[0], "l")]
+            for i in range(1, len(headers)):
+                cells.append(_pad(headers[i], _c(headers[i], _BOLD), widths[i], "r"))
+            return "  " + "   ".join(cells)
+
+        def _r(r: list) -> str:
+            cells = [_pad(r[0], r[0], widths[0], "l")]
+            cells.append(_pad(r[1], r[1], widths[1], "r"))
+            cells.append(
+                _pad(r[2], _c(r[2], _GREEN) if r[2] != "0" else r[2], widths[2], "r")
+            )
+            cells.append(
+                _pad(r[3], _c(r[3], _YELLOW) if r[3] != "0" else r[3], widths[3], "r")
+            )
+            return "  " + "   ".join(cells)
+
+        bar = _c("─" * (sum(widths) + 3 * (len(widths) - 1) + 2), _DIM)
+        lines += [
+            "",
+            _c("By Job Name", _BOLD),
+            bar,
+            _h(),
+            bar,
+            *[_r(r) for r in str_rows],
+            bar,
+        ]
+
+    return "\n".join(lines)
+
+
 # ---------------------------------------------------------------------------
 # SLURM accounting (sacct)
 # ---------------------------------------------------------------------------
@@ -1578,6 +1727,21 @@ _SORT_KEYS = {
 }
 
 
+def _exit_on_broken_pipe() -> None:
+    """Exit quietly when stdout closes early (e.g. piping into ``head``).
+
+    Without this, writing to a closed pipe raises ``BrokenPipeError`` and
+    Python prints a traceback plus a second error when it tries to flush
+    stdout at interpreter shutdown.
+    """
+    import os
+    import sys
+
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    os.dup2(devnull, sys.stdout.fileno())
+    sys.exit(1)
+
+
 def main() -> None:
     """Entry point for the ``slurm-queue`` command-line tool.
 
@@ -1646,12 +1810,53 @@ def main() -> None:
         action="store_true",
         help="Print a per-user summary table instead of the individual-jobs list.",
     )
+    parser.add_argument(
+        "--cancel",
+        action="store_true",
+        help="Cancel the matching jobs instead of listing them.",
+    )
+    parser.add_argument(
+        "--yes",
+        "-y",
+        action="store_true",
+        help="Skip the confirmation prompt when used with --cancel.",
+    )
 
     args = parser.parse_args()
     user = current_user() if args.me else args.user
+
+    if args.cancel and not any(
+        [user, args.partition, args.job_name, args.job_id, args.state]
+    ):
+        parser.error(
+            "--cancel requires at least one filter, to avoid cancelling the "
+            "whole queue: --user, --me, --partition, --job-name, --job-id, "
+            "or --state."
+        )
+
     try:
         q = SQueue(user=user, partition=args.partition)
-        if args.summary:
+        if args.cancel:
+            targets = q.jobs(
+                job_name=args.job_name,
+                job_id=args.job_id,
+                state=args.state,
+            )
+            if not targets:
+                print(_c("✓", _GREEN) + " No matching jobs to cancel.")
+                return
+            print(_fmt_job_table(targets, show_reason=args.reason))
+            if not args.yes:
+                answer = input(f"Cancel {len(targets)} job(s) above? [y/N] ")
+                if answer.strip().lower() not in ("y", "yes"):
+                    print("Aborted.")
+                    return
+            q.cancel(
+                job_name=args.job_name,
+                job_id=args.job_id,
+                state=args.state,
+            )
+        elif args.summary:
             print(q)
         else:
             jobs = q.jobs(
@@ -1662,6 +1867,8 @@ def main() -> None:
             if args.sort:
                 jobs = sorted(jobs, key=_SORT_KEYS[args.sort], reverse=args.reverse)
             print(_fmt_job_table(jobs, show_reason=args.reason))
+    except BrokenPipeError:
+        _exit_on_broken_pipe()
     except RuntimeError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -1715,6 +1922,13 @@ def main_stats() -> None:
         print(title)
         print(_c("\u2550" * len(title_plain), _DIM))
         print(_fmt_stats_table(q))
+        if user:
+            highlights = _fmt_user_highlights(list(q))
+            if highlights:
+                print()
+                print(highlights)
+    except BrokenPipeError:
+        _exit_on_broken_pipe()
     except RuntimeError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -1787,6 +2001,8 @@ def main_history() -> None:
             print(_fmt_history_detail(acct))
         else:
             print(_fmt_history_summary(acct))
+    except BrokenPipeError:
+        _exit_on_broken_pipe()
     except RuntimeError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -1869,6 +2085,8 @@ def main_wait() -> None:
     except TimeoutError as e:
         print(f"Timeout: {e}", file=sys.stderr)
         sys.exit(1)
+    except BrokenPipeError:
+        _exit_on_broken_pipe()
     except RuntimeError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
