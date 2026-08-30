@@ -66,9 +66,7 @@ def main(argv: Optional[List[str]] = None) -> None:
     )
     parser.add_argument("--nodes", "-N", metavar="N", type=int, default=None)
     parser.add_argument("--ntasks", "-n", metavar="N", type=int, default=None)
-    parser.add_argument(
-        "--ntasks-per-node", metavar="N", type=int, default=None
-    )
+    parser.add_argument("--ntasks-per-node", metavar="N", type=int, default=None)
     parser.add_argument("--cpus-per-task", "-c", metavar="N", type=int, default=None)
     parser.add_argument("--mem", metavar="MEM", default=None, help="e.g. 16G")
     parser.add_argument("--gpus", "-g", metavar="N", default=None)

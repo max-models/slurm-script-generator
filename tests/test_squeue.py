@@ -1008,7 +1008,9 @@ def test_cli_cancel_prompts_and_confirms():
         with patch("sys.argv", ["slurm-queue", "--job-id", "1001", "--cancel"]):
             with patch("builtins.input", return_value="y"):
                 main()
-    scancel_calls = [c[0][0] for c in mock_run.call_args_list if c[0][0][0] == "scancel"]
+    scancel_calls = [
+        c[0][0] for c in mock_run.call_args_list if c[0][0][0] == "scancel"
+    ]
     assert scancel_calls == [["scancel", "1001"]]
 
 
@@ -1022,7 +1024,9 @@ def test_cli_cancel_aborts_without_confirmation():
         with patch("sys.argv", ["slurm-queue", "--job-id", "1001", "--cancel"]):
             with patch("builtins.input", return_value="n"):
                 main()
-    scancel_calls = [c[0][0] for c in mock_run.call_args_list if c[0][0][0] == "scancel"]
+    scancel_calls = [
+        c[0][0] for c in mock_run.call_args_list if c[0][0][0] == "scancel"
+    ]
     assert scancel_calls == []
 
 
@@ -1036,9 +1040,13 @@ def test_cli_cancel_yes_skips_prompt():
         with patch(
             "sys.argv", ["slurm-queue", "--job-id", "1001", "--cancel", "--yes"]
         ):
-            with patch("builtins.input", side_effect=AssertionError("should not prompt")):
+            with patch(
+                "builtins.input", side_effect=AssertionError("should not prompt")
+            ):
                 main()
-    scancel_calls = [c[0][0] for c in mock_run.call_args_list if c[0][0][0] == "scancel"]
+    scancel_calls = [
+        c[0][0] for c in mock_run.call_args_list if c[0][0][0] == "scancel"
+    ]
     assert scancel_calls == [["scancel", "1001"]]
 
 

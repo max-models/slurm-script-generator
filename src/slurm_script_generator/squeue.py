@@ -1057,8 +1057,7 @@ def _fmt_user_highlights(jobs: List[SQueueJob]) -> str:
     if running:
         longest = max(running, key=lambda j: _parse_slurm_elapsed(j.time_used))
         lines.append(
-            _c("Longest running:  ", _BOLD)
-            + f"{longest.name} (#{longest.job_id})  —  "
+            _c("Longest running:  ", _BOLD) + f"{longest.name} (#{longest.job_id})  —  "
             f"{longest.time_used} elapsed on {longest.partition}"
         )
     if pending:
@@ -1074,8 +1073,7 @@ def _fmt_user_highlights(jobs: List[SQueueJob]) -> str:
         else:
             top = max(pending, key=lambda j: j.priority)
             lines.append(
-                _c("Top pending:      ", _BOLD)
-                + f"{top.name} (#{top.job_id})  —  "
+                _c("Top pending:      ", _BOLD) + f"{top.name} (#{top.job_id})  —  "
                 f"priority {top.priority}, reason: {top.reason}"
             )
 

@@ -126,9 +126,7 @@ def test_cli_prints_to_stdout_by_default(capsys):
 
 
 def test_cli_overrides_job_name_and_time(capsys):
-    out = _run_main(
-        ["cpu", "--job-name", "my_job", "--time", "02:00:00"], capsys
-    ).out
+    out = _run_main(["cpu", "--job-name", "my_job", "--time", "02:00:00"], capsys).out
     assert "--job-name=my_job" in out
     assert "--time=02:00:00" in out
 
@@ -250,9 +248,7 @@ def test_cli_explicit_partition_overrides_cluster(capsys):
 
 
 def test_cli_explicit_qos_overrides_cluster(capsys):
-    out = _run_main(
-        ["cpu", "--cluster", "pitagora", "--qos", "custom_qos"], capsys
-    ).out
+    out = _run_main(["cpu", "--cluster", "pitagora", "--qos", "custom_qos"], capsys).out
     assert "--qos=custom_qos" in out
 
 

@@ -60,8 +60,7 @@ TEMPLATES: Dict[str, Template] = {
     ),
     "hybrid": Template(
         description=(
-            "Hybrid MPI + OpenMP job (one rank per node, "
-            "multiple threads per rank)."
+            "Hybrid MPI + OpenMP job (one rank per node, " "multiple threads per rank)."
         ),
         defaults=dict(
             job_name="hybrid_job",
