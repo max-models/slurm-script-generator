@@ -16,6 +16,9 @@ from slurm_script_generator.squeue import (
     job_state,
     job_states,
     main,
+    main_history,
+    main_stats,
+    main_wait,
 )
 
 # ---------------------------------------------------------------------------
@@ -908,59 +911,53 @@ def test_fmt_job_table_columns(queue):
 # ---------------------------------------------------------------------------
 
 
-def _run_main(argv, mock_stdout=SAMPLE_OUTPUT):
-    """Run main() with patched subprocess and sys.argv, return printed output."""
+def _run_main(argv, mock_stdout=SAMPLE_OUTPUT, entry=main, prog="slurm-queue"):
+    """Run a CLI entry point with patched subprocess and sys.argv, return printed output."""
     from io import StringIO
 
     out = StringIO()
     with patch("subprocess.run", return_value=_mock_run(stdout=mock_stdout)):
-        with patch("sys.argv", ["slurm-queue"] + argv):
+        with patch("sys.argv", [prog] + argv):
             with patch("sys.stdout", out):
                 try:
-                    main()
+                    entry()
                 except SystemExit:
                     pass
     return out.getvalue()
 
 
-def test_cli_default_shows_summary():
+def test_cli_default_lists_jobs():
     output = _run_main([])
-    assert "SLURM Queue" in output
-    assert "alice" in output
-
-
-def test_cli_show_subcommand():
-    output = _run_main(["show"])
-    assert "SLURM Queue" in output
-
-
-def test_cli_show_user_filter():
-    output = _run_main(["show", "--user", "alice"])
-    # Only alice's jobs fetched — the --user flag is passed to squeue
-    assert "SLURM Queue" in output
-
-
-def test_cli_list_all():
-    output = _run_main(["list"])
     assert "JobID" in output
     assert "alice" in output
     assert "bob" in output
 
 
+def test_cli_summary_flag():
+    output = _run_main(["--summary"])
+    assert "SLURM Queue" in output
+
+
+def test_cli_summary_user_filter():
+    output = _run_main(["--summary", "--user", "alice"])
+    # Only alice's jobs fetched — the --user flag is passed to squeue
+    assert "SLURM Queue" in output
+
+
 def test_cli_list_filter_user():
-    output = _run_main(["list", "--user", "alice"])
+    output = _run_main(["--user", "alice"])
     assert "alice" in output
 
 
 def test_cli_list_filter_job_name():
-    output = _run_main(["list", "--job-name", "train_*"])
+    output = _run_main(["--job-name", "train_*"])
     assert "train_resnet" in output
     assert "train_bert" in output
     assert "preprocess" not in output
 
 
 def test_cli_list_filter_state():
-    output = _run_main(["list", "--state", "PD"])
+    output = _run_main(["--state", "PD"])
     assert "Pending" in output
     assert "Running" not in output
 
@@ -968,22 +965,20 @@ def test_cli_list_filter_state():
 def test_cli_wait_requires_filter(capsys):
 
     with patch("subprocess.run", return_value=_mock_run(stdout="")):
-        with patch("sys.argv", ["slurm-queue", "wait"]):
+        with patch("sys.argv", ["slurm-wait"]):
             with pytest.raises(SystemExit):
-                main()
+                main_wait()
 
 
 def test_cli_wait_by_job_name():
-    """wait subcommand exits cleanly when queue is empty."""
+    """slurm-wait exits cleanly when queue is empty."""
     from io import StringIO
 
     out = StringIO()
     with patch("subprocess.run", return_value=_mock_run(stdout="")):
-        with patch(
-            "sys.argv", ["slurm-queue", "wait", "--job-name", "train_*", "--quiet"]
-        ):
+        with patch("sys.argv", ["slurm-wait", "--job-name", "train_*", "--quiet"]):
             with patch("sys.stdout", out):
-                main()  # should return immediately (no matching active jobs)
+                main_wait()  # should return immediately (no matching active jobs)
 
 
 # ---------------------------------------------------------------------------
@@ -1060,7 +1055,7 @@ def test_fmt_stats_table_empty():
 
 
 def test_cli_stats():
-    output = _run_main(["stats"])
+    output = _run_main([], entry=main_stats, prog="slurm-stats")
     assert "SLURM Queue" in output
     assert "By Partition" in output
     assert "By State" in output
@@ -1068,47 +1063,47 @@ def test_cli_stats():
 
 
 def test_cli_stats_user_filter():
-    output = _run_main(["stats", "--user", "alice"])
+    output = _run_main(["--user", "alice"], entry=main_stats, prog="slurm-stats")
     assert "By Partition" in output
 
 
 # ---------------------------------------------------------------------------
-# CLI — list --sort / --reverse / --reason
+# CLI — --sort / --reverse / --reason
 # ---------------------------------------------------------------------------
 
 
 def test_cli_list_sort_user():
-    output = _run_main(["list", "--sort", "user"])
+    output = _run_main(["--sort", "user"])
     assert "alice" in output
 
 
 def test_cli_list_sort_nodes():
-    output = _run_main(["list", "--sort", "nodes"])
+    output = _run_main(["--sort", "nodes"])
     assert "JobID" in output
 
 
 def test_cli_list_reverse():
-    output = _run_main(["list", "--sort", "id", "--reverse"])
+    output = _run_main(["--sort", "id", "--reverse"])
     assert "JobID" in output
 
 
 def test_cli_list_reason():
-    output = _run_main(["list", "--reason"])
+    output = _run_main(["--reason"])
     assert "Reason" in output
 
 
 def test_cli_list_partition():
-    output = _run_main(["list", "--partition", "gpu"])
+    output = _run_main(["--partition", "gpu"])
     assert "JobID" in output
 
 
 # ---------------------------------------------------------------------------
-# CLI — show --partition
+# CLI — --summary --partition
 # ---------------------------------------------------------------------------
 
 
 def test_cli_show_partition():
-    output = _run_main(["show", "--partition", "gpu"])
+    output = _run_main(["--summary", "--partition", "gpu"])
     assert "SLURM Queue" in output
 
 
@@ -1329,47 +1324,47 @@ def test_fmt_history_detail_empty():
 
 
 def _run_main_sacct(argv, mock_stdout=SACCT_OUTPUT):
-    """Run main() with patched sacct subprocess."""
+    """Run main_history() with patched sacct subprocess."""
     from io import StringIO
 
     out = StringIO()
     with patch("subprocess.run", return_value=_mock_sacct(stdout=mock_stdout)):
-        with patch("sys.argv", ["slurm-queue"] + argv):
+        with patch("sys.argv", ["slurm-history"] + argv):
             with patch("sys.stdout", out):
                 try:
-                    main()
+                    main_history()
                 except SystemExit:
                     pass
     return out.getvalue()
 
 
 def test_cli_history_default():
-    output = _run_main_sacct(["history"])
+    output = _run_main_sacct([])
     assert "Job History" in output
     assert "alice" in output
     assert "CPU-hours" in output
 
 
 def test_cli_history_user():
-    output = _run_main_sacct(["history", "--user", "alice"])
+    output = _run_main_sacct(["--user", "alice"])
     assert "Job History" in output
     assert "By State" in output
     assert "COMPLETED" in output
 
 
 def test_cli_history_days():
-    output = _run_main_sacct(["history", "--days", "30"])
+    output = _run_main_sacct(["--days", "30"])
     assert "30 days" in output
 
 
 def test_cli_history_one_day():
-    output = _run_main_sacct(["history", "--days", "1"])
+    output = _run_main_sacct(["--days", "1"])
     assert "1 day" in output
     assert "1 days" not in output
 
 
 def test_cli_history_partition():
-    output = _run_main_sacct(["history", "--partition", "gpu"])
+    output = _run_main_sacct(["--partition", "gpu"])
     assert "Job History" in output
 
 
@@ -1383,8 +1378,7 @@ def test_cli_wait_timeout_exits_nonzero():
         with patch(
             "sys.argv",
             [
-                "slurm-queue",
-                "wait",
+                "slurm-wait",
                 "--job-name",
                 "slow_job",
                 "--timeout",
@@ -1398,6 +1392,6 @@ def test_cli_wait_timeout_exits_nonzero():
                 with patch("time.sleep"):
                     with patch("time.monotonic", side_effect=[0, 0, 9999]):
                         with pytest.raises(SystemExit) as exc:
-                            main()
+                            main_wait()
     assert exc.value.code == 1
     assert "Timeout" in err.getvalue()
