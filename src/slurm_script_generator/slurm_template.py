@@ -11,6 +11,7 @@ import argparse
 import sys
 from typing import List, Optional
 
+from slurm_script_generator.clusters import CLUSTERS, apply_cluster
 from slurm_script_generator.templates import TEMPLATES, build_script
 
 
@@ -19,6 +20,14 @@ def _list_templates() -> str:
     lines = ["Available templates:", ""]
     for name in sorted(TEMPLATES):
         lines.append(f"  {name.ljust(width)}  {TEMPLATES[name].description}")
+    return "\n".join(lines)
+
+
+def _list_clusters() -> str:
+    width = max(len(name) for name in CLUSTERS)
+    lines = ["Available clusters:", ""]
+    for name in sorted(CLUSTERS):
+        lines.append(f"  {name.ljust(width)}  {CLUSTERS[name].doc_url}")
     return "\n".join(lines)
 
 
@@ -47,6 +56,7 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser.add_argument("--job-name", "-J", metavar="NAME", default=None)
     parser.add_argument("--account", "-A", metavar="ACCOUNT", default=None)
     parser.add_argument("--partition", "-p", metavar="PARTITION", default=None)
+    parser.add_argument("--qos", "-q", metavar="QOS", default=None)
     parser.add_argument(
         "--time",
         "-t",
@@ -64,6 +74,20 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser.add_argument("--gpus", "-g", metavar="N", default=None)
     parser.add_argument(
         "--array", "-a", metavar="RANGE", default=None, help="e.g. 1-10"
+    )
+    parser.add_argument(
+        "--cluster",
+        metavar="NAME",
+        default=None,
+        help=(
+            "Fill in this cluster's typical --partition/--qos (see "
+            "--list-clusters); explicit --partition/--qos still win."
+        ),
+    )
+    parser.add_argument(
+        "--list-clusters",
+        action="store_true",
+        help="List clusters known to --cluster and exit.",
     )
     parser.add_argument(
         "--command",
@@ -91,13 +115,27 @@ def main(argv: Optional[List[str]] = None) -> None:
     if args.list:
         print(_list_templates())
         return
+    if args.list_clusters:
+        print(_list_clusters())
+        return
     if args.template is None:
         parser.error("the following arguments are required: TEMPLATE (or pass --list)")
+    if args.template not in TEMPLATES:
+        parser.error(
+            f"Unknown template: {args.template!r}. "
+            f"Available: {', '.join(sorted(TEMPLATES))}"
+        )
+    if args.cluster is not None and args.cluster not in CLUSTERS:
+        parser.error(
+            f"Unknown cluster: {args.cluster!r}. "
+            f"Available: {', '.join(sorted(CLUSTERS))}"
+        )
 
     overrides = {
         "job_name": args.job_name,
         "account": args.account,
         "partition": args.partition,
+        "qos": args.qos,
         "time": args.time,
         "nodes": args.nodes,
         "ntasks": args.ntasks,
@@ -108,15 +146,22 @@ def main(argv: Optional[List[str]] = None) -> None:
         "array": args.array,
     }
 
-    try:
-        script = build_script(
-            args.template,
-            overrides=overrides,
-            commands=args.command,
-            modules=args.modules,
-        )
-    except KeyError as e:
-        parser.error(str(e))
+    commands = args.command if args.command else list(TEMPLATES[args.template].commands)
+
+    if args.cluster is not None:
+        uses_gpu = args.template == "gpu" or overrides.get("gpus") is not None
+        apply_cluster(args.cluster, overrides, uses_gpu)
+        preset = CLUSTERS[args.cluster]
+        cluster_comments = [f"# Cluster: {args.cluster} — see {preset.doc_url}"]
+        cluster_comments += [f"# {note}" for note in preset.notes]
+        commands = cluster_comments + commands
+
+    script = build_script(
+        args.template,
+        overrides=overrides,
+        commands=commands,
+        modules=args.modules,
+    )
 
     if args.submit:
         if not args.output:

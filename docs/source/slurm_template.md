@@ -132,6 +132,47 @@ slurm-template gpu -o job.sh --modules cuda/12.2 python/3.11
 
 ---
 
+## Cluster presets
+
+`--cluster NAME` fills in that cluster's typical `--partition`/`--qos` for
+the job (a different partition/QOS for GPU vs CPU jobs, where the cluster
+distinguishes them) and adds a comment pointing at that cluster's own SLURM
+documentation, plus any cluster-specific caveats:
+
+```bash
+slurm-template gpu -o job.sh --cluster pitagora --gpus 2
+```
+
+```
+#SBATCH --job-name=gpu_job
+#SBATCH --partition=boost_fua_prod                     # partition requested
+#SBATCH --qos=normal                                   # quality of service
+...
+########################################################
+# Cluster: pitagora — see https://docs.hpc.cineca.it/hpc/pitagora.html#job-managing-and-slurm-partitions
+# Production partitions on Pitagora need a budgeted --account; only ptgr_all_serial is budget-free.
+./my_gpu_program
+```
+
+An explicit `--partition`/`--qos` always wins over the cluster preset:
+
+```bash
+slurm-template cpu -o job.sh --cluster pitagora --partition my_reserved_queue
+```
+
+See what's known with:
+
+```bash
+slurm-template --list-clusters
+```
+
+Currently available: `pitagora`. More clusters can be added to
+`slurm_script_generator/clusters.py` — each is just a `ClusterPreset` with a
+`doc_url` and CPU/GPU partition and QOS defaults, taken from that cluster's
+own documentation.
+
+---
+
 ## Submitting directly
 
 `--submit` saves the script and submits it with `sbatch` in one step

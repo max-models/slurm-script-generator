@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from slurm_script_generator.clusters import CLUSTERS, apply_cluster
 from slurm_script_generator.slurm_script import SlurmScript
 from slurm_script_generator.slurm_template import main
 from slurm_script_generator.templates import TEMPLATES, build_script
@@ -166,3 +167,99 @@ def test_cli_submit_calls_sbatch(tmp_path):
     cmd = mock_run.call_args[0][0]
     assert cmd == ["sbatch", str(path)]
     assert path.exists()
+
+
+# ---------------------------------------------------------------------------
+# Cluster registry — apply_cluster
+# ---------------------------------------------------------------------------
+
+
+def test_all_clusters_have_a_doc_url():
+    for name, preset in CLUSTERS.items():
+        assert preset.doc_url.startswith("http"), f"{name} has no doc_url"
+
+
+def test_apply_cluster_unknown_raises():
+    with pytest.raises(KeyError, match="Unknown cluster"):
+        apply_cluster("bogus", {}, uses_gpu=False)
+
+
+def test_apply_cluster_sets_cpu_partition_and_qos():
+    overrides = {"partition": None, "qos": None}
+    apply_cluster("pitagora", overrides, uses_gpu=False)
+    assert overrides["partition"] == CLUSTERS["pitagora"].cpu_partition
+    assert overrides["qos"] == CLUSTERS["pitagora"].cpu_qos
+
+
+def test_apply_cluster_sets_gpu_partition_and_qos():
+    overrides = {"partition": None, "qos": None}
+    apply_cluster("pitagora", overrides, uses_gpu=True)
+    assert overrides["partition"] == CLUSTERS["pitagora"].gpu_partition
+    assert overrides["qos"] == CLUSTERS["pitagora"].gpu_qos
+
+
+def test_apply_cluster_does_not_override_explicit_partition():
+    overrides = {"partition": "my_custom_partition", "qos": None}
+    apply_cluster("pitagora", overrides, uses_gpu=False)
+    assert overrides["partition"] == "my_custom_partition"
+    # qos still filled in since it wasn't set explicitly
+    assert overrides["qos"] == CLUSTERS["pitagora"].cpu_qos
+
+
+# ---------------------------------------------------------------------------
+# CLI — --cluster / --list-clusters
+# ---------------------------------------------------------------------------
+
+
+def test_cli_list_clusters(capsys):
+    out = _run_main(["--list-clusters"], capsys).out
+    assert "pitagora" in out
+    assert "docs.hpc.cineca.it" in out
+
+
+def test_cli_unknown_cluster_errors(capsys):
+    with pytest.raises(SystemExit):
+        main(["cpu", "--cluster", "bogus"])
+    err = capsys.readouterr().err
+    assert "Unknown cluster" in err
+
+
+def test_cli_cpu_cluster_sets_partition_and_qos(capsys):
+    out = _run_main(["cpu", "--cluster", "pitagora"], capsys).out
+    assert f"--partition={CLUSTERS['pitagora'].cpu_partition}" in out
+    assert f"--qos={CLUSTERS['pitagora'].cpu_qos}" in out
+
+
+def test_cli_gpu_cluster_sets_gpu_partition_and_qos(capsys):
+    out = _run_main(["gpu", "--cluster", "pitagora"], capsys).out
+    assert f"--partition={CLUSTERS['pitagora'].gpu_partition}" in out
+    assert f"--qos={CLUSTERS['pitagora'].gpu_qos}" in out
+
+
+def test_cli_cluster_adds_doc_link_comment(capsys):
+    out = _run_main(["cpu", "--cluster", "pitagora"], capsys).out
+    assert CLUSTERS["pitagora"].doc_url in out
+
+
+def test_cli_explicit_partition_overrides_cluster(capsys):
+    out = _run_main(
+        ["cpu", "--cluster", "pitagora", "--partition", "custom_partition"], capsys
+    ).out
+    assert "--partition=custom_partition" in out
+    assert CLUSTERS["pitagora"].cpu_partition not in out
+
+
+def test_cli_explicit_qos_overrides_cluster(capsys):
+    out = _run_main(
+        ["cpu", "--cluster", "pitagora", "--qos", "custom_qos"], capsys
+    ).out
+    assert "--qos=custom_qos" in out
+
+
+def test_cli_cluster_comment_prepended_before_command(capsys):
+    out = _run_main(
+        ["cpu", "--cluster", "pitagora", "--command", "python run.py"], capsys
+    ).out
+    doc_line_idx = out.index(CLUSTERS["pitagora"].doc_url)
+    command_idx = out.index("python run.py")
+    assert doc_line_idx < command_idx
