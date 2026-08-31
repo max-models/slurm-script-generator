@@ -102,8 +102,155 @@ FAILED_JOB_STATES = {
 
 # squeue --format codes and matching field names
 _SEPARATOR = "\x1f"  # ASCII unit separator — won't appear in job fields
-_FORMAT_CODES = ["%i", "%u", "%j", "%t", "%P", "%D", "%C", "%M", "%l", "%r", "%Q"]
+_FORMAT_CODES = ["%i", "%u", "%j", "%t", "%P", "%D", "%C", "%M", "%l", "%r", "%Q", "%V"]
 _FORMAT_STR = _SEPARATOR.join(_FORMAT_CODES)
+
+
+def _parse_squeue_datetime(s: str) -> Optional[datetime]:
+    """Parse a squeue ISO-8601 timestamp (e.g. from ``%V``/``%S``).
+
+    Tolerates the placeholders squeue prints when a time isn't known
+    (``N/A``, ``Unknown``) and any other unparseable input.
+    """
+    s = s.strip()
+    if not s or s in ("N/A", "Unknown"):
+        return None
+    try:
+        return datetime.strptime(s, "%Y-%m-%dT%H:%M:%S")
+    except ValueError:
+        return None
+
+
+def _normalize_sacct_state(state: str) -> str:
+    """Normalize sacct state strings — e.g. 'CANCELLED by 1234' -> 'CANCELLED'."""
+    state = state.strip()
+    if state.startswith("CANCELLED"):
+        return "CANCELLED"
+    return state
+
+
+def _base_job_id(job_id_field: str) -> Optional[int]:
+    """Extract the parent job ID from an ``sacct`` JobID field.
+
+    Handles job steps (``12345.batch``) and array tasks (``12345_3``,
+    ``12345_[4-9]``), both of which map back to job 12345.
+    """
+    field = job_id_field.strip().split(".")[0].split("_")[0]
+    try:
+        return int(field)
+    except ValueError:
+        return None
+
+
+def job_states(
+    job_ids: Union[int, str, List[Union[int, str]]], timeout: float = 30.0
+) -> Dict[int, Optional[str]]:
+    """Return the states of several jobs from SLURM accounting (``sacct``).
+
+    Uses a single ``sacct`` call for the whole batch, so waiting on many jobs
+    costs one subprocess rather than one per job. States are normalized,
+    e.g. ``'CANCELLED by 1234'`` -> ``'CANCELLED'``.
+
+    Parameters
+    ----------
+    job_ids : int, str, or list of int/str
+        The job IDs to look up.
+    timeout : float
+        Seconds to wait for ``sacct`` before giving up. Defaults to 30.
+
+    Returns
+    -------
+    dict of int -> (str or None)
+        One entry per requested job ID, in the order given. The value is None
+        when the state cannot be determined — no accounting configured,
+        ``sacct`` missing or unresponsive, or the job not yet in the accounting
+        database. A None value is *not* evidence of failure and callers should
+        not report one.
+
+    Examples
+    --------
+    >>> job_states([12345, 12346])
+    {12345: 'COMPLETED', 12346: 'FAILED'}
+    """
+    if not isinstance(job_ids, list):
+        job_ids = [job_ids]
+
+    states: Dict[int, Optional[str]] = {}
+    for jid in job_ids:
+        parsed = _base_job_id(str(jid))
+        if parsed is not None:
+            states.setdefault(parsed, None)
+    if not states or not shutil.which("sacct"):
+        return states
+
+    cmd = [
+        "sacct",
+        "-j",
+        ",".join(str(i) for i in states),
+        "--format=JobID,State",
+        "--noheader",
+        "--parsable2",
+    ]
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, check=False, timeout=timeout
+        )
+    except (OSError, subprocess.SubprocessError):
+        return states
+    if result.returncode != 0:
+        return states
+
+    # One line per step ("<id>", "<id>.batch", "<id>.0", ...); the first line
+    # for a given ID is the job allocation itself, so later steps are ignored.
+    for line in result.stdout.splitlines():
+        parts = line.strip().split("|")
+        if len(parts) < 2:
+            continue
+        jid = _base_job_id(parts[0])
+        state = parts[1].strip()
+        if jid is None or not state or jid not in states:
+            continue
+        if states[jid] is None:
+            states[jid] = _normalize_sacct_state(state).split()[0]
+    return states
+
+
+def job_state(job_id: Union[int, str], timeout: float = 30.0) -> Optional[str]:
+    """Return the state of a job from SLURM accounting (``sacct``).
+
+    ``squeue`` only says whether a job is still in the queue, not how it ended,
+    so this is what distinguishes a crashed run from one that simply wrote no
+    output. States are normalized, e.g. ``'CANCELLED by 1234'`` -> ``'CANCELLED'``.
+
+    Parameters
+    ----------
+    job_id : int or str
+        The job ID to look up.
+    timeout : float
+        Seconds to wait for ``sacct`` before giving up. Defaults to 30.
+
+    Returns
+    -------
+    str or None
+        The job state (``'COMPLETED'``, ``'FAILED'``, ``'RUNNING'``, ...), or
+        None when it cannot be determined — no accounting configured, ``sacct``
+        missing or unresponsive, or the job not yet in the accounting database.
+        A None result is *not* evidence of failure and callers should not
+        report one.
+
+    See Also
+    --------
+    job_states : Batch version, one ``sacct`` call for many jobs.
+
+    Examples
+    --------
+    >>> job_state(12345)
+    'COMPLETED'
+    """
+    parsed = _base_job_id(str(job_id))
+    if parsed is None:
+        return None
+    return job_states([parsed], timeout=timeout).get(parsed)
 
 
 @dataclass
@@ -121,6 +268,7 @@ class SQueueJob:
     time_limit: str
     reason: str
     priority: int
+    submit_time: str = ""
 
     @property
     def is_running(self) -> bool:
@@ -137,6 +285,22 @@ class SQueueJob:
     @property
     def state_name(self) -> str:
         return JOB_STATES.get(self.state, self.state)
+
+    @property
+    def submit_datetime(self) -> Optional[datetime]:
+        """The job's submission time, or None if squeue didn't report one."""
+        return _parse_squeue_datetime(self.submit_time)
+
+    @property
+    def waiting_seconds(self) -> Optional[float]:
+        """Seconds elapsed since submission — how long a pending job has waited.
+
+        None when the submission time could not be determined.
+        """
+        submitted = self.submit_datetime
+        if submitted is None:
+            return None
+        return (datetime.now() - submitted).total_seconds()
 
     def wait_until_done(
         self,
@@ -206,6 +370,51 @@ def _parse_int(s: str, default: int = 0) -> int:
         return default
 
 
+def _parse_slurm_elapsed(t: str) -> int:
+    """Parse a SLURM elapsed/time-limit string into seconds.
+
+    Accepts the formats squeue's ``%M``/``%l`` can produce: ``MM:SS``,
+    ``HH:MM:SS``, or ``D-HH:MM:SS``.
+    """
+    t = t.strip()
+    days = 0
+    if "-" in t:
+        days_str, t = t.split("-", 1)
+        days = _parse_int(days_str)
+    parts = [_parse_int(p) for p in t.split(":")]
+    while len(parts) < 3:
+        parts.insert(0, 0)
+    h, m, s = parts[-3], parts[-2], parts[-1]
+    return days * 86400 + h * 3600 + m * 60 + s
+
+
+def _fmt_duration(seconds: float) -> str:
+    """Format a duration in seconds as ``[D-]HH:MM:SS``."""
+    total = int(seconds)
+    days, rem = divmod(total, 86400)
+    h, rem = divmod(rem, 3600)
+    m, s = divmod(rem, 60)
+    if days:
+        return f"{days}-{h:02d}:{m:02d}:{s:02d}"
+    return f"{h:02d}:{m:02d}:{s:02d}"
+
+
+def current_user() -> str:
+    """Return the current OS username (as ``whoami``/``$USER`` would report it)."""
+    import getpass
+
+    return getpass.getuser()
+
+
+def _resolve_user(user: Optional[str], me: bool) -> Optional[str]:
+    """Resolve the ``user``/``me`` argument pair used throughout this module."""
+    if me:
+        if user is not None:
+            raise ValueError("Specify either `user` or `me=True`, not both.")
+        return current_user()
+    return user
+
+
 class SQueue:
     """Interface to the SLURM job queue via ``squeue``.
 
@@ -213,6 +422,9 @@ class SQueue:
     ----------
     user : str, optional
         If given, only fetch jobs belonging to this user by default.
+    me : bool
+        If True, fetch only jobs belonging to the current OS user by default.
+        Mutually exclusive with *user*. Defaults to False.
 
     Examples
     --------
@@ -230,9 +442,12 @@ class SQueue:
     """
 
     def __init__(
-        self, user: Optional[str] = None, partition: Optional[str] = None
+        self,
+        user: Optional[str] = None,
+        partition: Optional[str] = None,
+        me: bool = False,
     ) -> None:
-        self._default_user = user
+        self._default_user = _resolve_user(user, me)
         self._default_partition = partition
         self._jobs: List[SQueueJob] = []
         self.refresh()
@@ -280,6 +495,7 @@ class SQueue:
                     time_limit=parts[8].strip(),
                     reason=parts[9].strip(),
                     priority=_parse_int(parts[10]),
+                    submit_time=parts[11].strip(),
                 )
                 self._jobs.append(job)
             except (ValueError, IndexError):
@@ -297,6 +513,7 @@ class SQueue:
         user: Optional[str] = None,
         state: Optional[str] = None,
         partition: Optional[str] = None,
+        me: bool = False,
     ) -> List[SQueueJob]:
         """Return jobs matching the given criteria.
 
@@ -312,11 +529,15 @@ class SQueue:
             SLURM state code, e.g. ``'R'`` or ``'PD'``.
         partition : str, optional
             Partition name to filter by.
+        me : bool
+            Filter to jobs belonging to the current OS user. Mutually
+            exclusive with *user*. Defaults to False.
 
         Returns
         -------
         list of SQueueJob
         """
+        user = _resolve_user(user, me)
         result = list(self._jobs)
         if job_id is not None:
             job_ids = (
@@ -341,6 +562,26 @@ class SQueue:
         """Return all jobs currently in the PD (Pending) state."""
         return [j for j in self._jobs if j.is_pending]
 
+    @staticmethod
+    def _final_states(
+        job_ids: List[int], check: bool, verbose: bool
+    ) -> Dict[int, Optional[str]]:
+        """Look up final states for finished jobs, optionally enforcing success."""
+        if not job_ids:
+            return {}
+        states = job_states(job_ids)
+
+        failed = {jid: st for jid, st in states.items() if st in FAILED_JOB_STATES}
+        if verbose and failed:
+            for jid, st in failed.items():
+                print(_c("✗", _RED) + f" Job {jid} ended in state {st}.")
+        if check and failed:
+            raise RuntimeError(
+                "Job(s) did not complete successfully: "
+                + ", ".join(f"{jid}={st}" for jid, st in failed.items())
+            )
+        return states
+
     # ------------------------------------------------------------------
     # Waiting
     # ------------------------------------------------------------------
@@ -354,6 +595,7 @@ class SQueue:
         timeout: Optional[float] = None,
         verbose: bool = True,
         check: bool = False,
+        me: bool = False,
     ) -> Dict[int, Optional[str]]:
         """Block until all matching jobs leave the active queue.
 
@@ -372,6 +614,9 @@ class SQueue:
             A specific job ID, or a list of job IDs, to wait for.
         user : str, optional
             Wait for all jobs belonging to this user to finish.
+        me : bool
+            Wait for all jobs belonging to the current OS user. Mutually
+            exclusive with *user*. Defaults to False.
         poll_interval : float
             Seconds between queue polls. Defaults to 30.
         timeout : float, optional
@@ -405,8 +650,9 @@ class SQueue:
         >>> q.wait_until_done(job_name='train_*', check=True)
         {12345: 'COMPLETED', 12346: 'COMPLETED'}
         """
+        user = _resolve_user(user, me)
         if job_name is None and job_id is None and user is None:
-            raise ValueError("Specify at least one of: job_name, job_id, user")
+            raise ValueError("Specify at least one of: job_name, job_id, user, me")
 
         # Jobs leave the queue as they finish, so collect IDs while polling
         # rather than only looking at what is left at the end.
@@ -443,26 +689,6 @@ class SQueue:
                 )
             time.sleep(poll_interval)
 
-    @staticmethod
-    def _final_states(
-        job_ids: List[int], check: bool, verbose: bool
-    ) -> Dict[int, Optional[str]]:
-        """Look up final states for finished jobs, optionally enforcing success."""
-        if not job_ids:
-            return {}
-        states = job_states(job_ids)
-
-        failed = {jid: st for jid, st in states.items() if st in FAILED_JOB_STATES}
-        if verbose and failed:
-            for jid, st in failed.items():
-                print(_c("✗", _RED) + f" Job {jid} ended in state {st}.")
-        if check and failed:
-            raise RuntimeError(
-                "Job(s) did not complete successfully: "
-                + ", ".join(f"{jid}={st}" for jid, st in failed.items())
-            )
-        return states
-
     # ------------------------------------------------------------------
     # Cancelling
     # ------------------------------------------------------------------
@@ -475,6 +701,7 @@ class SQueue:
         state: Optional[str] = None,
         partition: Optional[str] = None,
         verbose: bool = True,
+        me: bool = False,
     ) -> List[int]:
         """Cancel all matching jobs with ``scancel``.
 
@@ -490,6 +717,9 @@ class SQueue:
             A specific job ID, or a list of job IDs, to cancel.
         user : str, optional
             Cancel all jobs belonging to this user.
+        me : bool
+            Cancel all jobs belonging to the current OS user. Mutually
+            exclusive with *user*. Defaults to False.
         state : str, optional
             SLURM state code, e.g. ``'PD'`` to cancel only pending jobs.
         partition : str, optional
@@ -516,6 +746,7 @@ class SQueue:
         >>> q.cancel(job_name='train_*')
         >>> q.cancel(user='alice', state='PD')
         """
+        user = _resolve_user(user, me)
         if (
             job_name is None
             and job_id is None
@@ -524,7 +755,7 @@ class SQueue:
             and partition is None
         ):
             raise ValueError(
-                "Specify at least one of: job_name, job_id, user, state, partition"
+                "Specify at least one of: job_name, job_id, user, me, state, partition"
             )
 
         self.refresh()
@@ -603,6 +834,9 @@ class SQueue:
             "by_state": {s: len(jobs) for s, jobs in sorted(by_state.items())},
         }
 
+    def __iter__(self):
+        return iter(self._jobs)
+
     # ------------------------------------------------------------------
     # Dunder helpers
     # ------------------------------------------------------------------
@@ -610,8 +844,12 @@ class SQueue:
     def __len__(self) -> int:
         return len(self._jobs)
 
-    def __iter__(self):
-        return iter(self._jobs)
+    def __repr__(self) -> str:
+        s = self.summary()
+        return (
+            f"SQueue(total={s['total_jobs']}, running={s['running']}, "
+            f"pending={s['pending']}, users={list(s['users'].keys())})"
+        )
 
     def __str__(self) -> str:
         if not self._jobs:
@@ -715,13 +953,6 @@ class SQueue:
             bar_heavy,
         ]
         return "\n".join(lines)
-
-    def __repr__(self) -> str:
-        s = self.summary()
-        return (
-            f"SQueue(total={s['total_jobs']}, running={s['running']}, "
-            f"pending={s['pending']}, users={list(s['users'].keys())})"
-        )
 
 
 _REASON_MAX = 32  # truncate long scheduling-reason strings to this many characters
@@ -941,6 +1172,91 @@ def _fmt_stats_table(q: SQueue) -> str:
     return "\n".join(lines)
 
 
+def _fmt_user_highlights(jobs: List[SQueueJob]) -> str:
+    """Extra detail for a single user's queue view: their longest-running and
+    longest-waiting jobs, plus a breakdown by job name.
+
+    Used to enrich ``slurm-stats --user``/``--me`` beyond the plain
+    partition/state tables.
+    """
+    if not jobs:
+        return ""
+    lines: List[str] = []
+
+    running = [j for j in jobs if j.is_running]
+    pending = [j for j in jobs if j.is_pending]
+
+    if running:
+        longest = max(running, key=lambda j: _parse_slurm_elapsed(j.time_used))
+        lines.append(
+            _c("Longest running:  ", _BOLD) + f"{longest.name} (#{longest.job_id})  —  "
+            f"{longest.time_used} elapsed on {longest.partition}"
+        )
+    if pending:
+        known_wait = [(j, j.waiting_seconds) for j in pending]
+        known_wait = [(j, w) for j, w in known_wait if w is not None]
+        if known_wait:
+            oldest, wait_s = max(known_wait, key=lambda jw: jw[1])
+            lines.append(
+                _c("Longest waiting:  ", _BOLD)
+                + f"{oldest.name} (#{oldest.job_id})  —  "
+                f"waiting {_fmt_duration(wait_s)}, reason: {oldest.reason}"
+            )
+        else:
+            top = max(pending, key=lambda j: j.priority)
+            lines.append(
+                _c("Top pending:      ", _BOLD) + f"{top.name} (#{top.job_id})  —  "
+                f"priority {top.priority}, reason: {top.reason}"
+            )
+
+    by_name: Dict[str, List[SQueueJob]] = {}
+    for j in jobs:
+        by_name.setdefault(j.name, []).append(j)
+    if len(by_name) > 1:
+        headers = ["Job Name", "Jobs", "Running", "Pending"]
+        rows = []
+        for name, group in by_name.items():
+            r = sum(1 for j in group if j.is_running)
+            p = sum(1 for j in group if j.is_pending)
+            rows.append((name, len(group), r, p))
+        rows.sort(key=lambda r: -r[1])
+        str_rows = [[r[0], str(r[1]), str(r[2]), str(r[3])] for r in rows]
+        widths = [
+            max(len(headers[i]), max(len(r[i]) for r in str_rows))
+            for i in range(len(headers))
+        ]
+
+        def _h() -> str:
+            cells = [_pad(headers[0], _c(headers[0], _BOLD), widths[0], "l")]
+            for i in range(1, len(headers)):
+                cells.append(_pad(headers[i], _c(headers[i], _BOLD), widths[i], "r"))
+            return "  " + "   ".join(cells)
+
+        def _r(r: list) -> str:
+            cells = [_pad(r[0], r[0], widths[0], "l")]
+            cells.append(_pad(r[1], r[1], widths[1], "r"))
+            cells.append(
+                _pad(r[2], _c(r[2], _GREEN) if r[2] != "0" else r[2], widths[2], "r")
+            )
+            cells.append(
+                _pad(r[3], _c(r[3], _YELLOW) if r[3] != "0" else r[3], widths[3], "r")
+            )
+            return "  " + "   ".join(cells)
+
+        bar = _c("─" * (sum(widths) + 3 * (len(widths) - 1) + 2), _DIM)
+        lines += [
+            "",
+            _c("By Job Name", _BOLD),
+            bar,
+            _h(),
+            bar,
+            *[_r(r) for r in str_rows],
+            bar,
+        ]
+
+    return "\n".join(lines)
+
+
 # ---------------------------------------------------------------------------
 # SLURM accounting (sacct)
 # ---------------------------------------------------------------------------
@@ -963,138 +1279,6 @@ _SACCT_FORMAT = ",".join(_SACCT_FIELDS)
 _SACCT_GREEN = {"COMPLETED"}
 _SACCT_YELLOW = {"TIMEOUT", "PREEMPTED", "CANCELLED"}
 _SACCT_RED = {"FAILED", "NODE_FAIL", "OUT_OF_MEMORY"}
-
-
-def _normalize_sacct_state(state: str) -> str:
-    """Normalize sacct state strings — e.g. 'CANCELLED by 1234' -> 'CANCELLED'."""
-    state = state.strip()
-    if state.startswith("CANCELLED"):
-        return "CANCELLED"
-    return state
-
-
-def _base_job_id(job_id_field: str) -> Optional[int]:
-    """Extract the parent job ID from an ``sacct`` JobID field.
-
-    Handles job steps (``12345.batch``) and array tasks (``12345_3``,
-    ``12345_[4-9]``), both of which map back to job 12345.
-    """
-    field = job_id_field.strip().split(".")[0].split("_")[0]
-    try:
-        return int(field)
-    except ValueError:
-        return None
-
-
-def job_states(
-    job_ids: Union[int, str, List[Union[int, str]]], timeout: float = 30.0
-) -> Dict[int, Optional[str]]:
-    """Return the states of several jobs from SLURM accounting (``sacct``).
-
-    Uses a single ``sacct`` call for the whole batch, so waiting on many jobs
-    costs one subprocess rather than one per job. States are normalized,
-    e.g. ``'CANCELLED by 1234'`` -> ``'CANCELLED'``.
-
-    Parameters
-    ----------
-    job_ids : int, str, or list of int/str
-        The job IDs to look up.
-    timeout : float
-        Seconds to wait for ``sacct`` before giving up. Defaults to 30.
-
-    Returns
-    -------
-    dict of int -> (str or None)
-        One entry per requested job ID, in the order given. The value is None
-        when the state cannot be determined — no accounting configured,
-        ``sacct`` missing or unresponsive, or the job not yet in the accounting
-        database. A None value is *not* evidence of failure and callers should
-        not report one.
-
-    Examples
-    --------
-    >>> job_states([12345, 12346])
-    {12345: 'COMPLETED', 12346: 'FAILED'}
-    """
-    if not isinstance(job_ids, list):
-        job_ids = [job_ids]
-
-    states: Dict[int, Optional[str]] = {}
-    for jid in job_ids:
-        parsed = _base_job_id(str(jid))
-        if parsed is not None:
-            states.setdefault(parsed, None)
-    if not states or not shutil.which("sacct"):
-        return states
-
-    cmd = [
-        "sacct",
-        "-j",
-        ",".join(str(i) for i in states),
-        "--format=JobID,State",
-        "--noheader",
-        "--parsable2",
-    ]
-    try:
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, check=False, timeout=timeout
-        )
-    except (OSError, subprocess.SubprocessError):
-        return states
-    if result.returncode != 0:
-        return states
-
-    # One line per step ("<id>", "<id>.batch", "<id>.0", ...); the first line
-    # for a given ID is the job allocation itself, so later steps are ignored.
-    for line in result.stdout.splitlines():
-        parts = line.strip().split("|")
-        if len(parts) < 2:
-            continue
-        jid = _base_job_id(parts[0])
-        state = parts[1].strip()
-        if jid is None or not state or jid not in states:
-            continue
-        if states[jid] is None:
-            states[jid] = _normalize_sacct_state(state).split()[0]
-    return states
-
-
-def job_state(job_id: Union[int, str], timeout: float = 30.0) -> Optional[str]:
-    """Return the state of a job from SLURM accounting (``sacct``).
-
-    ``squeue`` only says whether a job is still in the queue, not how it ended,
-    so this is what distinguishes a crashed run from one that simply wrote no
-    output. States are normalized, e.g. ``'CANCELLED by 1234'`` -> ``'CANCELLED'``.
-
-    Parameters
-    ----------
-    job_id : int or str
-        The job ID to look up.
-    timeout : float
-        Seconds to wait for ``sacct`` before giving up. Defaults to 30.
-
-    Returns
-    -------
-    str or None
-        The job state (``'COMPLETED'``, ``'FAILED'``, ``'RUNNING'``, ...), or
-        None when it cannot be determined — no accounting configured, ``sacct``
-        missing or unresponsive, or the job not yet in the accounting database.
-        A None result is *not* evidence of failure and callers should not
-        report one.
-
-    See Also
-    --------
-    job_states : Batch version, one ``sacct`` call for many jobs.
-
-    Examples
-    --------
-    >>> job_state(12345)
-    'COMPLETED'
-    """
-    parsed = _base_job_id(str(job_id))
-    if parsed is None:
-        return None
-    return job_states([parsed], timeout=timeout).get(parsed)
 
 
 def _fmt_cpu_hours(hours: float) -> str:
@@ -1177,6 +1361,9 @@ class SAcct:
         Number of days of history to look back (default: 7).
     partition : str, optional
         If given, filter to this partition.
+    me : bool
+        If True, fetch only jobs belonging to the current OS user.
+        Mutually exclusive with *user*. Defaults to False.
 
     Examples
     --------
@@ -1190,8 +1377,9 @@ class SAcct:
         user: Optional[str] = None,
         days: int = 7,
         partition: Optional[str] = None,
+        me: bool = False,
     ) -> None:
-        self._user = user
+        self._user = _resolve_user(user, me)
         self._days = days
         self._partition = partition
         self._jobs: List[SAcctJob] = []
@@ -1308,11 +1496,11 @@ class SAcct:
             "users": {u: len(jobs) for u, jobs in sorted(by_user.items())},
         }
 
-    def __len__(self) -> int:
-        return len(self._jobs)
-
     def __iter__(self):
         return iter(self._jobs)
+
+    def __len__(self) -> int:
+        return len(self._jobs)
 
     def __repr__(self) -> str:
         s = self.summary()
@@ -1537,60 +1725,54 @@ _SORT_KEYS = {
 }
 
 
+def _exit_on_broken_pipe() -> None:
+    """Exit quietly when stdout closes early (e.g. piping into ``head``).
+
+    Without this, writing to a closed pipe raises ``BrokenPipeError`` and
+    Python prints a traceback plus a second error when it tries to flush
+    stdout at interpreter shutdown.
+    """
+    import os
+    import sys
+
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    os.dup2(devnull, sys.stdout.fileno())
+    sys.exit(1)
+
+
 def main() -> None:
     """Entry point for the ``slurm-queue`` command-line tool.
 
-    Sub-commands
-    ------------
-    show  (default)
-        Print a per-user queue summary table.
-    list
-        Print individual jobs, optionally filtered and sorted.
-    stats
-        Print partition and state breakdown statistics.
-    wait
-        Block until matching jobs leave the active queue.
+    Prints the individual-jobs list by default; pass ``--summary`` for the
+    per-user summary table instead.
     """
     import argparse
     import sys
 
     parser = argparse.ArgumentParser(
         prog="slurm-queue",
-        description="Inspect and wait on the SLURM job queue.",
+        description="List and inspect jobs in the SLURM queue.",
     )
-    sub = parser.add_subparsers(dest="cmd")
-
-    # ---- show ---------------------------------------------------------------
-    p_show = sub.add_parser("show", help="Print per-user queue summary (default).")
-    p_show.add_argument(
+    g = parser.add_mutually_exclusive_group()
+    g.add_argument(
         "--user", "-u", metavar="USER", default=None, help="Filter to this user."
     )
-    p_show.add_argument(
+    g.add_argument("--me", action="store_true", help="Filter to the current user.")
+    parser.add_argument(
         "--partition",
         "-p",
         metavar="PARTITION",
         default=None,
         help="Filter to this partition.",
     )
-
-    # ---- list ---------------------------------------------------------------
-    p_list = sub.add_parser("list", help="List individual jobs.")
-    p_list.add_argument("--user", "-u", metavar="USER", default=None)
-    p_list.add_argument(
-        "--partition",
-        "-p",
-        metavar="PARTITION",
-        default=None,
-        help="Filter to this partition.",
-    )
-    p_list.add_argument(
+    parser.add_argument(
         "--job-name",
         "-n",
         metavar="PATTERN",
         default=None,
         help="Filter by job name (glob patterns supported, e.g. 'train_*').",
     )
-    p_list.add_argument(
+    parser.add_argument(
         "--job-id",
         "-j",
         metavar="ID",
@@ -1598,14 +1780,14 @@ def main() -> None:
         default=None,
         help="Filter to a specific job ID.",
     )
-    p_list.add_argument(
+    parser.add_argument(
         "--state",
         "-s",
         metavar="STATE",
         default=None,
         help="Filter by state code, e.g. R, PD, CG.",
     )
-    p_list.add_argument(
+    parser.add_argument(
         "--sort",
         "-S",
         metavar="KEY",
@@ -1613,119 +1795,68 @@ def main() -> None:
         choices=list(_SORT_KEYS),
         help="Sort by: id, user, name, state, partition, nodes, cpus, time, priority.",
     )
-    p_list.add_argument(
+    parser.add_argument(
         "--reverse", "-r", action="store_true", help="Reverse the sort order."
     )
-    p_list.add_argument(
+    parser.add_argument(
         "--reason",
         action="store_true",
         help="Show the scheduling/pending reason column.",
     )
-
-    # ---- stats --------------------------------------------------------------
-    p_stats = sub.add_parser(
-        "stats", help="Print partition and state breakdown statistics."
+    parser.add_argument(
+        "--summary",
+        action="store_true",
+        help="Print a per-user summary table instead of the individual-jobs list.",
     )
-    p_stats.add_argument(
-        "--user", "-u", metavar="USER", default=None, help="Filter to this user."
+    parser.add_argument(
+        "--cancel",
+        action="store_true",
+        help="Cancel the matching jobs instead of listing them.",
     )
-    p_stats.add_argument(
-        "--partition",
-        "-p",
-        metavar="PARTITION",
-        default=None,
-        help="Filter to this partition.",
-    )
-
-    # ---- history ------------------------------------------------------------
-    p_hist = sub.add_parser(
-        "history", help="Show job submission history from accounting records (sacct)."
-    )
-    p_hist.add_argument(
-        "--user",
-        "-u",
-        metavar="USER",
-        default=None,
-        help="Show detailed per-state breakdown for this user; omit for all-users summary.",
-    )
-    p_hist.add_argument(
-        "--days",
-        "-d",
-        metavar="N",
-        type=int,
-        default=7,
-        help="Number of days to look back (default: 7).",
-    )
-    p_hist.add_argument(
-        "--partition",
-        "-p",
-        metavar="PARTITION",
-        default=None,
-        help="Filter to this partition.",
-    )
-
-    # ---- wait ---------------------------------------------------------------
-    p_wait = sub.add_parser(
-        "wait", help="Wait until matching jobs leave the active queue."
-    )
-    p_wait.add_argument(
-        "--job-name",
-        "-n",
-        metavar="PATTERN",
-        default=None,
-        help="Job name or glob pattern to wait for (e.g. 'train_*').",
-    )
-    p_wait.add_argument(
-        "--job-id",
-        "-j",
-        metavar="ID",
-        type=int,
-        default=None,
-        help="Wait for a specific job ID.",
-    )
-    p_wait.add_argument(
-        "--user",
-        "-u",
-        metavar="USER",
-        default=None,
-        help="Wait for all jobs belonging to this user.",
-    )
-    p_wait.add_argument(
-        "--poll-interval",
-        "-i",
-        metavar="SECONDS",
-        type=float,
-        default=30.0,
-        help="Seconds between queue polls (default: 30).",
-    )
-    p_wait.add_argument(
-        "--timeout",
-        "-t",
-        metavar="SECONDS",
-        type=float,
-        default=None,
-        help="Raise an error if jobs are still running after this many seconds.",
-    )
-    p_wait.add_argument(
-        "--quiet", "-q", action="store_true", help="Suppress progress messages."
+    parser.add_argument(
+        "--yes",
+        "-y",
+        action="store_true",
+        help="Skip the confirmation prompt when used with --cancel.",
     )
 
     args = parser.parse_args()
+    user = current_user() if args.me else args.user
 
-    # Default sub-command: show
-    if args.cmd is None or args.cmd == "show":
-        user = getattr(args, "user", None)
-        partition = getattr(args, "partition", None)
-        try:
-            q = SQueue(user=user, partition=partition)
+    if args.cancel and not any(
+        [user, args.partition, args.job_name, args.job_id, args.state]
+    ):
+        parser.error(
+            "--cancel requires at least one filter, to avoid cancelling the "
+            "whole queue: --user, --me, --partition, --job-name, --job-id, "
+            "or --state."
+        )
+
+    try:
+        q = SQueue(user=user, partition=args.partition)
+        if args.cancel:
+            targets = q.jobs(
+                job_name=args.job_name,
+                job_id=args.job_id,
+                state=args.state,
+            )
+            if not targets:
+                print(_c("✓", _GREEN) + " No matching jobs to cancel.")
+                return
+            print(_fmt_job_table(targets, show_reason=args.reason))
+            if not args.yes:
+                answer = input(f"Cancel {len(targets)} job(s) above? [y/N] ")
+                if answer.strip().lower() not in ("y", "yes"):
+                    print("Aborted.")
+                    return
+            q.cancel(
+                job_name=args.job_name,
+                job_id=args.job_id,
+                state=args.state,
+            )
+        elif args.summary:
             print(q)
-        except RuntimeError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
-
-    elif args.cmd == "list":
-        try:
-            q = SQueue(user=args.user, partition=args.partition)
+        else:
             jobs = q.jobs(
                 job_name=args.job_name,
                 job_id=args.job_id,
@@ -1734,82 +1865,229 @@ def main() -> None:
             if args.sort:
                 jobs = sorted(jobs, key=_SORT_KEYS[args.sort], reverse=args.reverse)
             print(_fmt_job_table(jobs, show_reason=args.reason))
-        except RuntimeError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
+    except BrokenPipeError:
+        _exit_on_broken_pipe()
+    except RuntimeError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
-    elif args.cmd == "stats":
-        try:
-            q = SQueue(user=args.user, partition=args.partition)
-            n_running = sum(1 for j in q if j.is_running)
-            n_pending = sum(1 for j in q if j.is_pending)
-            title_plain = (
-                f"SLURM Queue  \u00b7  {len(q)} jobs total"
-                f"  \u00b7  {n_running} running"
-                f"  \u00b7  {n_pending} pending"
-            )
-            title = (
-                _c("SLURM Queue", _BOLD, _CYAN)
-                + "  \u00b7  "
-                + f"{len(q)} jobs total"
-                + "  \u00b7  "
-                + _c(f"{n_running} running", _GREEN)
-                + "  \u00b7  "
-                + _c(f"{n_pending} pending", _YELLOW)
-            )
-            print(title)
-            print(_c("\u2550" * len(title_plain), _DIM))
-            print(_fmt_stats_table(q))
-        except RuntimeError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
 
-    elif args.cmd == "history":
-        try:
-            acct = SAcct(user=args.user, days=args.days, partition=args.partition)
-            n = args.days
-            day_s = "day" if n == 1 else "days"
-            part_s = f"  \u00b7  {args.partition}" if args.partition else ""
-            user_s = f"  \u00b7  {args.user}" if args.user else ""
-            title_plain = f"Job History  \u00b7  last {n} {day_s}  \u00b7  {len(acct)} jobs{part_s}{user_s}"
-            title = (
-                _c("Job History", _BOLD, _CYAN)
-                + "  \u00b7  "
-                + _c(f"last {n} {day_s}", _DIM)
-                + "  \u00b7  "
-                + f"{len(acct)} jobs"
-                + (f"  \u00b7  {args.partition}" if args.partition else "")
-                + ("  \u00b7  " + _c(args.user, _BOLD) if args.user else "")
-            )
-            print(title)
-            print(_c("\u2550" * len(title_plain), _DIM))
-            if args.user:
-                print(_fmt_history_detail(acct))
-            else:
-                print(_fmt_history_summary(acct))
-        except RuntimeError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
+def main_stats() -> None:
+    """Entry point for the ``slurm-stats`` command-line tool.
 
-    elif args.cmd == "wait":
-        if args.job_name is None and args.job_id is None and args.user is None:
-            p_wait.error("Specify at least one of: --job-name, --job-id, --user")
-        try:
-            q = SQueue()
-            q.wait_until_done(
-                job_name=args.job_name,
-                job_id=args.job_id,
-                user=args.user,
-                poll_interval=args.poll_interval,
-                timeout=args.timeout,
-                verbose=not args.quiet,
-            )
-        except TimeoutError as e:
-            print(f"Timeout: {e}", file=sys.stderr)
-            sys.exit(1)
-        except RuntimeError as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
+    Prints partition and state breakdown statistics for the SLURM queue.
+    """
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(
+        prog="slurm-stats",
+        description="Print partition and state breakdown statistics for the SLURM queue.",
+    )
+    g = parser.add_mutually_exclusive_group()
+    g.add_argument(
+        "--user", "-u", metavar="USER", default=None, help="Filter to this user."
+    )
+    g.add_argument("--me", action="store_true", help="Filter to the current user.")
+    parser.add_argument(
+        "--partition",
+        "-p",
+        metavar="PARTITION",
+        default=None,
+        help="Filter to this partition.",
+    )
+
+    args = parser.parse_args()
+    user = current_user() if args.me else args.user
+    try:
+        q = SQueue(user=user, partition=args.partition)
+        n_running = sum(1 for j in q if j.is_running)
+        n_pending = sum(1 for j in q if j.is_pending)
+        title_plain = (
+            f"SLURM Queue  \u00b7  {len(q)} jobs total"
+            f"  \u00b7  {n_running} running"
+            f"  \u00b7  {n_pending} pending"
+        )
+        title = (
+            _c("SLURM Queue", _BOLD, _CYAN)
+            + "  \u00b7  "
+            + f"{len(q)} jobs total"
+            + "  \u00b7  "
+            + _c(f"{n_running} running", _GREEN)
+            + "  \u00b7  "
+            + _c(f"{n_pending} pending", _YELLOW)
+        )
+        print(title)
+        print(_c("\u2550" * len(title_plain), _DIM))
+        print(_fmt_stats_table(q))
+        if user:
+            highlights = _fmt_user_highlights(list(q))
+            if highlights:
+                print()
+                print(highlights)
+    except BrokenPipeError:
+        _exit_on_broken_pipe()
+    except RuntimeError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def main_history() -> None:
+    """Entry point for the ``slurm-history`` command-line tool.
+
+    Shows job submission history from accounting records (``sacct``).
+    """
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(
+        prog="slurm-history",
+        description="Show job submission history from accounting records (sacct).",
+    )
+    g = parser.add_mutually_exclusive_group()
+    g.add_argument(
+        "--user",
+        "-u",
+        metavar="USER",
+        default=None,
+        help="Show detailed per-state breakdown for this user; omit for all-users summary.",
+    )
+    g.add_argument(
+        "--me",
+        action="store_true",
+        help="Show detailed per-state breakdown for the current user.",
+    )
+    parser.add_argument(
+        "--days",
+        "-d",
+        metavar="N",
+        type=int,
+        default=7,
+        help="Number of days to look back (default: 7).",
+    )
+    parser.add_argument(
+        "--partition",
+        "-p",
+        metavar="PARTITION",
+        default=None,
+        help="Filter to this partition.",
+    )
+
+    args = parser.parse_args()
+    user = current_user() if args.me else args.user
+    try:
+        acct = SAcct(user=user, days=args.days, partition=args.partition)
+        n = args.days
+        day_s = "day" if n == 1 else "days"
+        title_plain = f"Job History  \u00b7  last {n} {day_s}  \u00b7  {len(acct)} jobs"
+        if args.partition:
+            title_plain += f"  \u00b7  {args.partition}"
+        if user:
+            title_plain += f"  \u00b7  {user}"
+        title = (
+            _c("Job History", _BOLD, _CYAN)
+            + "  \u00b7  "
+            + _c(f"last {n} {day_s}", _DIM)
+            + "  \u00b7  "
+            + f"{len(acct)} jobs"
+            + (f"  \u00b7  {args.partition}" if args.partition else "")
+            + ("  \u00b7  " + _c(user, _BOLD) if user else "")
+        )
+        print(title)
+        print(_c("\u2550" * len(title_plain), _DIM))
+        if user:
+            print(_fmt_history_detail(acct))
+        else:
+            print(_fmt_history_summary(acct))
+    except BrokenPipeError:
+        _exit_on_broken_pipe()
+    except RuntimeError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+def main_wait() -> None:
+    """Entry point for the ``slurm-wait`` command-line tool.
+
+    Blocks until matching jobs leave the active queue.
+    """
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(
+        prog="slurm-wait",
+        description="Wait until matching jobs leave the active queue.",
+    )
+    parser.add_argument(
+        "--job-name",
+        "-n",
+        metavar="PATTERN",
+        default=None,
+        help="Job name or glob pattern to wait for (e.g. 'train_*').",
+    )
+    parser.add_argument(
+        "--job-id",
+        "-j",
+        metavar="ID",
+        type=int,
+        default=None,
+        help="Wait for a specific job ID.",
+    )
+    g = parser.add_mutually_exclusive_group()
+    g.add_argument(
+        "--user",
+        "-u",
+        metavar="USER",
+        default=None,
+        help="Wait for all jobs belonging to this user.",
+    )
+    g.add_argument(
+        "--me",
+        action="store_true",
+        help="Wait for all jobs belonging to the current user.",
+    )
+    parser.add_argument(
+        "--poll-interval",
+        "-i",
+        metavar="SECONDS",
+        type=float,
+        default=30.0,
+        help="Seconds between queue polls (default: 30).",
+    )
+    parser.add_argument(
+        "--timeout",
+        "-t",
+        metavar="SECONDS",
+        type=float,
+        default=None,
+        help="Raise an error if jobs are still running after this many seconds.",
+    )
+    parser.add_argument(
+        "--quiet", "-q", action="store_true", help="Suppress progress messages."
+    )
+
+    args = parser.parse_args()
+    user = current_user() if args.me else args.user
+    if args.job_name is None and args.job_id is None and user is None:
+        parser.error("Specify at least one of: --job-name, --job-id, --user, --me")
+    try:
+        q = SQueue()
+        q.wait_until_done(
+            job_name=args.job_name,
+            job_id=args.job_id,
+            user=user,
+            poll_interval=args.poll_interval,
+            timeout=args.timeout,
+            verbose=not args.quiet,
+        )
+    except TimeoutError as e:
+        print(f"Timeout: {e}", file=sys.stderr)
+        sys.exit(1)
+    except BrokenPipeError:
+        _exit_on_broken_pipe()
+    except RuntimeError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -89,10 +89,17 @@ class Pragma:
         """Whether this pragma is a valueless switch such as ``--hold``."""
         return self.action == "store_true"
 
+    def to_dict(self) -> dict[str, Any]:
+        """ """
+        return {self.arg_varname: self.value}
+
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, Pragma):
             return False
         return self.dest == value.dest and self.value == value.value
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(value={self.value})"
 
     def __str__(self) -> str:
         flag = self.dest.replace("_", "-")
@@ -100,13 +107,6 @@ class Pragma:
         # `--hold=True`.
         line = flag if self.is_flag else f"{flag}={self.value}"
         return add_line(f"#SBATCH {line}", comment=self.help)
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(value={self.value})"
-
-    def to_dict(self) -> dict[str, Any]:
-        """ """
-        return {self.arg_varname: self.value}
 
 
 # --- 1. Job Identification & Basic Info (job_config) ---
@@ -147,8 +147,6 @@ class Account(Pragma):
 
     """
 
-    """This class represents the SLURM #SBATCH --account pragma."""
-
     pragma_id = 1
     pragma_type = "job_config"
     arg_varname = "account"
@@ -158,6 +156,8 @@ class Account(Pragma):
     help = "charge job to specified account"
     example = "myacct"
     type = str
+
+    """This class represents the SLURM #SBATCH --account pragma."""
 
 
 class Partition(Pragma):
@@ -2313,12 +2313,12 @@ class UnknownPragma(Pragma):
         self.arg_varname = flag
         self.value = value
 
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(flag={self.flag!r}, value={self.value!r})"
+
     def __str__(self) -> str:
         line = self.flag if self.value is True else f"{self.flag}={self.value}"
         return add_line(f"#SBATCH {line}", comment=self.help)
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(flag={self.flag!r}, value={self.value!r})"
 
 
 class PragmaFactory:
