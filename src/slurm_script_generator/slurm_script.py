@@ -737,7 +737,9 @@ class SlurmScript:
         problems: List[str] = []
         values = {pragma.dest: pragma.value for pragma in self.pragmas}
 
-        mem_dests = [d for d in ("--mem", "--mem-per-cpu", "--mem-per-gpu") if d in values]
+        mem_dests = [
+            d for d in ("--mem", "--mem-per-cpu", "--mem-per-gpu") if d in values
+        ]
         if len(mem_dests) > 1:
             problems.append(
                 f"{' and '.join(mem_dests)} are mutually exclusive; sbatch "
