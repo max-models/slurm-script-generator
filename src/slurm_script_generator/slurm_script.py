@@ -720,6 +720,48 @@ class SlurmScript:
 
         return script_str
 
+    def validate(self) -> List[str]:
+        """Check for combinations of pragmas that ``sbatch`` will reject.
+
+        These are mistakes that only surface once a job is actually
+        submitted (or silently misbehave), so it is worth catching them in
+        Python first. This is not an exhaustive validator of sbatch's rules,
+        just the handful of cross-pragma mistakes that are easy to make.
+
+        Returns
+        -------
+        List[str]
+            Human-readable problem descriptions. Empty if nothing was found.
+
+        """
+        problems: List[str] = []
+        values = {pragma.dest: pragma.value for pragma in self.pragmas}
+
+        mem_dests = [d for d in ("--mem", "--mem-per-cpu", "--mem-per-gpu") if d in values]
+        if len(mem_dests) > 1:
+            problems.append(
+                f"{' and '.join(mem_dests)} are mutually exclusive; sbatch "
+                "only accepts one memory-limit option."
+            )
+
+        if "--gpus-per-task" in values and not (
+            "--ntasks" in values or "--ntasks-per-node" in values
+        ):
+            problems.append(
+                "--gpus-per-task requires --ntasks or --ntasks-per-node to be set."
+            )
+
+        return problems
+
+    def check(self) -> None:
+        """Raise ``ValueError`` if :meth:`validate` finds any problems."""
+        problems = self.validate()
+        if problems:
+            raise ValueError(
+                "Invalid SLURM script configuration:\n"
+                + "\n".join(f"  - {p}" for p in problems)
+            )
+
     def to_dict(self) -> dict[str, Any]:
         """Convert the SlurmScript instance to a dictionary representation.
 
@@ -779,10 +821,14 @@ class SlurmScript:
 
         Raises
         ------
+        ValueError
+            If :meth:`validate` finds a combination of pragmas sbatch will
+            reject (e.g. both ``--mem`` and ``--mem-per-cpu`` set).
         RuntimeError
             If sbatch fails to submit the job.
 
         """
+        self.check()
         self.save(path)
         if verbose:
             print(f"Submitting job with sbatch: {path}")

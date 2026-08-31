@@ -186,3 +186,30 @@ def test_empty_sbatch_line_is_ignored():
     parsed = _parse_line("#SBATCH")
 
     assert parsed.pragmas == []
+
+
+# ---------------------------------------------------------------------------
+# List-valued pragmas (--nodelist, --exclude use nargs="+")
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("key", ["nodelist", "exclude"])
+def test_list_valued_pragma_is_written_as_comma_separated(key):
+    """A list built programmatically (e.g. from the CLI's nargs="+") must be
+    rendered as sbatch expects, not as Python's repr() of the list."""
+    script = SlurmScript(pragmas=[PragmaFactory.create_pragma(key, ["node1", "node2"])])
+
+    generated = script.to_string(include_header=False)
+
+    flag = key.replace("_", "-")
+    assert f"--{flag}=node1,node2" in generated
+    assert "[" not in generated and "]" not in generated
+
+
+@pytest.mark.parametrize("key", ["nodelist", "exclude"])
+def test_list_valued_pragma_round_trips_through_script_text(key):
+    script = SlurmScript(pragmas=[PragmaFactory.create_pragma(key, ["node1", "node2"])])
+
+    parsed = _round_trip(script)
+
+    assert parsed.to_dict()["pragmas"][key] == "node1,node2"

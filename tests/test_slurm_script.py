@@ -193,3 +193,55 @@ def test_submit_job_raises_when_sbatch_fails(tmp_path):
     with patch("subprocess.run", return_value=completed):
         with pytest.raises(RuntimeError, match="boom"):
             SlurmScript(nodes=1).submit_job(str(path))
+
+
+# ---------------------------------------------------------------------------
+# Cross-pragma validation
+# ---------------------------------------------------------------------------
+
+
+def test_validate_returns_empty_for_a_sane_script():
+    assert SlurmScript(nodes=1, time="01:00:00").validate() == []
+
+
+def test_validate_flags_conflicting_memory_options():
+    script = SlurmScript(mem="16G", mem_per_cpu="2G")
+
+    problems = script.validate()
+
+    assert len(problems) == 1
+    assert "--mem" in problems[0] and "--mem-per-cpu" in problems[0]
+
+
+def test_validate_flags_gpus_per_task_without_ntasks():
+    script = SlurmScript(gpus_per_task="1")
+
+    problems = script.validate()
+
+    assert len(problems) == 1
+    assert "--gpus-per-task" in problems[0]
+
+
+def test_validate_allows_gpus_per_task_with_ntasks():
+    script = SlurmScript(gpus_per_task="1", ntasks="4")
+
+    assert script.validate() == []
+
+
+def test_check_raises_when_validate_finds_problems():
+    script = SlurmScript(mem="16G", mem_per_cpu="2G")
+
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        script.check()
+
+
+def test_submit_job_runs_validation_before_calling_sbatch(tmp_path):
+    path = tmp_path / "job.sh"
+    script = SlurmScript(mem="16G", mem_per_cpu="2G")
+
+    with patch("subprocess.run") as run:
+        with pytest.raises(ValueError, match="mutually exclusive"):
+            script.submit_job(str(path))
+
+    run.assert_not_called()
+    assert not path.exists()

@@ -1,3 +1,4 @@
+import re
 from typing import Any, Callable, List, Literal, Type
 
 from slurm_script_generator.utils import add_line
@@ -50,6 +51,18 @@ def to_bool(value: Any) -> bool:
     return bool(value)
 
 
+def _format_value(value: Any) -> str:
+    """Render a pragma value the way ``sbatch`` expects it on a line.
+
+    Options with ``nargs="+"`` (``--nodelist``, ``--exclude``) accept a
+    Python list when built programmatically; sbatch wants those as a
+    comma-separated string, not Python's ``repr`` of the list.
+    """
+    if isinstance(value, (list, tuple)):
+        return ",".join(str(v) for v in value)
+    return str(value)
+
+
 class Pragma:
     """Base class representing a SLURM #SBATCH pragma."""
 
@@ -83,11 +96,22 @@ class Pragma:
         # else:
         #     self.value = value
         self.value = to_bool(value) if self.is_flag else value
+        if not self.is_flag:
+            self._validate_value(self.value)
 
     @property
     def is_flag(self) -> bool:
         """Whether this pragma is a valueless switch such as ``--hold``."""
         return self.action == "store_true"
+
+    def _validate_value(self, value: Any) -> None:
+        """Raise ``ValueError`` if *value* is malformed for this pragma.
+
+        No-op by default; individual pragma classes override this to catch
+        mistakes (e.g. a malformed ``--time``) at construction time rather
+        than only when ``sbatch`` rejects the generated script.
+        """
+        return
 
     def to_dict(self) -> dict[str, Any]:
         """ """
@@ -105,7 +129,10 @@ class Pragma:
         flag = self.dest.replace("_", "-")
         # Valueless switches are written without a value: sbatch rejects
         # `--hold=True`.
-        line = flag if self.is_flag else f"{flag}={self.value}"
+        if self.is_flag:
+            line = flag
+        else:
+            line = f"{flag}={_format_value(self.value)}"
         return add_line(f"#SBATCH {line}", comment=self.help)
 
 
@@ -321,6 +348,24 @@ class Comment(Pragma):
     type = str
 
 
+# Accepted sbatch time-limit formats: MM, MM:SS, HH:MM:SS, D-HH, D-HH:MM,
+# D-HH:MM:SS. "UNLIMITED" and "INFINITE" are also accepted by sbatch.
+_TIME_RE = re.compile(r"^(\d+-)?\d+(:\d{1,2}){0,2}$")
+_TIME_LITERALS = {"unlimited", "infinite"}
+
+
+def _validate_time(value: Any) -> None:
+    if not isinstance(value, str):
+        return
+    value = value.strip()
+    if value.lower() in _TIME_LITERALS or _TIME_RE.match(value):
+        return
+    raise ValueError(
+        f"Invalid time limit {value!r}: expected [D-]HH:MM:SS, "
+        "MM:SS, MM, or D-HH[:MM[:SS]]"
+    )
+
+
 # --- 2. Time & Priority (time_and_priority) ---
 class Time(Pragma):
     """Represents the SLURM #SBATCH --time pragma.
@@ -345,6 +390,9 @@ class Time(Pragma):
     example = "00:45:00"
     type = str
 
+    def _validate_value(self, value: Any) -> None:
+        _validate_time(value)
+
 
 class Time_min(Pragma):
     """Represents the SLURM #SBATCH --time-min pragma.
@@ -367,6 +415,9 @@ class Time_min(Pragma):
     metavar = "MINUTES"
     help = "minimum time limit (if distinct)"
     type = str
+
+    def _validate_value(self, value: Any) -> None:
+        _validate_time(value)
 
 
 class Begin(Pragma):
@@ -2317,7 +2368,11 @@ class UnknownPragma(Pragma):
         return f"{self.__class__.__name__}(flag={self.flag!r}, value={self.value!r})"
 
     def __str__(self) -> str:
-        line = self.flag if self.value is True else f"{self.flag}={self.value}"
+        line = (
+            self.flag
+            if self.value is True
+            else f"{self.flag}={_format_value(self.value)}"
+        )
         return add_line(f"#SBATCH {line}", comment=self.help)
 
 

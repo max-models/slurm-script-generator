@@ -1,3 +1,5 @@
+import pytest
+
 from slurm_script_generator.pragmas import PragmaFactory
 
 
@@ -45,7 +47,9 @@ def test_invalid_pragma_key():
 def test_all_pragmas_have_flags_and_dest():
     for _, pragma_cls in PragmaFactory.pragmas.items():
         # Switches only accept booleans, everything else takes a value.
-        pragma = pragma_cls(True if pragma_cls.action == "store_true" else "test")
+        # "1" rather than an arbitrary string, since it is a valid value for
+        # every pragma including the ones that validate --time formatting.
+        pragma = pragma_cls(True if pragma_cls.action == "store_true" else "1")
         assert hasattr(pragma, "flags")
         assert hasattr(pragma, "dest")
         assert isinstance(pragma.flags, list)
@@ -85,3 +89,38 @@ def test_io_pragmas():
     assert summary.flags == ["--disable-output-job-summary"]
     assert summary.dest == "--disable-output-job-summary"
     assert summary.arg_varname == "disable_output_job_summary"
+
+
+# ---------------------------------------------------------------------------
+# --time / --time-min validation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "45",  # MM
+        "45:30",  # MM:SS
+        "01:45:30",  # HH:MM:SS
+        "600",  # MM, more than two digits
+        "2-00",  # D-HH
+        "2-00:30",  # D-HH:MM
+        "2-00:30:15",  # D-HH:MM:SS
+        "UNLIMITED",
+        "infinite",
+    ],
+)
+@pytest.mark.parametrize("key", ["time", "time_min"])
+def test_valid_time_formats_are_accepted(key, value):
+    pragma = PragmaFactory.create_pragma(key, value)
+    assert pragma.value == value
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["tomorrow", "01:aa:00", "1:2:3:4", "-1", ""],
+)
+@pytest.mark.parametrize("key", ["time", "time_min"])
+def test_invalid_time_formats_are_rejected(key, value):
+    with pytest.raises(ValueError, match="Invalid time limit"):
+        PragmaFactory.create_pragma(key, value)
