@@ -810,13 +810,19 @@ class SlurmScript:
         if verbose:
             print(f"SLURM script saved to: {path}")
 
-    def submit_job(self, path: str, verbose: bool = False) -> int:
+    def submit_job(self, path: str, verbose: bool = False, tail: bool = False) -> int:
         """Submit the SLURM script as a job using sbatch.
 
         Parameters
         ----------
         path : str
             Path to the script file to submit.
+        verbose : bool, optional
+            Print submission details.
+        tail : bool, optional
+            Follow the file configured by ``--output`` until the submitted job
+            leaves the queue. The output filename may contain Slurm's ``%j``
+            (job ID) and ``%x`` (job name) substitutions. Defaults to False.
 
         Returns
         -------
@@ -840,8 +846,50 @@ class SlurmScript:
         if verbose:
             print(result.stdout.strip())
 
-        # Return job id
-        return int(result.stdout.strip().split()[-1])
+        job_id = int(result.stdout.strip().split()[-1])
+        if tail:
+            self._tail_job_output(job_id)
+        return job_id
+
+    def _tail_job_output(self, job_id: int) -> None:
+        """Follow this job's configured standard-output file until it finishes."""
+        output = next(
+            (pragma.value for pragma in self.pragmas if pragma.arg_varname == "output"),
+            None,
+        )
+        if output is None:
+            raise ValueError(
+                "tail=True requires an output path configured with --output"
+            )
+
+        job_name = next(
+            (
+                pragma.value
+                for pragma in self.pragmas
+                if pragma.arg_varname == "job_name"
+            ),
+            "",
+        )
+        output_path = str(output).replace("%%", "%")
+        output_path = output_path.replace("%j", str(job_id)).replace(
+            "%x", str(job_name)
+        )
+
+        # -F retries until Slurm creates the file and follows a replacement file.
+        tail_process = subprocess.Popen(["tail", "-F", output_path])
+        try:
+            # Import locally so submitting jobs does not make queue support a
+            # prerequisite for callers that do not request tailing.
+            from slurm_script_generator.squeue import SQueue
+
+            SQueue().wait_until_done(job_id=job_id, poll_interval=1, verbose=False)
+        finally:
+            tail_process.terminate()
+            try:
+                tail_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                tail_process.kill()
+                tail_process.wait()
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "SlurmScript":
