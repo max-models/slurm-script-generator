@@ -195,6 +195,43 @@ def test_submit_job_raises_when_sbatch_fails(tmp_path):
             SlurmScript(nodes=1).submit_job(str(path))
 
 
+def test_submit_job_can_tail_configured_output_until_job_finishes(tmp_path):
+    path = tmp_path / "job.sh"
+    output = tmp_path / "my-job-%j.out"
+    completed = type(
+        "Completed", (), {"returncode": 0, "stdout": "Submitted batch job 12345\n"}
+    )
+    tail_process = type(
+        "TailProcess",
+        (),
+        {"terminate": lambda self: None, "wait": lambda self, **kwargs: None},
+    )()
+
+    with (
+        patch("subprocess.run", return_value=completed),
+        patch("subprocess.Popen", return_value=tail_process) as popen,
+        patch("slurm_script_generator.squeue.SQueue.wait_until_done") as wait,
+    ):
+        job_id = SlurmScript(job_name="my-job", output=str(output)).submit_job(
+            str(path), tail=True
+        )
+
+    assert job_id == 12345
+    popen.assert_called_once_with(["tail", "-F", str(tmp_path / "my-job-12345.out")])
+    wait.assert_called_once_with(job_id=12345, poll_interval=1, verbose=False)
+
+
+def test_submit_job_tail_requires_an_output_path(tmp_path):
+    path = tmp_path / "job.sh"
+    completed = type(
+        "Completed", (), {"returncode": 0, "stdout": "Submitted batch job 12345\n"}
+    )
+
+    with patch("subprocess.run", return_value=completed):
+        with pytest.raises(ValueError, match="requires an output path"):
+            SlurmScript(nodes=1).submit_job(str(path), tail=True)
+
+
 # ---------------------------------------------------------------------------
 # Cross-pragma validation
 # ---------------------------------------------------------------------------
