@@ -1,0 +1,36 @@
+---
+title: slurm-script-generator
+description: Generate, submit and monitor SLURM jobs from Python or the command line.
+template: splash
+hero:
+  tagline: A Python library and command-line toolkit for generating, managing, and monitoring SLURM jobs.
+  actions:
+    - text: Get started
+      link: /slurm-script-generator/getting-started/installation/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/max-models/slurm-script-generator
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+```bash
+pip install slurm-script-generator
+```
+
+<CardGrid>
+  <Card title="Generate" icon="document">Every `#SBATCH` pragma as a command-line flag or a `SlurmScript` argument, or a built-in template for a common job shape.</Card>
+  <Card title="Submit and wait" icon="rocket">Submit from Python, block until the jobs finish and check how they ended.</Card>
+  <Card title="Monitor" icon="list-format">The live queue, per-partition statistics and job accounting in the terminal.</Card>
+</CardGrid>
+
+## Start here
+
+<CardGrid>
+  <LinkCard title="Quickstart" href="/slurm-script-generator/getting-started/quickstart/" description="Generate, submit, wait for, cancel and inspect jobs." />
+  <LinkCard title="generate-slurm-script" href="/slurm-script-generator/cli/generate-slurm-script/" description="Every flag of the script generator, with examples." />
+  <LinkCard title="Tutorials" href="/slurm-script-generator/tutorials/" description="Notebooks on the Python API, importing scripts and the queue." />
+  <LinkCard title="API reference" href="/slurm-script-generator/api/slurm_script_generator/" description="Generated from the docstrings." />
+</CardGrid>

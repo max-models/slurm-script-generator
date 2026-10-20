@@ -1,9 +1,13 @@
 ---
-title: "Command Line Interface — generate-slurm-script"
+title: "generate-slurm-script"
+description: "Build, save, export and submit SLURM batch scripts from command-line flags."
 engine: knitr
 execute:
   echo: true
   output: true
+format:
+  gfm:
+    variant: +yaml_metadata_block
 ---
 
 `generate-slurm-script` generates a SLURM batch script from command-line
@@ -454,7 +458,7 @@ generate-slurm-script \
     --nodes 1 \
     --ntasks-per-node 8 \
     --time 04:00:00 \
-    --output-path logs/sweep_%A_%a.out \
+    --output logs/sweep_%A_%a.out \
     --error logs/sweep_%A_%a.err \
     --modules gcc/13 anaconda/3 \
     --custom-commands \
@@ -479,7 +483,7 @@ generate-slurm-script \
     --nodes 1 --ntasks-per-node 4 \
     --time 01:00:00 \
     --custom-commands 'python postprocess.py --input results/' \
-    --output postprocess.sh \
+    --output-path postprocess.sh \
     --submit
 ```
 
