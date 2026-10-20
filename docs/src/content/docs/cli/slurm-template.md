@@ -1,4 +1,7 @@
-# slurm-template CLI
+---
+title: slurm-template
+description: "Ready-to-edit SLURM batch scripts for common job shapes: CPU, OpenMP, MPI, hybrid, GPU and job arrays."
+---
 
 `slurm-template` writes a ready-to-edit SLURM batch script for a common job
 shape, instead of building one pragma-by-pragma with `generate-slurm-script`.

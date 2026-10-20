@@ -1,0 +1,40 @@
+name: Docs
+
+# The Astro + Starlight site in docs/: hand-written pages, the CLI pages, the executed tutorials and
+# the API reference. Built on every push and pull request with the shared workflow of
+# max-models/starlight-theme; deployed to GitHub Pages from devel.
+
+on:
+  push:
+    branches: ["main", "devel"]
+  pull_request:
+    branches: ["main", "devel"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    uses: max-models/starlight-theme/.github/workflows/docs.yml@v0.4.0
+    with:
+      # stable-branch: main  # deploy the latest release at /<repo>/ and devel at /<repo>/dev/
+      smoke-paths: |
+        getting-started/installation/index.html
+        getting-started/quickstart/index.html
+        cli/generate-slurm-script/index.html
+        cli/slurm-template/index.html
+        cli/slurm-queue/index.html
+        tutorials/index.html
+        tutorials/00-basics/index.html
+        tutorials/01-importing-scripts/index.html
+        tutorials/02-queue-and-history/index.html
+        api/slurm_script_generator/index.html
+        api/slurm_script_generator/squeue/index.html
+        cli.html/index.html

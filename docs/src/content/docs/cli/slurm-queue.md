@@ -1,4 +1,7 @@
-# slurm-queue CLI
+---
+title: slurm-queue
+description: "slurm-queue, slurm-stats, slurm-history and slurm-wait: the SLURM queue, per-user and per-partition statistics and job history, and wait for jobs to finish."
+---
 
 `slurm-queue`, `slurm-stats`, `slurm-history`, and `slurm-wait` are terminal
 tools for inspecting the SLURM job queue, viewing per-user and per-partition
@@ -347,7 +350,7 @@ slurm-wait --job-name "sweep_*" && echo "All sweeps done"
 ## Python API
 
 All the functionality above is available as a Python API. See the
-[Queue Management & History tutorial](tutorials/02_queue_and_history) for
+[Queue Management & History tutorial](/slurm-script-generator/tutorials/02-queue-and-history/) for
 comprehensive examples covering:
 
 - Inspecting and filtering the live queue

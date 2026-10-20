@@ -69,9 +69,6 @@ instance/
 # Scrapy stuff:
 .scrapy
 
-# Sphinx documentation
-docs/_build/
-
 # PyBuilder
 .pybuilder/
 target/
@@ -176,4 +173,6 @@ junit/
 *.sh
 *.slurm
 *.json
-docs/source/tutorials/
+# the docs site's own (docs/package.json, tsconfig.json, renovate.json)
+!docs/*.json
+!renovate.json

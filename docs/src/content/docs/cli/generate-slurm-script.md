@@ -1,4 +1,9 @@
-# Command Line Interface — generate-slurm-script
+---
+title: generate-slurm-script
+description: Build, save, export and submit SLURM batch scripts from command-line flags.
+---
+
+<!-- Generated from docs/cli/generate-slurm-script.qmd by `make docs-cli`: edit that file instead. -->
 
 
 `generate-slurm-script` generates a SLURM batch script from command-line
@@ -24,9 +29,9 @@ generate-slurm-script --nodes 2 --ntasks-per-node 16 --time 04:00:00
     #!/bin/bash
     ########################################################
     #            This script was generated using           #
-    #             slurm-script-generator v0.3.2            #
+    #             slurm-script-generator v0.4.0            #
     # https://github.com/max-models/slurm-script-generator #
-    #      `pip install slurm-script-generator==0.3.2`     #
+    #      `pip install slurm-script-generator==0.4.0`     #
     ########################################################
 
     ########################################################
@@ -49,9 +54,9 @@ cat job.sh
     #!/bin/bash
     ########################################################
     #            This script was generated using           #
-    #             slurm-script-generator v0.3.2            #
+    #             slurm-script-generator v0.4.0            #
     # https://github.com/max-models/slurm-script-generator #
-    #      `pip install slurm-script-generator==0.3.2`     #
+    #      `pip install slurm-script-generator==0.4.0`     #
     ########################################################
 
     ########################################################
@@ -85,49 +90,12 @@ most commonly used ones are listed below.
 
 ### Job identity
 
-<table>
-<colgroup>
-<col style="width: 25%" />
-<col style="width: 25%" />
-<col style="width: 25%" />
-<col style="width: 25%" />
-</colgroup>
-<thead>
-<tr>
-<th>Flag</th>
-<th>Short</th>
-<th><code>#SBATCH</code> pragma</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--job-name NAME</code></td>
-<td><code>-J</code></td>
-<td><code>--job-name</code></td>
-<td>Name shown in <code>squeue</code> and used in log filenames with
-<code>%x</code></td>
-</tr>
-<tr>
-<td><code>--account NAME</code></td>
-<td><code>-A</code></td>
-<td><code>--account</code></td>
-<td>SLURM account to charge compute time to</td>
-</tr>
-<tr>
-<td><code>--partition NAME</code></td>
-<td><code>-p</code></td>
-<td><code>--partition</code></td>
-<td>Target partition (queue)</td>
-</tr>
-<tr>
-<td><code>--qos NAME</code></td>
-<td><code>-q</code></td>
-<td><code>--qos</code></td>
-<td>Quality-of-service level</td>
-</tr>
-</tbody>
-</table>
+| Flag | Short | `#SBATCH` pragma | Description |
+|----|----|----|----|
+| `--job-name NAME` | `-J` | `--job-name` | Name shown in `squeue` and used in log filenames with `%x` |
+| `--account NAME` | `-A` | `--account` | SLURM account to charge compute time to |
+| `--partition NAME` | `-p` | `--partition` | Target partition (queue) |
+| `--qos NAME` | `-q` | `--qos` | Quality-of-service level |
 
 ``` bash
 generate-slurm-script \
@@ -153,58 +121,15 @@ generate-slurm-script \
 
 ### Time and resources
 
-<table>
-<colgroup>
-<col style="width: 33%" />
-<col style="width: 33%" />
-<col style="width: 33%" />
-</colgroup>
-<thead>
-<tr>
-<th>Flag</th>
-<th>Short</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--time MINUTES</code></td>
-<td><code>-t</code></td>
-<td>Wall-clock time limit (<code>HH:MM:SS</code> or minutes)</td>
-</tr>
-<tr>
-<td><code>--nodes N</code></td>
-<td><code>-N</code></td>
-<td>Number of nodes</td>
-</tr>
-<tr>
-<td><code>--ntasks N</code></td>
-<td><code>-n</code></td>
-<td>Total MPI tasks (spread across however many nodes fit)</td>
-</tr>
-<tr>
-<td><code>--ntasks-per-node N</code></td>
-<td></td>
-<td>Tasks per node (use with <code>--nodes</code>)</td>
-</tr>
-<tr>
-<td><code>--cpus-per-task N</code></td>
-<td><code>-c</code></td>
-<td>CPU cores per task — set this for OpenMP or multithreaded
-programs</td>
-</tr>
-<tr>
-<td><code>--mem MB</code></td>
-<td></td>
-<td>Memory per node in MB</td>
-</tr>
-<tr>
-<td><code>--mem-per-cpu MB</code></td>
-<td></td>
-<td>Memory per CPU core in MB</td>
-</tr>
-</tbody>
-</table>
+| Flag | Short | Description |
+|----|----|----|
+| `--time MINUTES` | `-t` | Wall-clock time limit (`HH:MM:SS` or minutes) |
+| `--nodes N` | `-N` | Number of nodes |
+| `--ntasks N` | `-n` | Total MPI tasks (spread across however many nodes fit) |
+| `--ntasks-per-node N` |  | Tasks per node (use with `--nodes`) |
+| `--cpus-per-task N` | `-c` | CPU cores per task — set this for OpenMP or multithreaded programs |
+| `--mem MB` |  | Memory per node in MB |
+| `--mem-per-cpu MB` |  | Memory per CPU core in MB |
 
 ``` bash
 # Multithreaded job: 1 task, 8 cores, 16 GB RAM
@@ -235,45 +160,14 @@ generate-slurm-script \
 
 ### GPU resources
 
-<table>
-<colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
-</colgroup>
-<thead>
-<tr>
-<th>Flag</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--gpus-per-node N</code></td>
-<td>GPUs per node (generic, works on most clusters)</td>
-</tr>
-<tr>
-<td><code>--gres LIST</code></td>
-<td>Generic resources — e.g. <code>gpu:a100:2</code> for 2 A100s</td>
-</tr>
-<tr>
-<td><code>--constraint LIST</code></td>
-<td>Node feature constraint — e.g. <code>gpu</code> to select GPU
-nodes</td>
-</tr>
-<tr>
-<td><code>--cpus-per-gpu N</code></td>
-<td>CPU cores to allocate per GPU</td>
-</tr>
-<tr>
-<td><code>--mem-per-gpu MEM</code></td>
-<td>Memory per GPU</td>
-</tr>
-<tr>
-<td><code>--nvmps</code></td>
-<td>Enable NVIDIA MPS (for many small MPI tasks sharing GPUs)</td>
-</tr>
-</tbody>
-</table>
+| Flag | Description |
+|----|----|
+| `--gpus-per-node N` | GPUs per node (generic, works on most clusters) |
+| `--gres LIST` | Generic resources — e.g. `gpu:a100:2` for 2 A100s |
+| `--constraint LIST` | Node feature constraint — e.g. `gpu` to select GPU nodes |
+| `--cpus-per-gpu N` | CPU cores to allocate per GPU |
+| `--mem-per-gpu MEM` | Memory per GPU |
+| `--nvmps` | Enable NVIDIA MPS (for many small MPI tasks sharing GPUs) |
 
 ``` bash
 # Single GPU job
@@ -311,38 +205,11 @@ generate-slurm-script \
 By default SLURM writes output and error to `slurm-<jobid>.out`. Use
 these flags to control where job output goes:
 
-<table>
-<colgroup>
-<col style="width: 33%" />
-<col style="width: 33%" />
-<col style="width: 33%" />
-</colgroup>
-<thead>
-<tr>
-<th>Flag</th>
-<th>Short</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>--output FILE</code></td>
-<td><code>-o</code></td>
-<td>Redirect output (<code>%j</code> = job ID, <code>%x</code> = job
-name)</td>
-</tr>
-<tr>
-<td><code>--error FILE</code></td>
-<td><code>-e</code></td>
-<td>Redirect error</td>
-</tr>
-<tr>
-<td><code>--chdir PATH</code></td>
-<td><code>-D</code></td>
-<td>Set the working directory before the script runs</td>
-</tr>
-</tbody>
-</table>
+| Flag            | Short | Description                                      |
+|-----------------|-------|--------------------------------------------------|
+| `--output FILE` | `-o`  | Redirect output (`%j` = job ID, `%x` = job name) |
+| `--error FILE`  | `-e`  | Redirect error                                   |
+| `--chdir PATH`  | `-D`  | Set the working directory before the script runs |
 
 ``` bash
 generate-slurm-script \
@@ -579,9 +446,9 @@ cat baseline.sh
     #!/bin/bash
     ########################################################
     #            This script was generated using           #
-    #             slurm-script-generator v0.3.2            #
+    #             slurm-script-generator v0.4.0            #
     # https://github.com/max-models/slurm-script-generator #
-    #      `pip install slurm-script-generator==0.3.2`     #
+    #      `pip install slurm-script-generator==0.4.0`     #
     ########################################################
 
     ########################################################
@@ -743,8 +610,8 @@ generate-slurm-script \
 
 ## Submitting directly
 
-Add `--submit` to write the script (requires `--output-path`) and immediately
-call `sbatch` on it:
+Add `--submit` to write the script (requires `--output-path`) and
+immediately call `sbatch` on it:
 
 ``` bash
 generate-slurm-script \
@@ -1011,7 +878,7 @@ generate-slurm-script \
     --nodes 1 \
     --ntasks-per-node 8 \
     --time 04:00:00 \
-    --output-path logs/sweep_%A_%a.out \
+    --output logs/sweep_%A_%a.out \
     --error logs/sweep_%A_%a.err \
     --modules gcc/13 anaconda/3 \
     --custom-commands \
@@ -1060,7 +927,7 @@ generate-slurm-script \
     --nodes 1 --ntasks-per-node 4 \
     --time 01:00:00 \
     --custom-commands 'python postprocess.py --input results/' \
-    --output postprocess.sh \
+    --output-path postprocess.sh \
     --submit
 ```
 
@@ -1092,9 +959,9 @@ cat sim_test.sh
     #!/bin/bash
     ########################################################
     #            This script was generated using           #
-    #             slurm-script-generator v0.3.2            #
+    #             slurm-script-generator v0.4.0            #
     # https://github.com/max-models/slurm-script-generator #
-    #      `pip install slurm-script-generator==0.3.2`     #
+    #      `pip install slurm-script-generator==0.4.0`     #
     ########################################################
 
     ########################################################
@@ -1132,9 +999,9 @@ cat sim_production.sh
     #!/bin/bash
     ########################################################
     #            This script was generated using           #
-    #             slurm-script-generator v0.3.2            #
+    #             slurm-script-generator v0.4.0            #
     # https://github.com/max-models/slurm-script-generator #
-    #      `pip install slurm-script-generator==0.3.2`     #
+    #      `pip install slurm-script-generator==0.4.0`     #
     ########################################################
 
     ########################################################
@@ -1170,9 +1037,9 @@ cat colleague_job.sh
     #!/bin/bash
     ########################################################
     #            This script was generated using           #
-    #             slurm-script-generator v0.3.2            #
+    #             slurm-script-generator v0.4.0            #
     # https://github.com/max-models/slurm-script-generator #
-    #      `pip install slurm-script-generator==0.3.2`     #
+    #      `pip install slurm-script-generator==0.4.0`     #
     ########################################################
 
     ########################################################
@@ -1189,7 +1056,7 @@ cat colleague_job.sh
     #SBATCH --ntasks-per-node=8                            # number of tasks to invoke on each node
     ########################################################
     module purge                                           # Purge modules
-    module load gcc/13 openmpi/5.0 # modules               # modules
+    module load gcc/13 openmpi/5.0                         # modules
     module list                                            # List loaded modules
     srun ./myprog --small-input > test.out
     srun ./myprog --full-input > production.out

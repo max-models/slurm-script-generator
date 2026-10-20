@@ -29,6 +29,10 @@ optional-dependencies.dev = [
   "black",
   "check-manifest",
   "isort",
+  "jupyterlab",
+  "nbconvert",
+  "pre-commit",
+  "pyproject-fmt",
   "slurm-script-generator[docs]",
   "slurm-script-generator[test]",
 ]
@@ -37,19 +41,12 @@ optional-dependencies.test = [
   "coverage",
 ]
 
+# the docs site (docs/, Astro + Starlight): the API reference (griffe) and the tutorials
 optional-dependencies.docs = [
+  "griffe",
   "ipykernel",
-  "myst-parser",
-  "nbconvert",
-  "nbsphinx",
-  "jupyterlab",
-  "linkify-it-py",
-  "pre-commit",
-  "pyproject-fmt",
-  "sphinx",
-  "sphinx-book-theme",
-  "sphinxcontrib-mermaid",
-  "sphinx-design",
+  "nbclient",
+  "nbformat",
 ]
 
 [project.urls]
