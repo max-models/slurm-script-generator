@@ -24,12 +24,15 @@ jobs:
           ./cloc --version
           ./cloc $(git ls-files)
 
-      - name: Code formatting with black
+      - name: Linting with ruff (including import sorting)
         run: |
-          pip install black
-          black --check .
+          pip install ruff
+          ruff check .
 
-      - name: Code formatting with isort
+      - name: Code formatting with ruff
+        run: ruff format --check .
+
+      - name: Check statement order
         run: |
-          pip install isort
-          isort --check .
+          pip install ssort
+          ssort --check --diff .
