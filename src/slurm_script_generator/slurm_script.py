@@ -539,9 +539,9 @@ class SlurmScript:
         if path is None:
             return
         assert isinstance(path, str)
-        assert os.path.isfile(
-            path
-        ), f"Inlined script '{path}' does not exist or is not a file."
+        assert os.path.isfile(path), (
+            f"Inlined script '{path}' does not exist or is not a file."
+        )
         with open(path, "r") as f:
             for line in f.readlines():
                 self._custom_commands.append(line.strip())

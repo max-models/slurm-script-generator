@@ -26,9 +26,9 @@ dependencies = [
 ]
 
 optional-dependencies.dev = [
-  "black",
   "check-manifest",
-  "isort",
+  "pre-commit",
+  "ruff",
   "slurm-script-generator[docs]",
   "slurm-script-generator[test]",
 ]
@@ -69,5 +69,8 @@ slurm-template = "slurm_script_generator.slurm_template:main"
 [tool.setuptools.packages.find]
 where = [ "src" ]
 
-[tool.isort]
-profile = "black"
+[tool.ruff]
+line-length = 88
+# formatting: `ruff format`; import sorting: the isort rules of `ruff check`
+# an explicit rule set: ruff's default one grows between releases
+lint.select = [ "E4", "E7", "E9", "F", "I" ]
