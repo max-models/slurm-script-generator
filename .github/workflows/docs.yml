@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   docs:
-    uses: max-models/starlight-theme/.github/workflows/docs.yml@v0.4.0
+    uses: max-models/starlight-theme/.github/workflows/docs.yml@v0.6.0
     with:
       # stable-branch: main  # deploy the latest release at /<repo>/ and devel at /<repo>/dev/
       smoke-paths: |
